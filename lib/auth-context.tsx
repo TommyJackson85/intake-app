@@ -1,8 +1,11 @@
 'use client'
 
+import { createClient } from '@/lib/supabase/client'
+
+
 import React, { useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
-import { createBrowserSupabaseClient } from './supabase'
+import { browserClient } from './browserClient'
 
 interface Profile {
   id: string
@@ -28,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const supabase = createBrowserSupabaseClient()
+  const supabase = browserClient()
 
   useEffect(() => {
     const getSession = async () => {
