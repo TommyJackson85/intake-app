@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/auth-context'
 import { useEffect, useState } from 'react'
-import { createBrowserSupabaseClient } from '@/lib/supabase'
+import { createBrowserSupabaseClient } from '@/lib/browserClient'
 
 interface Stats {
   totalClients: number

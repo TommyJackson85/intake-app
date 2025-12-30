@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
+//import { createClient } from '@/lib/supabase'
+import { createServerSupabaseClient } from '@/lib/serverClient'
 import { sendWelcomeEmail } from '@/lib/emailService'
 import { logAuditEvent } from '@/lib/auditLog'
 
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createClient()
+    const supabase = createServerSupabaseClient()
 
     // Check if email already exists
     const { data: existing } = await supabase

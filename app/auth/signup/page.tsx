@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserSupabaseClient } from '@/lib/supabase'
+import { createBrowserSubabaseClient } from '@/lib/browserClient'
 
 export default function SignUp() {
   const [email, setEmail] = useState('')
@@ -11,7 +11,7 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const supabase = createBrowserSupabaseClient()
+  const supabase = createBrowserSubabaseClient()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
