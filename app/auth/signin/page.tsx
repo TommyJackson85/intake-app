@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserSubabaseClient } from '@/lib/browserClient'
+import { createBrowserSupabaseClient } from '@/lib/browserClient'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -10,7 +10,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const supabase = createBrowserSubabaseClient()
+  const supabase = createBrowserSupabaseClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

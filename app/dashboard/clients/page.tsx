@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/auth-context'
 import { useEffect, useState } from 'react'
-import { createBrowserSubabaseClient } from '@/lib/browserClient'
+import { createBrowserSupabaseClient } from '@/lib/browserClient'
 
 interface Client {
   id: string
@@ -10,28 +10,39 @@ interface Client {
   email: string
   phone: string | null
   kyc_status: string
-  created_at: string
+  created_at: string | null
 }
 
 export default function ClientsPage() {
   const { profile } = useAuth()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createBrowserSubabaseClient()
+  const supabase = createBrowserSupabaseClient()
 
   useEffect(() => {
     const loadClients = async () => {
       if (!profile?.firm_id) return
 
       try {
-        const { data, error } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('firm_id', profile.firm_id)
-          .order('created_at', { ascending: false })
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('firm_id', profile.firm_id)
+        .order('created_at', { ascending: false })
 
-        if (error) throw error
-        setClients(data || [])
+      if (error) throw error
+
+      const normalized: Client[] = (data || []).map((row) => ({
+        id: row.id,
+        full_name: row.full_name,
+        email: row.email,
+        phone: row.phone,
+        kyc_status: row.kyc_status ?? 'pending', // ← coerce null to 'pending'
+        created_at: row.created_at,
+      }))
+
+      setClients(normalized)
+
       } catch (error) {
         console.error('Failed to load clients:', error)
       } finally {
@@ -125,7 +136,9 @@ export default function ClientsPage() {
                     </span>
                   </td>
                   <td style={{ padding: '16px', fontSize: '14px', color: '#627c71' }}>
-                    {new Date(client.created_at).toLocaleDateString()}
+                    {client.created_at
+                      ? new Date(client.created_at).toLocaleDateString()
+                      : '—'}
                   </td>
                 </tr>
               ))}

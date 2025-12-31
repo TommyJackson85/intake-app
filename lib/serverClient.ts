@@ -1,9 +1,13 @@
-import { createServerClient } from '@supabase/ssr'
+// lib/serverClient.ts
 import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
+import type { SupabaseClient } from '@supabase/supabase-js'  // <- type from supabase-js
+import type { Database } from '@/lib/database.types'
 
-export function createServerSupabaseClient() {
-  const cookieStore = cookies()
-  return client (
+export async function createServerSupabaseClient(): Promise<SupabaseClient<Database>> {
+  const cookieStore = await cookies()
+
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {

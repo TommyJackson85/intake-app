@@ -2,18 +2,15 @@
 
 import React, { useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
-import { createBrowserSubabaseClient } from './browserClient'
+import { createBrowserSupabaseClient } from './browserClient'
+import type { Database } from '@/lib/database.types'
 
-interface Profile {
-  id: string
-  firm_id: string
-  full_name: string | null
-  role: string
-}
+//This gives you the exact Row type of profiles
+type ProfileRow = Database['public']['Tables']['profiles']['Row']
 
 interface AuthContextType {
   session: Session | null
-  profile: Profile | null
+  profile: ProfileRow | null
   loading: boolean
 }
 
@@ -25,10 +22,10 @@ const AuthContext = React.createContext<AuthContextType>({
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const supabase = createBrowserSubabaseClient()
+  const supabase = createBrowserSupabaseClient()
 
   useEffect(() => {
     const getSession = async () => {
@@ -72,9 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useAuth() {
-  const context = React.useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-  return context
+ const ctx = React.useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
 }

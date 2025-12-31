@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/auth-context'
 import { useEffect, useState } from 'react'
-import { createBrowserSubabaseClient } from '@/lib/browserClient'
+import { createBrowserSupabaseClient } from '@/lib/browserClient'
 
 interface Stats {
   totalClients: number
@@ -18,7 +18,7 @@ export default function Dashboard() {
     pendingAML: 0,
   })
   const [loading, setLoading] = useState(true)
-  const supabase = createBrowserSubabaseClient()
+  const supabase = createBrowserSupabaseClient()
 
   useEffect(() => {
     const loadStats = async () => {

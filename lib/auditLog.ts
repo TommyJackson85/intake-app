@@ -12,7 +12,7 @@ interface AuditEvent {
 }
 
 export async function logAuditEvent(event: AuditEvent) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient() // IMPORTANT: await here
 
   try {
     const { error } = await supabase
