@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendWelcomeEmail } from '@/lib/emailService'
 import { logAuditEvent } from '@/lib/auditLog'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-
-function getSupabaseServerClient() {
-  // This is a pure server-only client, no cookies/session.
-  // Safe to use with the service role key in this API route only.
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY! // IMPORTANT: service role key, NEVER expose this to the browser
-  )
-}
+import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +14,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = getSupabaseServerClient()
+    const supabase = createSupabaseServerClientStrict()
 
     // 1) Check if email already exists
     const { data: existing, error: existingError } = await supabase

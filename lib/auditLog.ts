@@ -1,4 +1,4 @@
-import { createSupabaseServerClientWithAuth } from './serverClient'
+import { createSupabaseServerClientWithAuth } from './serverClientWithAuth'
 
 interface AuditEvent {
   firm_id: string
