@@ -1,7 +1,7 @@
 'use server'
-import { createBrowserSupabaseClient } from '@/lib/browserClient'
+import { createSupabaseBrowserClient } from '@/lib/browserClient'
 
-const supabase = createBrowserSupabaseClient()
+const supabase = createSupabaseBrowserClient()
 
 export async function signUpAction(
   email: string,

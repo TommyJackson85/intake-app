@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/auth-context'
 import { useEffect, useState } from 'react'
-import { createBrowserSupabaseClient } from '@/lib/browserClient'
+import { createSupabaseBrowserClient } from '@/lib/browserClient'
 
 interface Client {
   id: string
@@ -17,7 +17,7 @@ export default function ClientsPage() {
   const { profile } = useAuth()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createBrowserSupabaseClient()
+  const supabase = createSupabaseBrowserClient()
 
   useEffect(() => {
     const loadClients = async () => {

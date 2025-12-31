@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
-import { createBrowserSupabaseClient } from './browserClient'
+import { createSupabaseBrowserClient } from './browserClient'
 import type { Database } from '@/lib/database.types'
 
 //This gives you the exact Row type of profiles
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const supabase = createBrowserSupabaseClient()
+  const supabase = createSupabaseBrowserClient()
 
   useEffect(() => {
     const getSession = async () => {
