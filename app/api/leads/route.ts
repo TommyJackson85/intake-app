@@ -1,94 +1,73 @@
+// app/api/leads/route.ts - UPDATED
 import { NextRequest, NextResponse } from 'next/server'
 import { sendWelcomeEmail } from '@/lib/emailService'
 import { logAuditEvent } from '@/lib/auditLog'
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 
+// CSRF-ish Origin/Referrer check
+function validateOrigin(request: NextRequest): boolean {
+  const origin = request.headers.get('origin')
+  const referer = request.headers.get('referer')
+
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://lawintake.io',
+    process.env.NEXT_PUBLIC_APP_URL ?? '',
+  ]
+
+  let checkOrigin: string | undefined
+
+  if (origin) {
+    checkOrigin = origin
+  } else if (referer) {
+    try {
+      checkOrigin = new URL(referer).origin
+    } catch {
+      checkOrigin = undefined
+    }
+  }
+
+  // If we still don't have a valid origin, fail fast
+  if (!checkOrigin) {
+    return false
+  }
+
+  return allowedOrigins.some((allowed) => {
+    if (!allowed) return false
+    return checkOrigin!.includes(allowed)
+  })
+}
+
 export async function POST(request: NextRequest) {
+  // ✓ Validate origin
+  if (!validateOrigin(request)) {
+    return NextResponse.json(
+      { error: 'Invalid origin' },
+      { status: 403 },
+    )
+  }
+
+  // ✓ Validate Content-Type
+  const contentType = request.headers.get('content-type')
+  if (!contentType?.includes('application/json')) {
+    return NextResponse.json(
+      { error: 'Content-Type must be application/json' },
+      { status: 400 },
+    )
+  }
+
   try {
     const { email, firm_name, state } = await request.json()
 
-    if (!email) {
+    if (!email || !email.includes('@')) {
       return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
+        { error: 'Valid email is required' },
+        { status: 400 },
       )
     }
 
-    const supabase = createSupabaseServerClientStrict()
-
-    // 1) Check if email already exists
-    const { data: existing, error: existingError } = await supabase
-      .from('marketing_leads')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle()
-
-    if (existingError) {
-      console.error('Existing lead check failed:', existingError)
-      // You can decide to treat this as non-fatal or return 500
-    }
-
-    if (existing) {
-      return NextResponse.json(
-        { message: 'Email already registered' },
-        { status: 200 }
-      )
-    }
-
-    // 2) Insert new lead
-    const { data: lead, error } = await supabase
-      .from('marketing_leads')
-      .insert([
-        {
-          email,
-          firm_name: firm_name || null,
-          state: state || null,
-          ip_address: request.headers.get('x-forwarded-for') || null,
-        },
-      ])
-      .select()
-      .maybeSingle()
-
-    if (error) {
-      console.error('Insert error:', error)
-      return NextResponse.json(
-        { error: 'Failed to save lead' },
-        { status: 500 }
-      )
-    }
-
-    // 3) Send welcome email (non-blocking if it fails)
-    try {
-      await sendWelcomeEmail(email, firm_name || 'Law Firm')
-    } catch (emailError) {
-      console.error('Email send failed (non-blocking):', emailError)
-    }
-
-    // 4) Log audit event (optionally, if your logAuditEvent uses a different client)
-    try {
-      await logAuditEvent({
-        firm_id: 'marketing', // or some fixed "system" firm_id
-        user_id: null,
-        event_type: 'marketing_lead_captured',
-        entity_type: 'marketing_leads',
-        entity_id: lead?.id,
-        details: { email, firm_name, state },
-        ip_address: request.headers.get('x-forwarded-for') || undefined,
-        lawful_basis: 'legitimate_interest',
-      })
-    } catch (logError) {
-      console.error('Audit logging failed (non-blocking):', logError)
-    }
-
-    return NextResponse.json(
-      { message: 'Lead captured successfully' },
-      { status: 201 }
-    )
+    // ... rest of your existing code
   } catch (error) {
-    console.error('Lead capture error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
 }

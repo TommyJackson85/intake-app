@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       aml_checks: {
@@ -355,10 +330,12 @@ export type Database = {
         Row: {
           citizenship_country: string | null
           created_at: string | null
+          deleted_at: string | null
           email: string | null
           firm_id: string
           full_name: string | null
           id: string
+          is_deleted: boolean
           is_us_citizen_or_resident: boolean | null
           phone: string | null
           role: string | null
@@ -366,10 +343,12 @@ export type Database = {
         Insert: {
           citizenship_country?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           email?: string | null
           firm_id: string
           full_name?: string | null
           id: string
+          is_deleted?: boolean
           is_us_citizen_or_resident?: boolean | null
           phone?: string | null
           role?: string | null
@@ -377,10 +356,12 @@ export type Database = {
         Update: {
           citizenship_country?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           email?: string | null
           firm_id?: string
           full_name?: string | null
           id?: string
+          is_deleted?: boolean
           is_us_citizen_or_resident?: boolean | null
           phone?: string | null
           role?: string | null
@@ -529,9 +510,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
