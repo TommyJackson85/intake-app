@@ -1,0 +1,10 @@
+{
+  "marketing_leads": "P2Y",
+  "profiles": "subscription+P1Y",
+  "firms": "subscription+P1Y",
+  "clients": "matter_close+P6Y",
+  "matters": "matter_close+P6Y",
+  "aml_checks": "P7Y",
+  "audit_events": "P7Y",
+  "_backups": "P90D"
+}
