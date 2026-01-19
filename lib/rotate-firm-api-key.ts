@@ -1,5 +1,5 @@
 // lib/rotate-firm-api-key.ts
-import { supabaseService } from './serverClientService'
+import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 import { logAuditEvent } from './auditLog'
 
 export async function rotateFirmApiKey(firmId: string) {
@@ -7,7 +7,7 @@ export async function rotateFirmApiKey(firmId: string) {
     'hex',
   )
 
-  const { data, error } = await supabaseService
+  const { data, error } = await createSupabaseServerClientStrict
     .from('firms')
     .update({
       api_key: newKey,

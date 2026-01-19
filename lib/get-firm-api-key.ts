@@ -1,5 +1,5 @@
 // lib/get-firm-api-key.ts
-import { supabaseService } from './serverClientService'
+import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 
 export interface FirmApiKeyRecord {
   firm_id: string
@@ -13,7 +13,7 @@ export async function getFirmFromApiKeyWithScopes(
     throw new Error('MISSING_API_KEY')
   }
 
-  const { data, error } = await supabaseService
+  const { data, error } = await createSupabaseServerClientStrict()
     .from('firm_api_keys')
     .select('firm_id, scopes, firms!inner(firm_name)')
     .eq('api_key', apiKey)

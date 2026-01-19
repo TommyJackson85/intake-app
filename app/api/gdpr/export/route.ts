@@ -1,140 +1,78 @@
-// app/api/gdpr/export/route.ts
-import { NextRequest, NextResponse } from 'next/server'
+/**
+ * GET /api/gdpr/export
+ * GDPR Data Export - Download all firm data as JSON
+ * 
+ * Satisfies GDPR Article 15 (right to access)
+ * Copy this entire file to: app/api/gdpr/export/route.ts
+ */
+
+import { NextRequest } from 'next/server'
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
+import { getFirmIdFromSession, getUserIdFromSession, getClientIp } from '@/lib/session'
+import { logGDPRExport } from '@/lib/auditLog'
+import {
+  unauthorizedResponse,
+  serverErrorResponse,
+  jsonResponse,
+} from '@/lib/apiResponse'
+import { GDPRExportData } from '@/types/database'
 
-//import { getFirmFromApiKey } from '@/lib/get-firm-from-api-key'
-import { logAuditEvent } from '@/lib/auditLog'
-
-import { limitSensitive } from '@/lib/rate-limit'
-
-import { getUserIdFromSession, requireSessionFirm } from '@/lib/session'
-import { getFirmFromSession } from '@/lib/get-firm-from-session'
-
-import { assertScope, REQUIRED_SCOPES } from '@/lib/api-scope'
-import { getFirmFromApiKeyWithScopes } from '@/lib/get-firm-api-key'
-
+/**
+ * GET /api/gdpr/export
+ * Export all firm data for GDPR compliance
+ * Returns JSON file with all tables filtered by firm_id
+ */
 export async function GET(request: NextRequest) {
- // 1) Rate limit first
-  const rate = await limitSensitive(request)
-
-  if (!rate.success) {
-    return NextResponse.json(
-      {
-        error: 'Too many export requests. Please try again later.',
-        retry_at: rate.reset ? new Date(rate.reset * 1000).toISOString() : undefined,
-      },
-      { status: 429 },
-    )
-  }
-
   try {
-    // 2) Firm lookup via API key (your existing pattern)
-    const apiKey = request.headers.get('x-firm-api-key')
-    const { firm_id, scopes } = await getFirmFromApiKeyWithScopes(apiKey)
-
-    // Check permission for this action
-    assertScope(scopes, REQUIRED_SCOPES.createLead)
-    const firmId = requireSessionFirm()
-    if (!firmId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const firmId = getFirmIdFromSession()
     const userId = getUserIdFromSession()
+    const ip = getClientIp(request)
 
-    // 1) Identify firm by API key
-    //const apiKey = request.headers.get('x-firm-api-key')
-    //using session instead of API key for this endpoint
-    let firm
-    try {
-      firm = await getFirmFromSession()
-    } catch (e: any) {
-      if (e.message === 'NO_FIRM_IN_SESSION') {
-        return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-      }
-      if (e.message === 'Firm not found') {
-        return NextResponse.json({ error: 'Invalid API key' }, { status: 403 })
-      }
-      throw e
+    if (!firmId) {
+      return unauthorizedResponse()
     }
 
-    // 2) Firm data
-    const firmData = {
-      id: firm.id,
-      firm_name: firm.name,
-      firm_state: firm.firm_state,
-      created_at: firm.created_at,
-    }
-
-    // 3) Firm-scoped data
-    const [clientsRes, mattersRes, amlRes, auditRes] = await Promise.all([
+    // Fetch all tables for this firm in parallel
+    const [
+      clientsRes,
+      mattersRes,
+      amlChecksRes,
+      auditEventsRes,
+      leadsRes,
+    ] = await Promise.all([
       createSupabaseServerClientStrict().from('clients').select('*').eq('firm_id', firmId),
       createSupabaseServerClientStrict().from('matters').select('*').eq('firm_id', firmId),
       createSupabaseServerClientStrict().from('aml_checks').select('*').eq('firm_id', firmId),
-      createSupabaseServerClientStrict()
-        .from('audit_events')
-        .select('*')
-        .eq('firm_id', firmId)
-        .order('created_at', { ascending: true }),
+      createSupabaseServerClientStrict().from('audit_events').select('*').eq('firm_id', firmId),
+      createSupabaseServerClientStrict().from('marketing_leads').select('*').eq('firm_id', firmId),
     ])
 
-    if (clientsRes.error || mattersRes.error || amlRes.error || auditRes.error) {
-      console.error('GDPR export query errors:', {
-        clients: clientsRes.error,
-        matters: mattersRes.error,
-        aml: amlRes.error,
-        audit: auditRes.error,
-      })
-      return NextResponse.json(
-        { error: 'Failed to fetch data for export' },
-        { status: 500 }
-      )
+    // Check for errors
+    if (clientsRes.error || mattersRes.error || amlChecksRes.error || 
+        auditEventsRes.error || leadsRes.error) {
+      const error = clientsRes.error || mattersRes.error || amlChecksRes.error
+      console.error('[GDPR Export] Query error:', error)
+      return serverErrorResponse(error)
     }
 
-    const clients = clientsRes.data ?? []
-    const matters = mattersRes.data ?? []
-    const amlChecks = amlRes.data ?? []
-    const auditEvents = auditRes.data ?? []
-
-    // 4) Payload
-    const payload = {
-      requested_at: new Date().toISOString(),
-      scope: 'firm',
-      user: null,
-      firm: firmData,
-      clients,
-      matters,
-      aml_checks: amlChecks,
-      audit_events: auditEvents,
-    }
-
-    // 5) Audit log
-    await logAuditEvent({
+    // Package all data
+    const exportData: GDPRExportData = {
+      exported_at: new Date().toISOString(),
       firm_id: firmId,
-      user_id: null,
-      event_type: 'export',
-      entity_type: 'firm',
-      entity_id: firmId,
-      details: {
-        scope: payload.scope,
-        total_clients: clients.length,
-        total_matters: matters.length,
-        total_aml_checks: amlChecks.length,
-        total_audit_events: auditEvents.length,
-        via: 'api-key',
-      },
-      lawful_basis: 'GDPR Article 15/20 - data export',
-    })
+      clients: clientsRes.data || [],
+      matters: mattersRes.data || [],
+      aml_checks: amlChecksRes.data || [],
+      audit_events: auditEventsRes.data || [],
+      marketing_leads: leadsRes.data || [],
+    }
 
-    // 6) Return JSON download
-    return new NextResponse(JSON.stringify(payload, null, 2), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Disposition': `attachment; filename="gdpr_export_${firmId}_${Date.now()}.json"`,
-      },
-    })
-  } catch (error) {
-    console.error('GDPR export error:', error)
-    return NextResponse.json(
-      { error: 'Failed to generate export' },
-      { status: 500 }
-    )
+    // Audit log: GDPR export
+    await logGDPRExport(firmId, userId, ip)
+
+    // Return as downloadable JSON
+    return jsonResponse(exportData)
+  } catch (err: any) {
+    console.error('[GDPR Export] Exception:', err)
+    return serverErrorResponse(err)
   }
 }

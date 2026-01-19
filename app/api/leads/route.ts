@@ -1,6 +1,6 @@
 // app/api/leads/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseService } from '@/lib/serverClientService'
+import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 import { logAuditEvent } from '@/lib/auditLog'
 import { sendWelcomeEmail } from '@/lib/emailService'
 import { limitLeads } from '@/lib/rate-limit'
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       undefined
 
     // 6) Check if this email already exists for this firm
-    const { data: existing, error: existingError } = await supabaseService
+    const { data: existing, error: existingError } = await createSupabaseServerClientStrict()
       .from('marketing_leads')
       .select('id')
       .eq('firm_id', firmId)
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 7) Insert new lead (firm-scoped)
-    const { data: lead, error } = await supabaseService
+    const { data: lead, error } = await createSupabaseServerClientStrict()
       .from('marketing_leads')
       .insert([
         {

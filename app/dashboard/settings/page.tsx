@@ -1,4 +1,3 @@
-// e.g. app/dashboard/settings/page.tsx (server or client component)
 'use client'
 
 export function FirmExportButton() {
@@ -36,5 +35,25 @@ export function FirmExportButton() {
     >
       Download full firm export (JSON)
     </button>
+  )
+}
+
+// DEFAULT EXPORT - Required by Next.js
+export default function SettingsPage() {
+  return (
+    <div className="dashboard-page">
+      <div className="page-header">
+        <h1>Settings</h1>
+        <p>Manage your firm settings and data</p>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-card">
+          <h2>Data Export (GDPR)</h2>
+          <p>Download all your firm's data in JSON format for compliance or backup.</p>
+          <FirmExportButton />
+        </div>
+      </div>
+    </div>
   )
 }

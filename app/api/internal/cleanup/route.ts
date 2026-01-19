@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseService } from '@/lib/serverClientService'
+import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 import { logAuditEvent } from '@/lib/auditLog'
 import { limitSensitive } from '@/lib/rate-limit'
 import { assertScope, REQUIRED_SCOPES } from '@/lib/api-scope'
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const twoYearsAgo = new Date()
     twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2)
 
-    const { data: deletedLeads, error: leadError } = await supabaseService
+    const { data: deletedLeads, error: leadError } = await createSupabaseServerClientStrict()
       .from('marketing_leads')
       .delete()
       .lt('created_at', twoYearsAgo.toISOString())

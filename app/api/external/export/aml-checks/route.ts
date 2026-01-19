@@ -1,6 +1,5 @@
 // app/api/external/export/aml-checks/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-//import { supabaseService } from '@/lib/serverClientService'
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 import { getFirmFromApiKey } from '@/lib/get-firm-from-api-key'
 import { logAuditEvent } from '@/lib/auditLog'

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-//import { createSupabaseBrowserClient } from '@/lib/browserClient'
 
 
 export default function Login() {

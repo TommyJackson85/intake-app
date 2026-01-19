@@ -1,6 +1,6 @@
 // app/api/public/leads/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseService } from '@/lib/serverClientService'
+import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 import { logAuditEvent } from '@/lib/auditLog'
 
 export async function POST(request: NextRequest) {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       null
 
     // No firm_id here: this is pure marketing lead capture
-    const { data: existing, error: existingError } = await supabaseService
+    const { data: existing, error: existingError } = await createSupabaseServerClientStrict()
       .from('marketing_leads')
       .select('id')
       .is('firm_id', null)
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data: lead, error } = await supabaseService
+    const { data: lead, error } = await createSupabaseServerClientStrict()
       .from('marketing_leads')
       .insert([
         {

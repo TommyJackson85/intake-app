@@ -3,12 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClientWithAuth } from '@/lib/serverClientWithAuth'
 import { logAuditEvent } from '@/lib/auditLog'
 import { limitSensitive } from '@/lib/rate-limit'
-import { getUserIdFromSession, requireSessionFirm } from '@/lib/session'
+import { getUserIdFromSession, getFirmIdFromSession } from '@/lib/session'
 
 import { assertScope, REQUIRED_SCOPES } from '@/lib/api-scope'
 import { getFirmFromApiKeyWithScopes } from '@/lib/get-firm-api-key'
 
-const firmId = await requireSessionFirm()
+const firmId = await getFirmIdFromSession()
 const userId = await getUserIdFromSession()
 
 export async function POST(request: NextRequest) {

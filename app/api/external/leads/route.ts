@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getFirmFromApiKey } from '@/lib/get-firm-from-api-key'
 import { logAuditEvent } from '@/lib/auditLog'
-import { supabaseService } from '@/lib/serverClientService' // service-role client
+import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'// service-role client
 
 import { assertScope, REQUIRED_SCOPES } from '@/lib/api-scope'
 import { getFirmFromApiKeyWithScopes } from '@/lib/get-firm-api-key'
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       undefined
 
     // 4) Insert global marketing lead (no firm_id on marketing_leads)
-    const { data: lead, error } = await supabaseService
+    const { data: lead, error } = await createSupabaseServerClientStrict()
       .from('marketing_leads')
       .insert([
         {
