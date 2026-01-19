@@ -2,9 +2,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClientWithAuth } from '@/lib/serverClientWithAuth'
 import { logAuditEvent } from '@/lib/auditLog'
+import { limitSensitive } from '@/lib/rate-limit'
+import { getUserIdFromSession, requireSessionFirm } from '@/lib/session'
+
+import { assertScope, REQUIRED_SCOPES } from '@/lib/api-scope'
+import { getFirmFromApiKeyWithScopes } from '@/lib/get-firm-api-key'
+
+const firmId = await requireSessionFirm()
+const userId = await getUserIdFromSession()
 
 export async function POST(request: NextRequest) {
+  const rate = await limitSensitive(request)
+  if (!rate.success) {
+    return NextResponse.json(
+      { error: 'Too many deletion requests. Please try again later.' },
+      { status: 429 },
+    )
+  }
   const supabase = await createSupabaseServerClientWithAuth()
+
+  const apiKey = request.headers.get('x-firm-api-key')
+  const { firm_id, scopes } = await getFirmFromApiKeyWithScopes(apiKey)
+
+  // Check permission for this action
+  assertScope(scopes, REQUIRED_SCOPES.createLead)
   
   try {
     const { data: { user } } = await supabase.auth.getUser()
@@ -33,13 +54,13 @@ export async function POST(request: NextRequest) {
       details: { deletion_timestamp: new Date().toISOString() },
     })
 
-    // Soft-delete user (don't cascade delete immediately)
+    // 1. Soft-delete user (don't cascade delete immediately)
     const { error: deleteError } = await supabase
       .from('profiles')
       .update({ is_deleted: true, deleted_at: new Date().toISOString() })
       .eq('id', user.id)
-
-    if (deleteError) throw deleteError
+      .eq('firm_id', firmId)
+      .single()
 
     // Delete auth user
     await supabase.auth.admin.deleteUser(user.id)

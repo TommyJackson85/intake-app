@@ -2,8 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClientWithAuth } from '@/lib/serverClientWithAuth'
 import { logAuditEvent } from '@/lib/auditLog'
 
+import { getUserIdFromSession, requireSessionFirm } from '@/lib/session'
+
+import { assertScope, REQUIRED_SCOPES } from '@/lib/api-scope'
+import { getFirmFromApiKeyWithScopes } from '@/lib/get-firm-api-key'
+
+const firmId = await requireSessionFirm()
+const userId = await getUserIdFromSession()
+
 export async function GET(request: NextRequest) {
   try {
+    const apiKey = request.headers.get('x-firm-api-key')
+    const { firm_id, scopes } = await getFirmFromApiKeyWithScopes(apiKey)
+
+    // Check permission for this action
+    assertScope(scopes, REQUIRED_SCOPES.createLead)
     const supabase = await createSupabaseServerClientWithAuth()
 
     const {
@@ -29,7 +42,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const firmId = profile.firm_id
+    const firmId = profile.firm_id as string
 
     // Fetch user’s own data only
     const [userProfileRes, auditRes] = await Promise.all([

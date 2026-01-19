@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createSupabaseBrowserClient } from '@/lib/browserClient'
+//import { createSupabaseBrowserClient } from '@/lib/browserClient'
+
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -10,7 +11,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const supabase = createSupabaseBrowserClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,18 +18,25 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const { error: loginError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch('/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       })
 
-      if (loginError) {
-        setError(loginError.message)
-      } else {
-        router.push('/dashboard')
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setError(data.error || 'Login failed')
+        return
       }
+
+      // Cookies (firm_id, user_id) are now set by the server route
+      router.push('/dashboard')
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message || 'Login failed')
     } finally {
       setLoading(false)
     }
@@ -75,14 +82,16 @@ export default function Login() {
           </div>
 
           {error && (
-            <div style={{
-              background: '#fee',
-              color: '#c0152f',
-              padding: '12px',
-              borderRadius: '6px',
-              marginBottom: '20px',
-              fontSize: '14px',
-            }}>
+            <div
+              style={{
+                background: '#fee',
+                color: '#c0152f',
+                padding: '12px',
+                borderRadius: '6px',
+                marginBottom: '20px',
+                fontSize: '14px',
+              }}
+            >
               {error}
             </div>
           )}
@@ -106,7 +115,10 @@ export default function Login() {
         </form>
 
         <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px' }}>
-          Don't have an account? <a href="/auth/signup" style={{ color: '#208096', fontWeight: 600 }}>Sign Up</a>
+          Don't have an account?{' '}
+          <a href="/auth/signup" style={{ color: '#208096', fontWeight: 600 }}>
+            Sign Up
+          </a>
         </p>
       </div>
     </div>

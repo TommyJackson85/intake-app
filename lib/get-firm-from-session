@@ -1,0 +1,22 @@
+// lib/get-firm-from-session.ts
+import { getFirmIdFromSession } from './session'
+import { createSupabaseServerClientStrict } from './serverClientStrict'
+
+export async function getFirmFromSession() {
+  const firmId = getFirmIdFromSession()
+  if (!firmId) {
+    throw new Error('NO_FIRM_IN_SESSION')
+  }
+
+  const { data: firm, error } = await createSupabaseServerClientStrict
+    .from('firms')
+    .select('id, name, firm_state, created_at')
+    .eq('id', firmId)
+    .single()
+
+  if (error || !firm) {
+    throw new Error('FIRM_NOT_FOUND')
+  }
+
+  return firm
+}

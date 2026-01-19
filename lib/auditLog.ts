@@ -1,4 +1,4 @@
-import { createSupabaseServerClientWithAuth } from './serverClientWithAuth'
+import { createSupabaseServerClientStrict } from './serverClientStrict'
 
 interface AuditEvent {
   firm_id: string
@@ -12,7 +12,7 @@ interface AuditEvent {
 }
 
 export async function logAuditEvent(event: AuditEvent) {
-  const supabase = await createSupabaseServerClientWithAuth() // IMPORTANT: await here
+  const supabase = await createSupabaseServerClientStrict() // IMPORTANT: await here
 
   try {
     const { error } = await supabase
