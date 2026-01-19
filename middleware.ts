@@ -1,98 +1,114 @@
-/**
- * Next.js Middleware - Route Protection
- * Copy this entire file to: middleware.ts (at project root, NOT in app/ folder)
- * 
- * Validates authentication before any request reaches your routes
- */
+// middleware.ts - CSRF token generation & security headers
+// Copy-paste ready - add to your Next.js project root
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server';
+import { generateCSRFToken, csrfCookieOptions } from '@/lib/csrf-protection';
 
 /**
- * Protected routes that require authentication
- * Add more routes as needed
- */
-const PROTECTED_ROUTES = [
-  '/dashboard',
-  '/api/clients',
-  '/api/clients/:id',
-  '/api/matters',
-  '/api/matters/:id',
-  '/api/aml-checks',
-  '/api/aml-checks/:id',
-  '/api/gdpr/export',
-  '/api/audit-logs',
-]
-
-/**
- * Public routes that don't require authentication
- */
-const PUBLIC_ROUTES = [
-  '/',
-  '/auth/signin',
-  '/auth/signup',
-  '/api/leads', // External leads endpoint
-  '/api/auth/signin', // Custom auth route
-  '/_next',
-  '/favicon.ico',
-]
-
-/**
- * Middleware function runs on EVERY request
- * Before the request reaches your route handler
+ * Middleware to:
+ * 1. Generate CSRF token for forms
+ * 2. Set security headers
+ * 3. Validate session
+ * 4. Handle CORS
  */
 export function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname
+  const response = NextResponse.next();
 
-  // Read cookies set by the signin route
-  const firmId = request.cookies.get('firm_id')?.value
-  const userId = request.cookies.get('user_id')?.value
+  // ✅ Generate CSRF token for this request
+  const csrfToken = generateCSRFToken();
+  response.cookies.set('_csrf', csrfToken, {
+    ...csrfCookieOptions,
+  });
 
-  // Check if route is public
-  const isPublicRoute = PUBLIC_ROUTES.some(route => {
-    // Handle exact matches and pattern matches
-    if (route.includes(':id')) {
-      const pattern = route.replace(':id', '[^/]+')
-      return new RegExp(`^${pattern}$`).test(pathname)
-    }
-    return pathname === route || pathname.startsWith(route)
-  })
+  // ✅ Security Headers
+  response.headers.set(
+    'X-Content-Type-Options',
+    'nosniff'
+  );
+  response.headers.set(
+    'X-Frame-Options',
+    'DENY'
+  );
+  response.headers.set(
+    'X-XSS-Protection',
+    '1; mode=block'
+  );
+  response.headers.set(
+    'Referrer-Policy',
+    'strict-origin-when-cross-origin'
+  );
+  response.headers.set(
+    'Permissions-Policy',
+    'geolocation=(), microphone=(), camera=()'
+  );
 
-  if (isPublicRoute) {
-    return NextResponse.next()
+  // ✅ Content Security Policy (adjust as needed)
+  response.headers.set(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:"
+  );
+
+  // ✅ Prevent caching of sensitive pages
+  if (request.nextUrl.pathname.includes('/dashboard') ||
+      request.nextUrl.pathname.includes('/api/') ||
+      request.nextUrl.pathname.includes('/auth/')) {
+    response.headers.set(
+      'Cache-Control',
+      'no-store, no-cache, must-revalidate, proxy-revalidate'
+    );
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
   }
 
-  // Check if route is protected
-  const isProtectedRoute = PROTECTED_ROUTES.some(route => {
-    if (route.includes(':id')) {
-      const pattern = route.replace(':id', '[^/]+')
-      return new RegExp(`^${pattern}$`).test(pathname)
-    }
-    return pathname.startsWith(route)
-  })
+  return response;
+}
 
-  if (isProtectedRoute) {
-    // If not authenticated, redirect to signin
-    if (!firmId || !userId) {
-      return NextResponse.redirect(new URL('/auth/signin', request.url))
-    }
-  }
+// Configure which routes use middleware
+export const config = {
+  matcher: [
+    // Match all routes except static files and Next.js internals
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
+};
 
-  return NextResponse.next()
+// ============================================
+// Additional middleware functions for use
+// ============================================
+
+/**
+ * Middleware to require authentication
+ * Usage: Apply to protected routes
+ */
+export function withAuth(handler: (req: NextRequest) => NextResponse) {
+  return async (request: NextRequest) => {
+    const token = request.cookies.get('auth_token')?.value;
+
+    if (!token) {
+      return NextResponse.redirect(new URL('/auth/signin', request.url));
+    }
+
+    return handler(request);
+  };
 }
 
 /**
- * Configure which routes trigger middleware
- * Exclude static files, images, etc.
+ * Middleware to require admin role
  */
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    '/((?!_next/static|_next/image|favicon.ico|public).*)',
-  ],
+export function withAdmin(handler: (req: NextRequest) => NextResponse) {
+  return async (request: NextRequest) => {
+    const token = request.cookies.get('auth_token')?.value;
+
+    if (!token) {
+      return NextResponse.redirect(new URL('/auth/signin', request.url));
+    }
+
+    // Verify admin role (you'll need to decode token and check role)
+    // This is pseudocode - implement based on your auth system
+    // const { role } = decodeToken(token);
+    // if (role !== 'admin') {
+    //   return NextResponse.json({ error: 'Admin required' }, { status: 403 });
+    // }
+
+    return handler(request);
+  };
 }

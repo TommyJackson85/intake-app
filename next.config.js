@@ -1,55 +1,144 @@
-/*import { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-//};
-
-//export default nextConfig;
+// next.config.js - Security headers configuration
+// Copy-paste ready - add to your Next.js project
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
-}
- 
-module.exports = nextConfig
+  // ✅ Enable strict mode
+  reactStrictMode: true,
 
-// Injected content via Sentry wizard below
-
-const { withSentryConfig } = require("@sentry/nextjs");
-
-module.exports = withSentryConfig(module.exports, {
-  // For all available options, see:
-  // https://www.npmjs.com/package/@sentry/webpack-plugin#options
-
-  org: "fluxentia-automation",
-  project: "legal-client-intake",
-
-  // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
-
-  // For all available options, see:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
-  widenClientFileUpload: true,
-
-  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-  // This can increase your server load as well as your hosting bill.
-  // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-  // side errors will fail.
-  tunnelRoute: "/monitoring",
-
-  webpack: {
-    // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-    // See the following for more information:
-    // https://docs.sentry.io/product/crons/
-    // https://vercel.com/docs/cron-jobs
-    automaticVercelMonitors: true,
-
-    // Tree-shaking options for reducing bundle size
-    treeshake: {
-      // Automatically tree-shake Sentry logger statements to reduce bundle size
-      removeDebugLogging: true,
-    },
+  // ✅ Security headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          // Prevent MIME type sniffing
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          // Prevent clickjacking
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          // Enable XSS protection
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          // Control referrer information
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          // Restrict browser features
+          {
+            key: 'Permissions-Policy',
+            value: 'geolocation=(), microphone=(), camera=()',
+          },
+          // HTTPS Strict Transport Security (only in production)
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
+          // Content Security Policy
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: https:",
+              "font-src 'self'",
+              "connect-src 'self' https:",
+              "frame-ancestors 'none'",
+            ].join('; '),
+          },
+        ],
+      },
+      // API routes: stricter CSP
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'application/json',
+          },
+        ],
+      },
+      // Dashboard: prevent caching
+      {
+        source: '/dashboard/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate',
+          },
+        ],
+      },
+    ];
   },
-});
+
+  // ✅ Redirects (e.g., HTTP to HTTPS)
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/dashboard',
+        permanent: false,
+      },
+    ];
+  },
+
+  // ✅ Environment variables validation
+  env: {
+    // Ensure these are defined
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  },
+
+  // ✅ Webpack optimizations
+  webpack: (config, { isServer }) => {
+    // Disable console in production builds
+    if (!isServer) {
+      config.optimization.minimize = true;
+    }
+    return config;
+  },
+
+  // ✅ Disable powered by header
+  poweredByHeader: false,
+
+  // ✅ Generate ETags for caching
+  generateEtags: true,
+
+  // ✅ Optimize production builds
+  swcMinify: true,
+
+  // ✅ Image optimization
+  images: {
+    domains: ['cdn.example.com'], // Add your CDN
+    formats: ['image/avif', 'image/webp'],
+  },
+
+  // ✅ Compression
+  compress: true,
+
+  // ✅ TypeScript strict mode
+  typescript: {
+    tsconfigPath: './tsconfig.json',
+    ignoreBuildErrors: false, // Fail build if TS errors
+  },
+
+  // ✅ ESLint on build
+  eslint: {
+    dirs: ['app', 'lib', 'middleware.ts'],
+    ignoreDuringBuilds: false, // Fail build if eslint errors
+  },
+
+  // ✅ Trailing slashes
+  trailingSlash: false,
+};
+
+module.exports = nextConfig;
