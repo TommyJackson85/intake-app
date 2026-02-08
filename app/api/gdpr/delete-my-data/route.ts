@@ -1,10 +1,9 @@
-// app/api/gdpr/delete-my-data/route.ts - GDPR right to be forgotten
+// app/api/gdpr/delete-my-data/route.ts - GDPR right to be forgotten (FIXED)
 // Copy-paste ready - cascading delete with audit trail
 
 import { createClient } from '@supabase/supabase-js';
 import { validateRequest } from '@/lib/validation-schemas';
 import { GDPRDeleteSchema } from '@/lib/validation-schemas';
-import { verifyAuth } from '@/lib/auth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,6 +26,51 @@ interface DeletionResult {
 }
 
 /**
+ * Helper: Get authenticated user from request
+ */
+async function getAuthenticatedUser(request: Request) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return null;
+    }
+
+    // Decode JWT token (assuming your auth is set up)
+    const token = authHeader.slice(7);
+    
+    // For Supabase, verify the token
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    
+    if (error || !user) {
+      return null;
+    }
+
+    // Get user's firm_id from database
+    const { data: userData } = await supabaseAdmin
+      .from('users')
+      .select('id, firm_id')
+      .eq('id', user.id)
+      .single();
+
+    return userData || null;
+  } catch (error) {
+    console.error('Auth error:', error);
+    return null;
+  }
+}
+
+/**
+ * Helper: Get client IP address from request
+ */
+function getClientIp(request: Request): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return request.headers.get('x-real-ip') || 'unknown';
+}
+
+/**
  * POST /api/gdpr/delete-my-data
  * Completely delete user and all associated data
  * ✅ Hard delete (not soft delete)
@@ -37,7 +81,7 @@ interface DeletionResult {
 export async function POST(request: Request) {
   try {
     // Authenticate user
-    const user = await verifyAuth(request);
+    const user = await getAuthenticatedUser(request);
     if (!user) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
@@ -60,10 +104,7 @@ export async function POST(request: Request) {
     }
 
     // Get user IP for audit log
-    const clientIp =
-      request.headers.get('x-forwarded-for')?.split(',')[0] ||
-      request.headers.get('x-real-ip') ||
-      'unknown';
+    const clientIp = getClientIp(request);
 
     // ✅ Log deletion request BEFORE any deletions
     await logGDPREvent(user.id, 'DATA_DELETION_REQUESTED', {
@@ -72,7 +113,7 @@ export async function POST(request: Request) {
     });
 
     // ✅ Verify password (additional security check)
-    // (Assume your auth middleware already verified this)
+    // Note: Implement password verification based on your auth system
     // const passwordValid = await verifyPassword(user.id, validation.data.currentPassword);
     // if (!passwordValid) {
     //   return new Response(JSON.stringify({ error: 'Invalid password' }), { status: 403 });
@@ -104,47 +145,45 @@ export async function POST(request: Request) {
 
     // Step 1: Delete sessions
     try {
-      const { data: sessions } = await supabaseAdmin
+      const { data: sessions, error } = await supabaseAdmin
         .from('sessions')
         .delete()
         .eq('user_id', user.id)
         .select('id');
 
-      deletionResult.deletedRecords.sessions = sessions?.length || 0;
-      console.log(`Deleted ${deletionResult.deletedRecords.sessions} sessions`);
+      if (!error) {
+        deletionResult.deletedRecords.sessions = sessions?.length || 0;
+        console.log(`Deleted ${deletionResult.deletedRecords.sessions} sessions`);
+      }
     } catch (error) {
       console.error('Error deleting sessions:', error);
     }
 
     // Step 2: Delete API keys
     try {
-      const { data: apiKeys } = await supabaseAdmin
+      const { data: apiKeys, error } = await supabaseAdmin
         .from('api_keys')
         .delete()
         .eq('firm_id', user.firm_id)
         .select('id');
 
-      deletionResult.deletedRecords.apiKeys = apiKeys?.length || 0;
-      console.log(`Deleted ${deletionResult.deletedRecords.apiKeys} API keys`);
+      if (!error) {
+        deletionResult.deletedRecords.apiKeys = apiKeys?.length || 0;
+        console.log(`Deleted ${deletionResult.deletedRecords.apiKeys} API keys`);
+      }
     } catch (error) {
       console.error('Error deleting API keys:', error);
     }
 
-    // Step 3: Get firm ID and delete firm's AML checks
+    // Step 3: Delete AML checks for firm
     try {
-      const { data: firmData } = await supabaseAdmin
-        .from('users')
-        .select('firm_id')
-        .eq('id', user.id)
-        .single();
+      const { data: amlChecks, error } = await supabaseAdmin
+        .from('aml_checks')
+        .delete()
+        .eq('firm_id', user.firm_id)
+        .select('id');
 
-      if (firmData?.firm_id) {
-        const { data: amlChecks } = await supabaseAdmin
-          .from('aml_checks')
-          .delete()
-          .eq('firm_id', firmData.firm_id)
-          .select('id');
-
+      if (!error) {
         deletionResult.deletedRecords.amlChecks = amlChecks?.length || 0;
         console.log(
           `Deleted ${deletionResult.deletedRecords.amlChecks} AML checks`
@@ -154,59 +193,66 @@ export async function POST(request: Request) {
       console.error('Error deleting AML checks:', error);
     }
 
-    // Step 4: Delete matters for this firm's clients
+    // Step 4: Delete matters for firm's clients
     try {
-      const { data: matters } = await supabaseAdmin
-        .from('matters')
-        .delete()
-        .in(
-          'client_id',
-          (
-            await supabaseAdmin
-              .from('clients')
-              .select('id')
-              .eq('firm_id', user.firm_id)
-          ).data?.map((c) => c.id) || []
-        )
-        .select('id');
+      // First get client IDs for this firm
+      const { data: clients } = await supabaseAdmin
+        .from('clients')
+        .select('id')
+        .eq('firm_id', user.firm_id);
 
-      deletionResult.deletedRecords.matters = matters?.length || 0;
-      console.log(`Deleted ${deletionResult.deletedRecords.matters} matters`);
+      if (clients && clients.length > 0) {
+        const clientIds = clients.map(c => c.id);
+        const { data: matters, error } = await supabaseAdmin
+          .from('matters')
+          .delete()
+          .in('client_id', clientIds)
+          .select('id');
+
+        if (!error) {
+          deletionResult.deletedRecords.matters = matters?.length || 0;
+          console.log(`Deleted ${deletionResult.deletedRecords.matters} matters`);
+        }
+      }
     } catch (error) {
       console.error('Error deleting matters:', error);
     }
 
     // Step 5: Delete clients
     try {
-      const { data: clients } = await supabaseAdmin
+      const { data: clients, error } = await supabaseAdmin
         .from('clients')
         .delete()
         .eq('firm_id', user.firm_id)
         .select('id');
 
-      deletionResult.deletedRecords.clients = clients?.length || 0;
-      console.log(`Deleted ${deletionResult.deletedRecords.clients} clients`);
+      if (!error) {
+        deletionResult.deletedRecords.clients = clients?.length || 0;
+        console.log(`Deleted ${deletionResult.deletedRecords.clients} clients`);
+      }
     } catch (error) {
       console.error('Error deleting clients:', error);
     }
 
     // Step 6: Delete leads
     try {
-      const { data: leads } = await supabaseAdmin
+      const { data: leads, error } = await supabaseAdmin
         .from('leads')
         .delete()
         .eq('firm_id', user.firm_id)
         .select('id');
 
-      deletionResult.deletedRecords.leads = leads?.length || 0;
-      console.log(`Deleted ${deletionResult.deletedRecords.leads} leads`);
+      if (!error) {
+        deletionResult.deletedRecords.leads = leads?.length || 0;
+        console.log(`Deleted ${deletionResult.deletedRecords.leads} leads`);
+      }
     } catch (error) {
       console.error('Error deleting leads:', error);
     }
 
     // Step 7: De-identify audit logs (don't delete - keep for compliance)
     try {
-      const { data: auditLogs } = await supabaseAdmin
+      const { data: auditLogs, error } = await supabaseAdmin
         .from('audit_logs')
         .update({
           user_id: null,
@@ -216,10 +262,12 @@ export async function POST(request: Request) {
         .eq('user_id', user.id)
         .select('id');
 
-      deletionResult.deletedRecords.auditLogs = auditLogs?.length || 0;
-      console.log(
-        `De-identified ${deletionResult.deletedRecords.auditLogs} audit logs`
-      );
+      if (!error) {
+        deletionResult.deletedRecords.auditLogs = auditLogs?.length || 0;
+        console.log(
+          `De-identified ${deletionResult.deletedRecords.auditLogs} audit logs`
+        );
+      }
     } catch (error) {
       console.error('Error de-identifying audit logs:', error);
     }
@@ -278,7 +326,7 @@ async function logGDPREvent(
     // Use admin client to ensure log creation succeeds even if user is deleted
     await supabaseAdmin.from('audit_logs').insert({
       event_type: eventType,
-      user_id: userId, // Will be null after user deletion
+      user_id: userId,
       description: `GDPR ${eventType}`,
       metadata: {
         ...metadata,
@@ -297,7 +345,7 @@ async function logGDPREvent(
  */
 export async function GET(request: Request) {
   try {
-    const user = await verifyAuth(request);
+    const user = await getAuthenticatedUser(request);
     if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,

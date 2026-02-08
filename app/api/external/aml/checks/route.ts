@@ -2,17 +2,14 @@
 //app-api-external-aml-checks-hardened.ts
 // app/api/external/aml/checks/route.ts - Hardened AML endpoint
 // Copy-paste ready - DOS protection, timeout, retry logic, error sanitization
-
+import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict';
 import { createClient } from '@supabase/supabase-js';
 import { validateRequest } from '@/lib/validation-schemas';
 import { CreateAMLCheckSchema } from '@/lib/validation-schemas';
 import { validateAPIKey, hasScope } from '@/lib/api-key-security';
 import { rateLimit } from '@/lib/rate-limit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = await createSupabaseServerClientStrict();
 
 const AML_API_URL = process.env.AML_API_URL || 'https://api.aml-provider.com';
 const AML_API_KEY = process.env.AML_API_KEY;
@@ -104,13 +101,13 @@ export async function POST(request: Request) {
     // ✅ 5. Call AML provider with timeout and retry
     const amlResult = await checkAMLWithRetry(validation.data);
 
-    if (!amlResult.success) {
+    if (!amlResult.success || !amlResult.data) {
       // Log failed check
       await logAMLCheck(
         keyValidation.firmId,
         validation.data.clientId,
         'failed',
-        amlResult.error
+        amlResult.error || null
       );
 
       // ✅ Sanitize error response

@@ -1,129 +1,328 @@
-/**
- * Session Management
- * Copy this entire file to: lib/session.ts
- * 
- * Handles reading firm_id and user_id from cookies in server components/routes
- */
+// lib/session.ts - Session utilities with getClientIp added
+// Updated to include getClientIp function + Next.js 15+ await fixes
 
-import { cookies } from 'next/headers'
-import { SessionContext } from '@/types/database'
+import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
+import { createSupabaseServerClientStrict } from './serverClientStrict';
+
+const supabase = await createSupabaseServerClientStrict()
+
+// ============================================
+// Get Client IP Address
+// ============================================
 
 /**
- * Get firm ID from session cookie (httpOnly, secure)
- * Use in API routes and server components
- * 
- * @example
- * const firmId = getFirmIdFromSession()
- * if (!firmId) return res.status(401).json({ error: 'Not authenticated' })
+ * Extract client IP from request headers
+ * Handles X-Forwarded-For, X-Real-IP, and direct connections
  */
-export function getFirmIdFromSession(): string | null {
-  try {
-    const cookieStore = cookies()
-    return cookieStore.get('firm_id')?.value || null
-  } catch (err) {
-    // In client components, cookies() throws; catch gracefully
-    console.error('[Session] getFirmId error:', err)
-    return null
+export function getClientIp(request: Request): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
   }
+
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) {
+    return realIp.trim();
+  }
+
+  // Fallback for direct connections
+  const cf = request.headers.get('cf-connecting-ip');
+  if (cf) {
+    return cf.trim();
+  }
+
+  return 'unknown';
 }
+
+// ============================================
+// Cookie Management (Next.js 15+ async)
+// ============================================
 
 /**
  * Get user ID from session cookie
- * 
- * @example
- * const userId = getUserIdFromSession()
+ * ✅ Next.js 15+: cookies() returns Promise, must await
  */
-export function getUserIdFromSession(): string | null {
+export async function getUserId(): Promise<string | null> {
   try {
-    const cookieStore = cookies()
-    return cookieStore.get('user_id')?.value || null
-  } catch (err) {
-    console.error('[Session] getUserId error:', err)
-    return null
+    const cookieStore = await cookies(); // ✅ MUST await in Next.js 15+
+    return cookieStore.get('user_id')?.value || null;
+  } catch (error) {
+    console.error('[Session] getUserId error:', error);
+    return null;
   }
 }
 
 /**
- * Verify BOTH firm_id and user_id are set
- * Use to protect routes that require authentication
- * 
- * @returns Session context or null if not authenticated
- * @example
- * const session = verifySession()
- * if (!session) return res.status(401).json({ error: 'Not authenticated' })
- * const { firmId, userId } = session
+ * Get firm ID from session cookie
+ * ✅ Next.js 15+: cookies() returns Promise, must await
  */
-export function verifySession(): SessionContext | null {
-  const firmId = getFirmIdFromSession()
-  const userId = getUserIdFromSession()
-
-  if (!firmId || !userId) {
-    return null
-  }
-
-  return {
-    firmId,
-    userId,
-    userRole: 'lawyer', // Default; fetch actual role from DB if needed
+export async function getFirmId(): Promise<string | null> {
+  try {
+    const cookieStore = await cookies(); // ✅ MUST await in Next.js 15+
+    return cookieStore.get('firm_id')?.value || null;
+  } catch (error) {
+    console.error('[Session] getFirmId error:', error);
+    return null;
   }
 }
 
 /**
- * Get IP address from request headers
- * Use for audit logging
- * 
- * @example
- * const ip = getClientIp(request)
+ * Get session token from cookie
+ * ✅ Next.js 15+: cookies() returns Promise, must await
  */
-export function getClientIp(request: any): string | undefined {
-  return (
-    request?.headers?.get('x-forwarded-for') ||
-    request?.headers?.get('x-real-ip') ||
-    undefined
-  )
+export async function getSessionToken(): Promise<string | null> {
+  try {
+    const cookieStore = await cookies(); // ✅ MUST await in Next.js 15+
+    return cookieStore.get('session_token')?.value || null;
+  } catch (error) {
+    console.error('[Session] getSessionToken error:', error);
+    return null;
+  }
 }
 
 /**
- * Set session cookies (used in signin route)
- * Server-side only
- * 
- * @example
- * setSessionCookies(firmId, userId)
+ * Get all session cookies at once
+ * ✅ Next.js 15+: cookies() returns Promise, must await
  */
-export async function setSessionCookies(
-  firmId: string,
-  userId: string
+export async function getAllSessionCookies(): Promise<{
+  sessionToken: string | null;
+  userId: string | null;
+  firmId: string | null;
+}> {
+  try {
+    const cookieStore = await cookies(); // ✅ MUST await in Next.js 15+
+
+    return {
+      sessionToken: cookieStore.get('session_token')?.value || null,
+      userId: cookieStore.get('user_id')?.value || null,
+      firmId: cookieStore.get('firm_id')?.value || null,
+    };
+  } catch (error) {
+    console.error('[Session] getAllSessionCookies error:', error);
+    return {
+      sessionToken: null,
+      userId: null,
+      firmId: null,
+    };
+  }
+}
+
+/**
+ * Set session cookie
+ * ✅ Next.js 15+: cookies() returns Promise, must await
+ */
+export async function setSessionCookie(
+  name: string,
+  value: string,
+  options?: {
+    maxAge?: number;
+    httpOnly?: boolean;
+    secure?: boolean;
+    sameSite?: 'strict' | 'lax' | 'none';
+    path?: string;
+  }
 ): Promise<void> {
-  const cookieStore = cookies()
+  try {
+    const cookieStore = await cookies(); // ✅ MUST await in Next.js 15+
 
-  cookieStore.set('firm_id', firmId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 7 * 24 * 60 * 60, // 7 days
-  })
-
-  cookieStore.set('user_id', userId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 7 * 24 * 60 * 60, // 7 days
-  })
+    cookieStore.set(name, value, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: options?.maxAge || 30 * 60, // 30 minutes default
+      ...options,
+    });
+  } catch (error) {
+    console.error('[Session] setSessionCookie error:', error);
+  }
 }
 
 /**
- * Clear session cookies (used in logout route)
+ * Clear all session cookies
+ * ✅ Next.js 15+: cookies() returns Promise, must await
  */
 export async function clearSessionCookies(): Promise<void> {
-  const cookieStore = cookies()
+  try {
+    const cookieStore = await cookies(); // ✅ MUST await in Next.js 15+
 
-  cookieStore.set('firm_id', '', {
-    maxAge: 0,
-  })
+    cookieStore.delete('session_token');
+    cookieStore.delete('user_id');
+    cookieStore.delete('firm_id');
+    cookieStore.delete('_csrf');
+  } catch (error) {
+    console.error('[Session] clearSessionCookies error:', error);
+  }
+}
 
-  cookieStore.set('user_id', '', {
-    maxAge: 0,
-  })
+/**
+ * Clear specific cookie
+ * ✅ Next.js 15+: cookies() returns Promise, must await
+ */
+export async function clearCookie(name: string): Promise<void> {
+  try {
+    const cookieStore = await cookies(); // ✅ MUST await in Next.js 15+
+    cookieStore.delete(name);
+  } catch (error) {
+    console.error(`[Session] clearCookie(${name}) error:`, error);
+  }
+}
+
+// ============================================
+// Session Verification
+// ============================================
+
+/**
+ * Verify user is authenticated
+ */
+export async function verifyAuth(): Promise<{
+  authenticated: boolean;
+  userId?: string;
+  firmId?: string;
+} | null> {
+  try {
+    const sessionData = await getAllSessionCookies();
+
+    if (!sessionData.sessionToken || !sessionData.userId) {
+      return {
+        authenticated: false,
+      };
+    }
+
+    // Optionally verify session in database
+    const { data: session } = await supabase
+      .from('sessions')
+      .select('user_id, is_valid')
+      .eq('token', sessionData.sessionToken)
+      .single();
+
+    if (!session?.is_valid) {
+      return {
+        authenticated: false,
+      };
+    }
+
+    return {
+      authenticated: true,
+      userId: sessionData.userId,
+      firmId: sessionData.firmId || undefined,
+    };
+  } catch (error) {
+    console.error('[Session] verifyAuth error:', error);
+    return null;
+  }
+}
+
+// ============================================
+// Session Cleanup
+// ============================================
+
+/**
+ * Invalidate all sessions for a user
+ * Call this on logout or password change
+ */
+export async function invalidateAllUserSessions(userId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('sessions')
+      .update({ is_valid: false })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('[Session] invalidateAllUserSessions error:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('[Session] invalidateAllUserSessions error:', error);
+    return false;
+  }
+}
+
+/**
+ * Get active sessions for a user
+ */
+export async function getUserActiveSessions(userId: string): Promise<any[] | null> {
+  try {
+    const { data: sessions, error } = await supabase
+      .from('sessions')
+      .select('id, ip_address, user_agent, created_at, last_activity')
+      .eq('user_id', userId)
+      .eq('is_valid', true)
+      .order('last_activity', { ascending: false });
+
+    if (error) {
+      console.error('[Session] getUserActiveSessions error:', error);
+      return null;
+    }
+
+    return sessions;
+  } catch (error) {
+    console.error('[Session] getUserActiveSessions error:', error);
+    return null;
+  }
+}
+
+/**
+ * Create a new session record in database
+ */
+export async function createSessionRecord(
+  userId: string,
+  ipAddress: string,
+  userAgent: string,
+  tokenHash: string
+): Promise<string | null> {
+  try {
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+
+    const { data, error } = await supabase
+      .from('sessions')
+      .insert({
+        user_id: userId,
+        token_hash: tokenHash,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        expires_at: expiresAt.toISOString(),
+        last_activity: new Date().toISOString(),
+        is_valid: true,
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('[Session] createSessionRecord error:', error);
+      return null;
+    }
+
+    return data?.id || null;
+  } catch (error) {
+    console.error('[Session] createSessionRecord error:', error);
+    return null;
+  }
+}
+
+/**
+ * Cleanup expired sessions (run periodically)
+ */
+export async function cleanupExpiredSessions(): Promise<number> {
+  try {
+    const { data, error } = await supabase
+      .from('sessions')
+      .delete()
+      .lt('expires_at', new Date().toISOString())
+      .select('id');
+
+    if (error) {
+      console.error('[Session] cleanupExpiredSessions error:', error);
+      return 0;
+    }
+
+    return data?.length || 0;
+  } catch (error) {
+    console.error('[Session] cleanupExpiredSessions error:', error);
+    return 0;
+  }
 }

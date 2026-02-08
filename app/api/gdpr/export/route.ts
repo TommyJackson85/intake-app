@@ -1,21 +1,21 @@
 /**
  * GET /api/gdpr/export
  * GDPR Data Export - Download all firm data as JSON
- * 
+ *
  * Satisfies GDPR Article 15 (right to access)
  * Copy this entire file to: app/api/gdpr/export/route.ts
  */
 
-import { NextRequest } from 'next/server'
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
-import { getFirmIdFromSession, getUserIdFromSession, getClientIp } from '@/lib/session'
-import { logGDPRExport } from '@/lib/auditLog'
+import { NextRequest } from 'next/server';
+import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict';
+import { getFirmId, getUserId, getClientIp } from '@/lib/session';
+import { logGDPRExport } from '@/lib/auditLog';
 import {
   unauthorizedResponse,
   serverErrorResponse,
   jsonResponse,
-} from '@/lib/apiResponse'
-import { GDPRExportData } from '@/types/database'
+} from '@/lib/apiResponse';
+import { GDPRExportData } from '@/types/database';
 
 /**
  * GET /api/gdpr/export
@@ -24,13 +24,18 @@ import { GDPRExportData } from '@/types/database'
  */
 export async function GET(request: NextRequest) {
   try {
-    const firmId = getFirmIdFromSession()
-    const userId = getUserIdFromSession()
-    const ip = getClientIp(request)
+    const firmId = await getFirmId();      // Promise<string | null> → string | null
+    const userId = await getUserId();      // Promise<string | null> → string | null
+    const ip = getClientIp(request);
 
     if (!firmId) {
-      return unauthorizedResponse()
+      return unauthorizedResponse();
     }
+
+    // At this point firmId is guaranteed non-null, so normalise for logging
+    const firmIdForLog: string = firmId;
+    const userIdForLog: string = userId ?? 'unknown'; // ✅ Always a string
+
 
     // Fetch all tables for this firm in parallel
     const [
@@ -40,19 +45,44 @@ export async function GET(request: NextRequest) {
       auditEventsRes,
       leadsRes,
     ] = await Promise.all([
-      createSupabaseServerClientStrict().from('clients').select('*').eq('firm_id', firmId),
-      createSupabaseServerClientStrict().from('matters').select('*').eq('firm_id', firmId),
-      createSupabaseServerClientStrict().from('aml_checks').select('*').eq('firm_id', firmId),
-      createSupabaseServerClientStrict().from('audit_events').select('*').eq('firm_id', firmId),
-      createSupabaseServerClientStrict().from('marketing_leads').select('*').eq('firm_id', firmId),
-    ])
+      createSupabaseServerClientStrict()
+        .from('clients')
+        .select('*')
+        .eq('firm_id', firmId),
+      createSupabaseServerClientStrict()
+        .from('matters')
+        .select('*')
+        .eq('firm_id', firmId),
+      createSupabaseServerClientStrict()
+        .from('aml_checks')
+        .select('*')
+        .eq('firm_id', firmId),
+      createSupabaseServerClientStrict()
+        .from('audit_events')
+        .select('*')
+        .eq('firm_id', firmId),
+      createSupabaseServerClientStrict()
+        .from('marketing_leads')
+        .select('*')
+        .eq('firm_id', firmId),
+    ]);
 
     // Check for errors
-    if (clientsRes.error || mattersRes.error || amlChecksRes.error || 
-        auditEventsRes.error || leadsRes.error) {
-      const error = clientsRes.error || mattersRes.error || amlChecksRes.error
-      console.error('[GDPR Export] Query error:', error)
-      return serverErrorResponse(error)
+    if (
+      clientsRes.error ||
+      mattersRes.error ||
+      amlChecksRes.error ||
+      auditEventsRes.error ||
+      leadsRes.error
+    ) {
+      const error =
+        clientsRes.error ||
+        mattersRes.error ||
+        amlChecksRes.error ||
+        auditEventsRes.error ||
+        leadsRes.error;
+      console.error('[GDPR Export] Query error:', error);
+      return serverErrorResponse(error);
     }
 
     // Package all data
@@ -64,15 +94,16 @@ export async function GET(request: NextRequest) {
       aml_checks: amlChecksRes.data || [],
       audit_events: auditEventsRes.data || [],
       marketing_leads: leadsRes.data || [],
-    }
+    };
 
     // Audit log: GDPR export
-    await logGDPRExport(firmId, userId, ip)
+    await logGDPRExport(firmIdForLog, userIdForLog, 'json'); // ✅ Correct - 'json' matches the type
+
 
     // Return as downloadable JSON
-    return jsonResponse(exportData)
+    return jsonResponse(exportData);
   } catch (err: any) {
-    console.error('[GDPR Export] Exception:', err)
-    return serverErrorResponse(err)
+    console.error('[GDPR Export] Exception:', err);
+    return serverErrorResponse(err);
   }
 }

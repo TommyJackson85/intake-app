@@ -55,7 +55,7 @@ export default function Home() {
             <a href="#features" style={{ textDecoration: 'none', color: '#134252', fontSize: '14px' }}>Features</a>
             <a href="#security" style={{ textDecoration: 'none', color: '#134252', fontSize: '14px' }}>Security</a>
             <a href="/privacy" style={{ textDecoration: 'none', color: '#134252', fontSize: '14px' }}>Privacy</a>
-            <a href="/auth/login" style={{ background: '#208096', color: 'white', padding: '10px 20px', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Sign In</a>
+            <a href="/auth/signin" style={{ background: '#208096', color: 'white', padding: '10px 20px', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Sign In</a>
           </nav>
         </div>
       </header>

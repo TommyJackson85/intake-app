@@ -1,5 +1,5 @@
 // lib/get-current-user-and-firm.ts
-import { createSupabaseServerClientStrict } from './serverClientWithAuth'
+import { createSupabaseServerClientStrict } from './serverClientStrict'
 
 export async function getCurrentUserAndFirm() {
   const supabase = await createSupabaseServerClientStrict()

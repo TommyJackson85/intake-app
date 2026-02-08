@@ -2,11 +2,9 @@
 import 'dotenv/config'
 import bcrypt from 'bcryptjs'
 import { createClient } from '@supabase/supabase-js'
+import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+const supabase = await createSupabaseServerClientStrict();
 
 async function backfillPassword(email: string, plainPassword: string) {
   const hash = await bcrypt.hash(plainPassword, 12)

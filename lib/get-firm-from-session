@@ -1,9 +1,9 @@
 // lib/get-firm-from-session.ts
-import { getFirmIdFromSession } from './session'
+import { getFirmId } from './session'
 import { createSupabaseServerClientStrict } from './serverClientStrict'
 
 export async function getFirmFromSession() {
-  const firmId = getFirmIdFromSession()
+  const firmId = getFirmId()
   if (!firmId) {
     throw new Error('NO_FIRM_IN_SESSION')
   }

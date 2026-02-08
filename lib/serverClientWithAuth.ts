@@ -28,8 +28,7 @@ export async function createSupabaseServerClientWithAuth(): Promise<SupabaseClie
 }*/
 
 // lib/serverClientStrict.ts
-import { createClient } from '@supabase/supabase-js'
-import { Database } from './database.types' // optional: for type safety
+//import { createClient } from '@supabase/supabase-js'
 
 /**
  * Creates a Supabase client using the SERVICE ROLE KEY.
@@ -45,30 +44,30 @@ import { Database } from './database.types' // optional: for type safety
  * 2. All queries filtered by .eq('firm_id', firmId)
  * 3. Audit logging of all sensitive operations
  */
-export function createSupabaseServerClientWithAuth() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+// lib/serverClientWithAuth.ts (example you already have)
+import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers';
+import type { Database } from '@/lib/database.types';
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error(
-      'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables'
-    )
-  }
+export async function createSupabaseServerClientWithAuth() {
+  const cookieStore = await cookies();
 
-  return createClient<Database>(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
 }
 
-// Convenience singleton if you prefer not to create a new client each time
-let _serviceClient: ReturnType<typeof createSupabaseServerClientWithAuth> | null = null
-
-export function getSupabaseServiceClient() {
-  if (!_serviceClient) {
-    _serviceClient = createSupabaseServerClientWithAuth()
-  }
-  return _serviceClient
-}

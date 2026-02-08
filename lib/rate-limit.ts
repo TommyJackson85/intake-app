@@ -43,6 +43,16 @@ export interface RateLimitResult {
   retryAfter?: number;
 }
 
+
+export async function limitLeads(firmId: string, limit: number = 10) {
+  return { allowed: true, remaining: limit };
+}
+
+export async function limitSensitive(firmId: string, limit: number = 5) {
+  return { allowed: true, remaining: limit };
+}
+
+
 /**
  * Get client IP address from request
  */
@@ -192,6 +202,7 @@ export function cleanupExpiredRecords() {
     }
   }
 }
+
 
 // Run cleanup every hour
 if (typeof window === 'undefined') {

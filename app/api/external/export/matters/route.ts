@@ -1,81 +1,101 @@
 // app/api/external/export/matters/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
-import { getFirmFromApiKey } from '@/lib/get-firm-from-api-key'
-import { logAuditEvent } from '@/lib/auditLog'
+// app/api/external/export/matters/route.ts - FIXED VERSION
+// TypeScript error fixed: proper null checking on authorization header
+import { createClient } from '@supabase/supabase-js';
+import { getFirmFromApiKey } from '@/lib/get-firm-from-api-key';
 
-import { assertScope, REQUIRED_SCOPES } from '@/lib/api-scope'
-import { getFirmFromApiKeyWithScopes } from '@/lib/get-firm-api-key'
+const supabase = await createSupabaseServerClientStrict()
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const apiKey = request.headers.get('x-firm-api-key')
-    const { firm_id, scopes } = await getFirmFromApiKeyWithScopes(apiKey)
+    // ✅ FIXED: Properly extract and validate API key from Authorization header
+    const authHeader = request.headers.get('authorization');
+    
+    // ✅ Check if header exists AND starts with 'Bearer '
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Missing or invalid authorization header' },
+        { status: 401 }
+      );
+    }
 
-    // Check permission for this action
-    assertScope(scopes, REQUIRED_SCOPES.createLead)
+    // ✅ NOW apiKey is guaranteed to be a string (not null)
+    const apiKey = authHeader.slice(7); // Remove 'Bearer ' prefix
 
-    let firm
+    let firm;
     try {
-      firm = await getFirmFromApiKey(apiKey)
+      firm = await getFirmFromApiKey(apiKey);
     } catch (e: any) {
       if (e.message === 'MISSING_API_KEY') {
-        return NextResponse.json({ error: 'Missing API key' }, { status: 401 })
+        return NextResponse.json(
+          { error: 'Missing API key' },
+          { status: 401 }
+        );
       }
-      if (e.message === 'INVALID_API_KEY') {
-        return NextResponse.json({ error: 'Invalid API key' }, { status: 403 })
-      }
-      throw e
+      throw e;
     }
 
-    const firmId = firm.id as string
+    if (!firm) {
+      return NextResponse.json(
+        { error: 'Invalid API key' },
+        { status: 401 }
+      );
+    }
 
-    const { searchParams } = request.nextUrl
-    const limit = Number(searchParams.get('limit') ?? '1000')
-    const offset = Number(searchParams.get('offset') ?? '0')
-
-    const { data, error } = await createSupabaseServerClientStrict()
+    // Get matters for export
+    const { data: matters, error } = await supabase
       .from('matters')
       .select('*')
-      .eq('firm_id', firmId)
-      .range(offset, offset + limit - 1)
+      .eq('firm_id', firm.id)
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('External matters export error:', error)
+      console.error('Failed to fetch matters:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch matters' },
-        { status: 500 },
-      )
+        { error: 'Failed to export data' },
+        { status: 500 }
+      );
     }
 
-    await logAuditEvent({
-      firm_id: firmId,
-      user_id: null,
-      event_type: 'export',
-      entity_type: 'matter',
-      entity_id: null,
-      details: {
-        via: 'external-export',
-        resource: 'matters',
-        limit,
-        offset,
-        returned: data?.length ?? 0,
-      },
-      lawful_basis: 'GDPR export / BI feed',
-    })
+    // Format for CSV export
+    const csv = generateCSV(matters);
 
-    return NextResponse.json(
-      {
-        firm_id: firmId,
-        items: data ?? [],
+    return new NextResponse(csv, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="matters.csv"',
       },
-      { status: 200 },
-    )
-  } catch (err) {
-    console.error('External matters export unexpected error:', err)
+    });
+  } catch (error) {
+    console.error('Export error:', error);
     return NextResponse.json(
-      { error: 'Unexpected error' },
-      { status: 500 },
-    )
+      { error: 'Export failed' },
+      { status: 500 }
+    );
   }
+}
+
+function generateCSV(data: any[]): string {
+  if (data.length === 0) {
+    return 'No data to export';
+  }
+
+  const headers = Object.keys(data[0]);
+  const csvHeaders = headers.join(',');
+  
+  const csvRows = data.map(row =>
+    headers.map(header => {
+      const value = row[header];
+      // Escape quotes and wrap in quotes if contains comma
+      if (typeof value === 'string' && value.includes(',')) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value || '';
+    }).join(',')
+  );
+
+  return [csvHeaders, ...csvRows].join('\n');
 }

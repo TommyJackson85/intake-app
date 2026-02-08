@@ -19,7 +19,7 @@ export async function sendWelcomeEmail(email: string, firmName: string) {
           <h2>Welcome to LawIntake</h2>
           <p>Hi ${firmName},</p>
           <p>Thanks for signing up. We're excited to help streamline your client intake process.</p>
-          <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/auth/login">Get Started</a></p>
+          <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/auth/signin">Get Started</a></p>
           <p>Questions? Reply to this email or contact us at hello@lawintake.io</p>
         `,
       }

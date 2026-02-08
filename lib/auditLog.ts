@@ -1,190 +1,376 @@
-/**
- * Audit Logging for GDPR Compliance
- * Copy this entire file to: lib/auditLog.ts
- * 
- * Logs all data access, modifications, and deletions to audit_events table
- * Non-blocking: if audit fails, doesn't crash your route
- */
+// lib/auditLog.ts - FIXED to allow null firmId and userId
+// Copy-paste ready - Complete audit logging system
 
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
-import { AuditLogInput, AuditEvent } from '@/types/database'
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 /**
- * Log an audit event (non-blocking)
- * Call this after every data operation (create, read, update, delete)
+ * Generic audit event logger
+ * Use this for most audit events
  * 
- * @example
- * await logAuditEvent({
- *   firm_id: 'uuid-123',
- *   user_id: 'uuid-456',
- *   event_type: 'create',
- *   entity_type: 'client',
- *   entity_id: 'uuid-789',
- *   ip_address: '192.168.1.1',
- *   details: { name: 'John Smith' },
- *   lawful_basis: 'Legal obligation',
- * })
+ * @param firmId - Firm ID (can be null for system/public events)
+ * @param userId - User ID (can be null for unauthenticated events)
+ * @param eventType - Type of event (e.g., 'client_created')
+ * @param resourceType - Type of resource affected (e.g., 'client')
+ * @param resourceId - ID of affected resource
+ * @param metadata - Additional event data (optional)
  */
-export async function logAuditEvent(input: AuditLogInput): Promise<void> {
+export async function logAuditEvent(
+  firmId: string | null,
+  userId: string | null,
+  eventType: string,
+  resourceType: string,
+  resourceId: string,
+  metadata?: Record<string, any>
+): Promise<void> {
   try {
-    const { error } = await createSupabaseServerClientStrict()
-      .from('audit_events')
-      .insert([
-        {
-          firm_id: input.firm_id,
-          user_id: input.user_id || null,
-          event_type: input.event_type,
-          entity_type: input.entity_type,
-          entity_id: input.entity_id || null,
-          ip_address: input.ip_address || null,
-          details: input.details || {},
-          lawful_basis: input.lawful_basis || null,
-          created_at: new Date().toISOString(),
-        },
-      ])
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        firm_id: firmId,
+        user_id: userId,
+        event_type: eventType,
+        resource_type: resourceType,
+        resource_id: resourceId,
+        description: `${eventType} for ${resourceType} ${resourceId}`,
+        metadata: metadata || {},
+        timestamp: new Date().toISOString(),
+      });
 
     if (error) {
-      console.error('[Audit Log] Insert failed:', error.message)
-      // Don't throw – audit log failures should not break business logic
+      console.error('Failed to log audit event:', error);
     }
-  } catch (err: any) {
-    console.error('[Audit Log] Exception:', err.message)
-    // Silent fail – auditing is not critical to app operation
+  } catch (error) {
+    console.error('Audit logging error:', error);
   }
 }
 
 /**
- * Log data access to sensitive fields (highly confidential data)
+ * Log authentication events
  * 
- * @example
- * await logDataAccess(
- *   firmId,
- *   userId,
- *   'pep_flag', // field name
- *   amlCheckId, // entity id
- *   ipAddress
- * )
- */
-export async function logDataAccess(
-  firmId: string,
-  userId: string | null,
-  fieldName: string,
-  entityId: string,
-  ipAddress?: string
-): Promise<void> {
-  await logAuditEvent({
-    firm_id: firmId,
-    user_id: userId,
-    event_type: 'read',
-    entity_type: 'sensitive_field',
-    entity_id: entityId,
-    ip_address: ipAddress,
-    details: { field: fieldName },
-  })
-}
-
-/**
- * Log API key rotation
- * 
- * @example
- * await logApiKeyRotation(firmId, oldKeyPrefix)
- */
-export async function logApiKeyRotation(
-  firmId: string,
-  oldKeyPrefix: string
-): Promise<void> {
-  await logAuditEvent({
-    firm_id: firmId,
-    event_type: 'api_key_rotated',
-    entity_type: 'firm',
-    entity_id: firmId,
-    details: { old_key_prefix: oldKeyPrefix },
-  })
-}
-
-/**
- * Log login attempt
- * 
- * @example
- * await logLogin(userId, firmId, ipAddress, success: true)
+ * @param email - User email attempting login
+ * @param status - Login outcome
+ * @param ip - Client IP address
+ * @param details - Additional details (optional)
  */
 export async function logLogin(
-  userId: string,
-  firmId: string,
-  ipAddress: string,
-  success: boolean
+  email: string,
+  status: 'success' | 'failed' | 'rate_limited' | 'validation_failed' | 'authentication_failed' | 'user_not_found' | 'session_creation_failed' | 'auth_error',
+  ip: string,
+  details?: string
 ): Promise<void> {
-  await logAuditEvent({
-    firm_id: firmId,
-    user_id: userId,
-    event_type: 'login',
-    entity_type: 'user',
-    entity_id: userId,
-    ip_address: ipAddress,
-    details: { success },
-  })
+  try {
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        firm_id: null,
+        user_id: null,
+        event_type: `login_${status}`,
+        resource_type: 'authentication',
+        resource_id: email,
+        description: `Login ${status} for ${email}`,
+        metadata: {
+          ip,
+          details,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+    if (error) {
+      console.error('Failed to log login event:', error);
+    }
+  } catch (error) {
+    console.error('Login logging error:', error);
+  }
 }
 
 /**
- * Log data export (GDPR requests)
+ * Log GDPR data export
  * 
- * @example
- * await logGDPRExport(firmId, userId, ipAddress)
+ * @param firmId - Firm requesting export
+ * @param userId - User requesting export
+ * @param format - Export format (json/csv)
  */
 export async function logGDPRExport(
   firmId: string,
-  userId: string | null,
-  ipAddress?: string
+  userId: string,
+  format: 'json' | 'csv'
 ): Promise<void> {
-  await logAuditEvent({
-    firm_id: firmId,
-    user_id: userId,
-    event_type: 'export',
-    entity_type: 'firm_data',
-    entity_id: firmId,
-    ip_address: ipAddress,
-    lawful_basis: 'GDPR Article 15 (access request)',
-  })
+  try {
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        firm_id: firmId,
+        user_id: userId,
+        event_type: 'gdpr_export_requested',
+        resource_type: 'gdpr',
+        resource_id: userId,
+        description: `GDPR data export requested in ${format} format`,
+        metadata: {
+          format,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+    if (error) {
+      console.error('Failed to log GDPR export:', error);
+    }
+  } catch (error) {
+    console.error('GDPR export logging error:', error);
+  }
 }
 
 /**
- * Retrieve audit logs for a firm (for compliance review)
+ * Log GDPR data deletion
  * 
- * @example
- * const logs = await getAuditLogs(firmId, { days: 30 })
+ * @param firmId - Firm being deleted
+ * @param userId - User requesting deletion
+ * @param deletedCount - Number of records deleted
+ */
+export async function logGDPRDeletion(
+  firmId: string,
+  userId: string,
+  deletedCount: number
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        firm_id: firmId,
+        user_id: userId,
+        event_type: 'gdpr_deletion_completed',
+        resource_type: 'gdpr',
+        resource_id: userId,
+        description: `GDPR deletion completed: ${deletedCount} records deleted`,
+        metadata: {
+          deletedCount,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+    if (error) {
+      console.error('Failed to log GDPR deletion:', error);
+    }
+  } catch (error) {
+    console.error('GDPR deletion logging error:', error);
+  }
+}
+
+/**
+ * Log API key operations
+ * 
+ * @param firmId - Firm owning the key
+ * @param userId - User performing operation
+ * @param operation - Type of operation
+ * @param keyPrefix - Key prefix for identification
+ */
+export async function logAPIKeyOperation(
+  firmId: string,
+  userId: string,
+  operation: 'created' | 'rotated' | 'revoked' | 'used',
+  keyPrefix: string
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        firm_id: firmId,
+        user_id: userId,
+        event_type: `api_key_${operation}`,
+        resource_type: 'api_key',
+        resource_id: keyPrefix,
+        description: `API key ${operation}: ${keyPrefix}`,
+        metadata: {
+          operation,
+          keyPrefix,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+    if (error) {
+      console.error('Failed to log API key operation:', error);
+    }
+  } catch (error) {
+    console.error('API key logging error:', error);
+  }
+}
+
+/**
+ * Log suspicious activity
+ * 
+ * @param firmId - Firm ID (if applicable)
+ * @param userId - User ID (if applicable)
+ * @param activityType - Type of suspicious activity
+ * @param ip - Client IP address
+ * @param details - Activity details
+ */
+export async function logSuspiciousActivity(
+  firmId: string | null,
+  userId: string | null,
+  activityType: string,
+  ip: string,
+  details: string
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        firm_id: firmId,
+        user_id: userId,
+        event_type: 'suspicious_activity',
+        resource_type: 'security',
+        resource_id: ip,
+        description: `Suspicious activity: ${activityType}`,
+        metadata: {
+          activityType,
+          ip,
+          details,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+    if (error) {
+      console.error('Failed to log suspicious activity:', error);
+    }
+  } catch (error) {
+    console.error('Suspicious activity logging error:', error);
+  }
+}
+
+/**
+ * Log rate limit exceeded
+ * 
+ * @param endpoint - Endpoint that was rate limited
+ * @param ip - Client IP address
+ * @param limit - Rate limit threshold
+ */
+export async function logRateLimitExceeded(
+  endpoint: string,
+  ip: string,
+  limit: number
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        firm_id: null,
+        user_id: null,
+        event_type: 'rate_limit_exceeded',
+        resource_type: 'rate_limit',
+        resource_id: endpoint,
+        description: `Rate limit exceeded for ${endpoint}`,
+        metadata: {
+          endpoint,
+          ip,
+          limit,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+    if (error) {
+      console.error('Failed to log rate limit event:', error);
+    }
+  } catch (error) {
+    console.error('Rate limit logging error:', error);
+  }
+}
+
+/**
+ * Log configuration changes
+ * 
+ * @param firmId - Firm ID
+ * @param userId - User making the change
+ * @param configType - Type of configuration changed
+ * @param changes - Object describing what changed
+ */
+export async function logConfigurationChange(
+  firmId: string,
+  userId: string,
+  configType: string,
+  changes: Record<string, any>
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        firm_id: firmId,
+        user_id: userId,
+        event_type: 'configuration_changed',
+        resource_type: 'configuration',
+        resource_id: configType,
+        description: `Configuration changed: ${configType}`,
+        metadata: {
+          configType,
+          changes,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+    if (error) {
+      console.error('Failed to log configuration change:', error);
+    }
+  } catch (error) {
+    console.error('Configuration logging error:', error);
+  }
+}
+
+/**
+ * Get audit logs for a firm
+ * 
+ * @param firmId - Firm ID to get logs for
+ * @param options - Query options (limit, offset, event types)
  */
 export async function getAuditLogs(
   firmId: string,
   options?: {
-    days?: number
-    limit?: number
-    offset?: number
+    limit?: number;
+    offset?: number;
+    eventTypes?: string[];
+    startDate?: Date;
+    endDate?: Date;
   }
-): Promise<AuditEvent[]> {
+): Promise<any[] | null> {
   try {
-    const daysAgo = options?.days || 90
-    const limit = options?.limit || 100
-    const offset = options?.offset || 0
-
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - daysAgo)
-
-    const { data, error } = await createSupabaseServerClientStrict()
-      .from('audit_events')
+    let query = supabase
+      .from('audit_logs')
       .select('*')
       .eq('firm_id', firmId)
-      .gte('created_at', cutoffDate.toISOString())
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+      .order('timestamp', { ascending: false });
 
-    if (error) {
-      console.error('[Audit Log] Retrieval failed:', error.message)
-      return []
+    if (options?.limit) {
+      query = query.limit(options.limit);
     }
 
-    return data || []
-  } catch (err: any) {
-    console.error('[Audit Log] Exception:', err.message)
-    return []
+    if (options?.offset) {
+      query = query.range(options.offset, options.offset + (options.limit || 20));
+    }
+
+    if (options?.eventTypes && options.eventTypes.length > 0) {
+      query = query.in('event_type', options.eventTypes);
+    }
+
+    if (options?.startDate) {
+      query = query.gte('timestamp', options.startDate.toISOString());
+    }
+
+    if (options?.endDate) {
+      query = query.lte('timestamp', options.endDate.toISOString());
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Failed to get audit logs:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Get audit logs error:', error);
+    return null;
   }
 }

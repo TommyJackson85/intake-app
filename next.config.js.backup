@@ -1,0 +1,144 @@
+//next-config-security-v16.js
+// next.config.js - Security headers configuration (Next.js 16 compatible)
+// Copy-paste ready - updated for latest Next.js
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // ✅ Enable strict mode
+  reactStrictMode: true,
+
+  // ✅ Security headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          // Prevent MIME type sniffing
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          // Prevent clickjacking
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          // Enable XSS protection
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          // Control referrer information
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          // Restrict browser features
+          {
+            key: 'Permissions-Policy',
+            value: 'geolocation=(), microphone=(), camera=()',
+          },
+          // HTTPS Strict Transport Security (only in production)
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
+          // Content Security Policy
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: https:",
+              "font-src 'self' data:",
+              "connect-src 'self' https:",
+              "frame-ancestors 'none'",
+            ].join('; '),
+          },
+        ],
+      },
+      // API routes: stricter headers
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate',
+          },
+        ],
+      },
+      // Dashboard: prevent caching
+      {
+        source: '/dashboard/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate',
+          },
+        ],
+      },
+    ];
+  },
+
+  // ✅ Redirects (e.g., HTTP to HTTPS)
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/dashboard',
+        permanent: false,
+      },
+    ];
+  },
+
+  // ✅ Image optimization (Next.js 16 compatible)
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.example.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.example.com',
+      },
+    ],
+    formats: ['image/avif', 'image/webp'],
+  },
+
+  // ✅ Disable powered by header
+  poweredByHeader: false,
+
+  // ✅ Generate ETags for caching
+  generateEtags: true,
+
+  // ✅ Compression
+  compress: true,
+
+  // ✅ TypeScript configuration
+  typescript: {
+    tsconfigPath: './tsconfig.json',
+  },
+
+  // ✅ Trailing slashes
+  trailingSlash: false,
+
+  // ✅ Environment variables
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  },
+
+  // ✅ Webpack configuration (optional optimization)
+  webpack: (config, { isServer }) => {
+    config.optimization.minimize = true;
+    return config;
+  },
+};
+
+module.exports = nextConfig;

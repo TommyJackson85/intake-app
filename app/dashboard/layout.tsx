@@ -11,10 +11,12 @@ export default function DashboardLayout({
 }) {
   const { session, loading } = useAuth()
   const router = useRouter()
+  
+
 
   useEffect(() => {
     if (!loading && !session) {
-      router.push('/auth/login')
+      router.push('/auth/signin')
     }
   }, [session, loading, router])
 
