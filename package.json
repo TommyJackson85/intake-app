@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "backfill:password": "ts-node scripts/backfillPassword.ts",
-    "build:compliance": "tsc -p tsconfig.json",
+    "build:compliance": "tsc -p tsconfig.scripts.json",
     "check:compliance": "npm run build:compliance && node dist-scripts/check-compliance.js",
     "dev": "next dev",
     "build": "next build",
