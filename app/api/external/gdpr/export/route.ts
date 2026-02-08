@@ -1,6 +1,7 @@
 // app/api/external/gdpr/export/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
+import { logAuditEvent } from '@/lib/auditLog';
 
 // app/api/external/gdpr/export/route.ts - GDPR Data Export with TypeScript null-safety fix
 // Copy-paste ready - Fixed null type error
@@ -80,6 +81,20 @@ export async function GET(request: NextRequest) {
       .from('aml_checks')
       .select('*')
       .eq('firm_id', firm.id);
+
+    await logAuditEvent(
+      firm.id.toString(),
+      null,
+      'aml_checks_export',
+      'aml_checks',
+      'all',
+      {
+        route: '/api/external/gdpr/export',
+        method: 'GET',
+        format,
+      }
+    );
+
 
     const exportData = {
       exportDate: new Date().toISOString(),

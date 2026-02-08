@@ -4,6 +4,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { validateRequest } from '@/lib/validation-schemas';
 import { GDPRDeleteSchema } from '@/lib/validation-schemas';
+import { logAuditEvent } from '@/lib/auditLog';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -188,6 +189,20 @@ export async function POST(request: Request) {
         console.log(
           `Deleted ${deletionResult.deletedRecords.amlChecks} AML checks`
         );
+      // ✅ Audit log for AML checks deletion (for compliance script)
+      await logAuditEvent(
+        user.firm_id,
+        user.id,
+        'aml_checks_deleted_gdpr',
+        'aml_checks',
+        '',
+        {
+          count: deletionResult.deletedRecords.amlChecks,
+          reason: 'GDPR delete-my-data',
+          source: 'api',
+          ipAddress: clientIp,
+        }
+      );
       }
     } catch (error) {
       console.error('Error deleting AML checks:', error);

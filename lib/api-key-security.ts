@@ -13,6 +13,7 @@ export interface APIKeyValidation {
   scopes?: string[];
   expiresAt?: Date;
   rateLimitKey?: string;
+  keyId?: string;
 }
 
 export interface APIKeyRecord {
@@ -152,6 +153,7 @@ export async function validateAPIKey(
       scopes,
       expiresAt,
       rateLimitKey: `apikey:${keyRecord.id}`,
+      keyId: keyRecord.id as string,
     };
   } catch (error) {
     console.error('API key validation error:', error);

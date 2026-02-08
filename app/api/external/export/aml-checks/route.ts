@@ -1,38 +1,37 @@
 // app/api/external/export/aml-checks/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
-// app/api/external/export/aml-checks/route.ts - FIXED VERSION
-// TypeScript error fixed: proper null checking on authorization header
+// Hardened AML checks export endpoint with audit logging
 
-import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from 'next/server';
+import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict';
 import { getFirmFromApiKey } from '@/lib/get-firm-from-api-key';
-
-const supabase = await createSupabaseServerClientStrict()
+import { logAuditEvent } from '@/lib/auditLog';
 
 export async function POST(request: NextRequest) {
   try {
-    // ✅ FIXED: Properly extract and validate API key from Authorization header
+    // ✅ Create Supabase client (server-side, strict)
+    const supabase = await createSupabaseServerClientStrict();
+
+    // ✅ Extract and validate API key from Authorization header
     const authHeader = request.headers.get('authorization');
-    
-    // ✅ Check if header exists AND starts with 'Bearer '
+
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'Missing or invalid authorization header' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // ✅ NOW apiKey is guaranteed to be a string (not null)
-    const apiKey = authHeader.slice(7); // Remove 'Bearer ' prefix
+    // ✅ API key is now guaranteed to be a string
+    const apiKey = authHeader.slice(7); // Remove "Bearer " prefix
 
     let firm;
     try {
       firm = await getFirmFromApiKey(apiKey);
     } catch (e: any) {
-      if (e.message === 'MISSING_API_KEY') {
+      if (e?.message === 'MISSING_API_KEY') {
         return NextResponse.json(
           { error: 'Missing API key' },
-          { status: 401 }
+          { status: 401 },
         );
       }
       throw e;
@@ -41,11 +40,11 @@ export async function POST(request: NextRequest) {
     if (!firm) {
       return NextResponse.json(
         { error: 'Invalid API key' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // Get AML checks for export
+    // ✅ Get AML checks for export
     const { data: amlChecks, error } = await supabase
       .from('aml_checks')
       .select('*')
@@ -53,14 +52,48 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Failed to fetch AML checks:', error);
+
+      // 🔐 Audit failed export attempt
+      await logAuditEvent({
+        eventType: 'aml_checks_export_failed',
+        actorType: 'api_key',
+        actorId: firm.id.toString(),
+        source: 'api',
+        action: 'read',
+        resource: 'aml_checks',
+        resourceId: null,
+        metadata: {
+          route: '/api/external/export/aml-checks',
+          method: 'POST',
+          reason: error.message ?? 'unknown',
+        },
+      });
+
       return NextResponse.json(
         { error: 'Failed to export data' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
+    // ✅ Audit successful export
+    await logAuditEvent({
+      eventType: 'aml_checks_export',
+      actorType: 'api_key',
+      actorId: firm.id.toString(),
+      source: 'api',
+      action: 'read',
+      resource: 'aml_checks',
+      resourceId: null,
+      metadata: {
+        route: '/api/external/export/aml-checks',
+        method: 'POST',
+        firmId: firm.id,
+        recordCount: amlChecks?.length ?? 0,
+      },
+    });
+
     // Format for CSV export
-    const csv = generateCSV(amlChecks);
+    const csv = generateCSV(amlChecks ?? []);
 
     return new NextResponse(csv, {
       status: 200,
@@ -71,30 +104,55 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Export error:', error);
+
+    // 🔐 Best-effort audit for unexpected errors
+    try {
+      await logAuditEvent({
+        eventType: 'aml_checks_export_error',
+        actorType: 'system',
+        actorId: 'unknown',
+        source: 'api',
+        action: 'read',
+        resource: 'aml_checks',
+        resourceId: null,
+        metadata: {
+          route: '/api/external/export/aml-checks',
+          method: 'POST',
+          error: (error as Error).message ?? 'unknown',
+        },
+      });
+    } catch {
+      // Avoid throwing from audit in catch
+    }
+
     return NextResponse.json(
       { error: 'Export failed' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 function generateCSV(data: any[]): string {
-  if (data.length === 0) {
+  if (!data || data.length === 0) {
     return 'No data to export';
   }
 
-  const headers = Object.keys(data[0]);
+  const headers = Object.keys(data[0] ?? {});
   const csvHeaders = headers.join(',');
-  
+
   const csvRows = data.map(row =>
-    headers.map(header => {
-      const value = row[header];
-      // Escape quotes and wrap in quotes if contains comma
-      if (typeof value === 'string' && value.includes(',')) {
-        return `"${value.replace(/"/g, '""')}"`;
-      }
-      return value || '';
-    }).join(',')
+    headers
+      .map(header => {
+        const value = row[header];
+        if (value == null) return '';
+        const stringValue = String(value);
+        // Escape quotes and wrap in quotes if contains comma or quote
+        if (stringValue.includes(',') || stringValue.includes('"')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      })
+      .join(','),
   );
 
   return [csvHeaders, ...csvRows].join('\n');

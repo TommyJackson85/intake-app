@@ -1,19 +1,19 @@
-
-//app-api-external-aml-checks-hardened.ts
+// app-api-external-aml-checks-hardened.ts
 // app/api/external/aml/checks/route.ts - Hardened AML endpoint
-// Copy-paste ready - DOS protection, timeout, retry logic, error sanitization
+// Copy-paste ready - DOS protection, timeout, retry logic, error sanitization, audit logging
+
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict';
-import { createClient } from '@supabase/supabase-js';
 import { validateRequest } from '@/lib/validation-schemas';
 import { CreateAMLCheckSchema } from '@/lib/validation-schemas';
 import { validateAPIKey, hasScope } from '@/lib/api-key-security';
 import { rateLimit } from '@/lib/rate-limit';
+import { logAuditEvent } from '@/lib/auditLog';
 
 const supabase = await createSupabaseServerClientStrict();
 
 const AML_API_URL = process.env.AML_API_URL || 'https://api.aml-provider.com';
 const AML_API_KEY = process.env.AML_API_KEY;
-const AML_TIMEOUT = parseInt(process.env.AML_API_TIMEOUT || '5000');
+const AML_TIMEOUT = parseInt(process.env.AML_API_TIMEOUT || '5000', 10);
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF = 1000; // 1 second
 
@@ -43,27 +43,74 @@ interface AMLCheckResponse {
  * ✅ Audit logging
  */
 export async function POST(request: Request) {
+  const requestStartedAt = new Date().toISOString();
+
   try {
     // ✅ 1. Validate API key from header only
     const keyValidation = await validateAPIKey(request);
     if (!keyValidation.valid || !keyValidation.firmId) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401 }
+      await logAuditEvent(
+        null, // firmId - null for rejected requests
+        null, // userId - null for API key auth
+        'AML_CHECK_REQUEST_REJECTED',
+        'aml_checks',
+        keyValidation.keyId ?? 'unknown',
+        {
+          actorType: 'api_key',
+          reason: 'invalid_or_missing_api_key',
+          route: '/api/external/aml/checks',
+          method: 'POST',
+          startedAt: requestStartedAt,
+        }
       );
+
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+      });
     }
 
     // ✅ 2. Check scopes
     if (!hasScope(keyValidation.scopes || [], 'aml:read')) {
+      await logAuditEvent(
+        keyValidation.firmId,
+        null, // userId - null for API key auth
+        'AML_CHECK_REQUEST_REJECTED',
+        'aml_checks',
+        keyValidation.keyId ?? 'unknown',
+        {
+          actorType: 'api_key',
+          reason: 'insufficient_scope',
+          requiredScope: 'aml:read',
+          route: '/api/external/aml/checks',
+          method: 'POST',
+          startedAt: requestStartedAt,
+        }
+      );
+
       return new Response(
         JSON.stringify({ error: 'Insufficient permissions' }),
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    // ✅ 3. Rate limit by API key
+    // 3. Rate limit by API key
     const limitResult = await rateLimit(request, 'aml-check');
     if (limitResult.isLimited) {
+      await logAuditEvent(
+        keyValidation.firmId,
+        null, // userId - null for API key auth
+        'AML_CHECK_RATE_LIMITED',
+        'aml_checks',
+        keyValidation.keyId ?? 'unknown',
+        {
+          actorType: 'api_key',
+          route: '/api/external/aml/checks',
+          method: 'POST',
+          startedAt: requestStartedAt,
+          retryAfter: limitResult.retryAfter,
+        }
+      );
+
       return new Response(
         JSON.stringify({ error: 'Rate limit exceeded' }),
         {
@@ -72,7 +119,7 @@ export async function POST(request: Request) {
             'Retry-After': limitResult.retryAfter!.toString(),
             'X-RateLimit-Remaining': '0',
           },
-        }
+        },
       );
     }
 
@@ -81,42 +128,83 @@ export async function POST(request: Request) {
     try {
       body = await request.json();
     } catch {
+      await logAuditEvent(
+        keyValidation.firmId,
+        null, // userId - null for API key auth
+        'AML_CHECK_VALIDATION_FAILED',
+        'aml_checks',
+        keyValidation.keyId ?? 'unknown',
+        {
+          actorType: 'api_key',
+          reason: 'invalid_json',
+          route: '/api/external/aml/checks',
+          method: 'POST',
+          startedAt: requestStartedAt,
+        }
+      );
+
       return new Response(
         JSON.stringify({ error: 'Invalid JSON' }),
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const validation = validateRequest(CreateAMLCheckSchema, body);
     if (!validation.success) {
+      await logAuditEvent(
+        keyValidation.firmId,
+        null, // userId - null for API key auth
+        'AML_CHECK_VALIDATION_FAILED',
+        'aml_checks',
+        keyValidation.keyId ?? 'unknown',
+        {
+          actorType: 'api_key',
+          reason: 'schema_validation_failed',
+          route: '/api/external/aml/checks',
+          method: 'POST',
+          startedAt: requestStartedAt,
+          validationErrors: validation.errors.flatten(),
+        }
+      );
+
       return new Response(
         JSON.stringify({
           error: 'Validation failed',
           details: validation.errors.flatten(),
         }),
-        { status: 400 }
+        { status: 400 },
       );
     }
+
+    const clientId = validation.data.clientId;
 
     // ✅ 5. Call AML provider with timeout and retry
     const amlResult = await checkAMLWithRetry(validation.data);
 
     if (!amlResult.success || !amlResult.data) {
-      // Log failed check
-      await logAMLCheck(
+      await logAuditEvent(
         keyValidation.firmId,
-        validation.data.clientId,
-        'failed',
-        amlResult.error || null
+        null, // userId - null for API key auth
+        'AML_CHECK_COMPLETED',
+        'aml_checks',
+        keyValidation.keyId ?? 'unknown',
+        {
+          actorType: 'api_key',
+          clientId,
+          result: 'failed',
+          error: amlResult.error ?? 'unknown_error',
+          route: '/api/external/aml/checks',
+          method: 'POST',
+          startedAt: requestStartedAt,
+        }
       );
 
-      // ✅ Sanitize error response
       return new Response(
         JSON.stringify({
           error: 'AML check failed',
           status: 'pending',
         }),
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -125,7 +213,7 @@ export async function POST(request: Request) {
       .from('aml_checks')
       .insert({
         firm_id: keyValidation.firmId,
-        client_id: validation.data.clientId,
+        client_id: clientId,
         check_status: amlResult.data.status,
         risk_level: amlResult.data.riskLevel,
         check_details: amlResult.data,
@@ -134,26 +222,54 @@ export async function POST(request: Request) {
       .select('id')
       .single();
 
-    if (dbError) {
+    if (dbError || !checkRecord?.id) {
       console.error('Failed to store AML check:', dbError);
+
+      await logAuditEvent(
+        keyValidation.firmId,
+        null, // userId - null for API key auth
+        'AML_CHECK_COMPLETED',
+        'aml_checks',
+        keyValidation.keyId ?? 'unknown',
+        {
+          actorType: 'api_key',
+          clientId,
+          result: 'failed',
+          error: 'db_insert_failed',
+          route: '/api/external/aml/checks',
+          method: 'POST',
+          startedAt: requestStartedAt,
+        }
+      );
+
       return new Response(
         JSON.stringify({ error: 'Failed to store result' }),
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    // ✅ 7. Log successful check
-    await logAMLCheck(
+    // ✅ 7. Log successful check (audit log)
+    await logAuditEvent(
       keyValidation.firmId,
-      validation.data.clientId,
-      'success',
-      null,
-      checkRecord?.id as string
+      null, // userId - null for API key auth
+      'AML_CHECK_COMPLETED',
+      'aml_checks',
+      checkRecord.id,
+      {
+        actorType: 'api_key',
+        clientId,
+        result: 'success',
+        amlStatus: amlResult.data.status,
+        riskLevel: amlResult.data.riskLevel,
+        route: '/api/external/aml/checks',
+        method: 'POST',
+        startedAt: requestStartedAt,
+      }
     );
 
     // ✅ 8. Return result
     const response: AMLCheckResponse = {
-      checkId: checkRecord?.id as string,
+      checkId: checkRecord.id as string,
       status: amlResult.data.status,
       riskLevel: amlResult.data.riskLevel,
       findings: amlResult.data.findings,
@@ -170,13 +286,28 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('AML check error:', error);
 
-    // ✅ Sanitize error response
+    await logAuditEvent(
+      null, // firmId - null for system errors
+      null, // userId - null for system errors
+      'AML_CHECK_COMPLETED',
+      'aml_checks',
+      'system',
+      {
+        actorType: 'system',
+        result: 'failed',
+        error: 'unhandled_exception',
+        route: '/api/external/aml/checks',
+        method: 'POST',
+        startedAt: requestStartedAt,
+      }
+    );
+
     return new Response(
       JSON.stringify({
         error: 'AML check service unavailable',
         status: 'pending',
       }),
-      { status: 503 }
+      { status: 503 },
     );
   }
 }
@@ -185,7 +316,7 @@ export async function POST(request: Request) {
  * Call AML provider with timeout and exponential backoff retry
  */
 async function checkAMLWithRetry(
-  data: AMLCheckRequest
+  data: AMLCheckRequest,
 ): Promise<{
   success: boolean;
   data?: AMLCheckResponse;
@@ -209,7 +340,7 @@ async function checkAMLWithRetry(
         const response = await fetch(`${AML_API_URL}/checks`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${AML_API_KEY}`,
+            Authorization: `Bearer ${AML_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(data),
@@ -248,14 +379,14 @@ async function checkAMLWithRetry(
       lastError = error as Error;
 
       if (error instanceof TypeError && error.message.includes('aborted')) {
-        // Timeout occurred
         console.warn(`AML check timeout on attempt ${attempt + 1}`);
       } else {
         console.warn(
-          `AML check failed on attempt ${attempt + 1}: ${(error as Error).message}`
+          `AML check failed on attempt ${attempt + 1}: ${
+            (error as Error).message
+          }`,
         );
       }
-
       // Continue to next retry
     }
   }
@@ -263,70 +394,91 @@ async function checkAMLWithRetry(
   // ✅ All retries failed
   return {
     success: false,
-    error: `AML check failed after ${MAX_RETRIES} attempts: ${lastError?.message || 'Unknown error'}`,
+    error: `AML check failed after ${MAX_RETRIES} attempts: ${
+      lastError?.message || 'Unknown error'
+    }`,
   };
-}
-
-/**
- * Log AML check for audit trail
- */
-async function logAMLCheck(
-  firmId: string,
-  clientId: string,
-  result: 'success' | 'failed',
-  error: string | null,
-  checkId?: string
-): Promise<void> {
-  try {
-    await supabase.from('audit_logs').insert({
-      firm_id: firmId,
-      event_type: 'AML_CHECK_COMPLETED',
-      description: `AML check ${result} for client ${clientId}`,
-      metadata: {
-        clientId,
-        checkId,
-        result,
-        error,
-        timestamp: new Date().toISOString(),
-      },
-    });
-  } catch (error) {
-    console.error('Failed to log AML check:', error);
-  }
 }
 
 /**
  * GET /api/external/aml/checks/:checkId
  * Retrieve AML check result
+ * ✅ Audit logging on read
  */
 export async function GET(request: Request) {
+  const requestStartedAt = new Date().toISOString();
+
   try {
-    // Extract checkId from URL
     const url = new URL(request.url);
     const checkId = url.searchParams.get('checkId');
 
     if (!checkId) {
+      await logAuditEvent(
+        null, // firmId - null for missing checkId
+        null, // userId - null for API key auth
+        'AML_CHECK_READ_FAILED',
+        'aml_checks',
+        'unknown',
+        {
+          actorType: 'api_key',
+          reason: 'missing_check_id',
+          route: '/api/external/aml/checks',
+          method: 'GET',
+          startedAt: requestStartedAt,
+        }
+      );
+
       return new Response(
         JSON.stringify({ error: 'checkId required' }),
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validate API key
     const keyValidation = await validateAPIKey(request);
-    if (!keyValidation.valid) {
+    if (!keyValidation.valid || !keyValidation.firmId) {
+      await logAuditEvent(
+        null, // firmId - null for rejected requests
+        null, // userId - null for API key auth
+        'AML_CHECK_READ_FAILED',
+        'aml_checks',
+        keyValidation.keyId ?? 'unknown',
+        {
+          actorType: 'api_key',
+          reason: 'invalid_or_missing_api_key',
+          route: '/api/external/aml/checks',
+          method: 'GET',
+          startedAt: requestStartedAt,
+        }
+      );
+
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     // Rate limit
     const limitResult = await rateLimit(request, 'aml-check');
     if (limitResult.isLimited) {
+      await logAuditEvent(
+        keyValidation.firmId,
+        null, // userId - null for API key auth
+        'AML_CHECK_RATE_LIMITED',
+        'aml_checks',
+        keyValidation.keyId ?? 'unknown',
+        {
+          actorType: 'api_key',
+          route: '/api/external/aml/checks',
+          method: 'GET',
+          startedAt: requestStartedAt,
+          retryAfter: limitResult.retryAfter,
+        }
+      );
+
       return new Response(
         JSON.stringify({ error: 'Rate limit exceeded' }),
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -339,21 +491,68 @@ export async function GET(request: Request) {
       .single();
 
     if (error || !check) {
+      await logAuditEvent(
+        keyValidation.firmId,
+        null, // userId - null for API key auth
+        'AML_CHECK_READ_FAILED',
+        'aml_checks',
+        keyValidation.keyId ?? 'unknown',
+        {
+          actorType: 'api_key',
+          reason: 'not_found',
+          route: '/api/external/aml/checks',
+          method: 'GET',
+          startedAt: requestStartedAt,
+        }
+      );
+
       return new Response(
         JSON.stringify({ error: 'Check not found' }),
-        { status: 404 }
+        { status: 404 },
       );
     }
 
+    await logAuditEvent(
+      keyValidation.firmId,
+      null, // userId - null for API key auth
+      'AML_CHECK_READ',
+      'aml_checks',
+      keyValidation.keyId ?? 'unknown',
+      {
+        actorType: 'api_key',
+        route: '/api/external/aml/checks',
+        method: 'GET',
+        startedAt: requestStartedAt,
+      }
+    );
+
     return new Response(JSON.stringify(check), {
       status: 200,
-      headers: { 'X-RateLimit-Remaining': limitResult.remaining.toString() },
+      headers: {
+        'X-RateLimit-Remaining': limitResult.remaining.toString(),
+      },
     });
   } catch (error) {
     console.error('AML retrieval error:', error);
+
+    await logAuditEvent(
+      null, // firmId - null for system errors
+      null, // userId - null for system errors
+      'AML_CHECK_READ_FAILED',
+      'aml_checks',
+      'system',
+      {
+        actorType: 'system',
+        reason: 'unhandled_exception',
+        route: '/api/external/aml/checks',
+        method: 'GET',
+        startedAt: requestStartedAt,
+      }
+    );
+
     return new Response(
       JSON.stringify({ error: 'Failed to retrieve check' }),
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
