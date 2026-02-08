@@ -54,20 +54,18 @@ export async function POST(request: NextRequest) {
       console.error('Failed to fetch AML checks:', error);
 
       // 🔐 Audit failed export attempt
-      await logAuditEvent({
-        eventType: 'aml_checks_export_failed',
-        actorType: 'api_key',
-        actorId: firm.id.toString(),
-        source: 'api',
-        action: 'read',
-        resource: 'aml_checks',
-        resourceId: null,
-        metadata: {
+      await logAuditEvent(
+        firm.id.toString(),
+        null,
+        'aml_checks_export_failed',
+        'aml_checks',
+        'export',
+        {
           route: '/api/external/export/aml-checks',
           method: 'POST',
           reason: error.message ?? 'unknown',
-        },
-      });
+        }
+      );
 
       return NextResponse.json(
         { error: 'Failed to export data' },
@@ -76,21 +74,19 @@ export async function POST(request: NextRequest) {
     }
 
     // ✅ Audit successful export
-    await logAuditEvent({
-      eventType: 'aml_checks_export',
-      actorType: 'api_key',
-      actorId: firm.id.toString(),
-      source: 'api',
-      action: 'read',
-      resource: 'aml_checks',
-      resourceId: null,
-      metadata: {
+    await logAuditEvent(
+      firm.id.toString(),
+      null,
+      'aml_checks_export',
+      'aml_checks',
+      'export',
+      {
         route: '/api/external/export/aml-checks',
         method: 'POST',
         firmId: firm.id,
         recordCount: amlChecks?.length ?? 0,
-      },
-    });
+      }
+    );
 
     // Format for CSV export
     const csv = generateCSV(amlChecks ?? []);
@@ -107,20 +103,18 @@ export async function POST(request: NextRequest) {
 
     // 🔐 Best-effort audit for unexpected errors
     try {
-      await logAuditEvent({
-        eventType: 'aml_checks_export_error',
-        actorType: 'system',
-        actorId: 'unknown',
-        source: 'api',
-        action: 'read',
-        resource: 'aml_checks',
-        resourceId: null,
-        metadata: {
+      await logAuditEvent(
+        null,
+        null,
+        'aml_checks_export_error',
+        'aml_checks',
+        'export',
+        {
           route: '/api/external/export/aml-checks',
           method: 'POST',
           error: (error as Error).message ?? 'unknown',
-        },
-      });
+        }
+      );
     } catch {
       // Avoid throwing from audit in catch
     }
