@@ -94,17 +94,31 @@ export async function POST(request: Request) {
         error?.message || 'Invalid credentials'
       );
 
+      const isEmailNotConfirmed =
+        error?.message?.toLowerCase().includes('confirm') ||
+        error?.message?.toLowerCase().includes('email not confirmed');
+
+      if (isEmailNotConfirmed) {
+        return new Response(
+          JSON.stringify({
+            error: 'Please confirm your email address before signing in. Check your inbox and spam folder.',
+            code: 'EMAIL_NOT_CONFIRMED',
+          }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
         JSON.stringify({ error: 'Invalid email or password' }),
-        { status: 401 }
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     const user = data.user;
 
-    // 5) Load user profile/firm
+    // 5) Load user profile (profiles.firm_id may be null if user has not registered a firm yet)
     const { data: userData, error: userError } = await supabaseAdmin
-      .from('users')
+      .from('profiles')
       .select('id, email, firm_id')
       .eq('id', user.id)
       .single();
@@ -120,12 +134,12 @@ export async function POST(request: Request) {
 
     // 6) Create session via existing lib/session.ts
     const userAgent = request.headers.get('user-agent') || '';
+    const tokenHashValue = userData.firm_id ?? '';
     const sessionId = await createSessionRecord(
       user.id,
       clientIp,
       userAgent,
-      // You are currently storing this in token_hash; we use firm_id as you had
-      userData.firm_id
+      tokenHashValue
     );
 
     if (!sessionId) {
@@ -149,7 +163,7 @@ export async function POST(request: Request) {
         user: {
           id: user.id,
           email: user.email,
-          firmId: userData.firm_id,
+          firmId: userData.firm_id ?? null,
         },
         message: 'Signed in successfully',
       }),
@@ -163,15 +177,14 @@ export async function POST(request: Request) {
     );
 
     // 8) Set secure session cookie using your helper
-    // name = 'session_token', value = sessionId (what createSessionRecord returns)
     await setSessionCookie('session_token', sessionId, {
-      // override defaults only if you want different lifetime
       maxAge: 30 * 60, // 30 minutes in seconds
     });
-
-    // Optionally also set user_id and firm_id cookies if you rely on them elsewhere:
     await setSessionCookie('user_id', user.id);
-    await setSessionCookie('firm_id', String(userData.firm_id));
+    // Only set firm_id cookie when user has a firm (so API routes get correct context)
+    if (userData.firm_id) {
+      await setSessionCookie('firm_id', String(userData.firm_id));
+    }
 
     // 9) Log success
     await logLogin(email, 'success', clientIp, 'Session created');

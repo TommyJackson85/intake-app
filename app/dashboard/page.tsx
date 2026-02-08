@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/lib/auth-context'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/browserClient'
 
@@ -19,11 +20,14 @@ export default function Dashboard() {
   })
   const [loading, setLoading] = useState(true)
   const supabase = createSupabaseBrowserClient()
+  const hasFirm = Boolean(profile?.firm_id)
 
   useEffect(() => {
     const loadStats = async () => {
-      if (!profile?.firm_id) return
-
+      if (!profile?.firm_id) {
+        setLoading(false)
+        return
+      }
       try {
         const [clientsRes, mattersRes, amlRes] = await Promise.all([
           supabase
@@ -40,7 +44,6 @@ export default function Dashboard() {
             .eq('firm_id', profile.firm_id)
             .eq('check_status', 'pending'),
         ])
-
         setStats({
           totalClients: clientsRes.count || 0,
           totalMatters: mattersRes.count || 0,
@@ -52,9 +55,49 @@ export default function Dashboard() {
         setLoading(false)
       }
     }
-
     loadStats()
   }, [profile?.firm_id, supabase])
+
+  if (!hasFirm) {
+    return (
+      <div>
+        <h1 style={{ marginBottom: '12px', fontSize: '32px' }}>Welcome to LawIntake</h1>
+        <p style={{ marginBottom: '24px', color: '#627c71' }}>
+          You’re signed in. To use client intake, matters, AML checks, and other practice features,
+          register your law firm. This keeps us compliant with multijurisdictional practice and
+          data privacy requirements.
+        </p>
+        <div
+          style={{
+            background: 'white',
+            padding: '28px',
+            borderRadius: '8px',
+            border: '1px solid rgba(94, 82, 64, 0.2)',
+            maxWidth: '480px',
+          }}
+        >
+          <h2 style={{ marginBottom: '12px', fontSize: '20px' }}>Register your law firm</h2>
+          <p style={{ marginBottom: '20px', color: '#627c71', fontSize: '14px' }}>
+            Add your firm name and state to unlock the full dashboard and API features.
+          </p>
+          <Link
+            href="/dashboard/register-firm"
+            style={{
+              display: 'inline-block',
+              background: '#208096',
+              color: 'white',
+              padding: '12px 24px',
+              borderRadius: '6px',
+              textDecoration: 'none',
+              fontWeight: 600,
+            }}
+          >
+            Register firm
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -98,7 +141,7 @@ export default function Dashboard() {
       }}>
         <h2 style={{ marginBottom: '20px', fontSize: '20px' }}>Quick Actions</h2>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <a
+          <Link
             href="/dashboard/clients/new"
             style={{
               background: '#208096',
@@ -110,8 +153,8 @@ export default function Dashboard() {
             }}
           >
             + Add Client
-          </a>
-          <a
+          </Link>
+          <Link
             href="/dashboard/matters/new"
             style={{
               background: '#208096',
@@ -123,8 +166,8 @@ export default function Dashboard() {
             }}
           >
             + New Matter
-          </a>
-          <a
+          </Link>
+          <Link
             href="/dashboard/aml"
             style={{
               background: 'rgba(94, 82, 64, 0.12)',
@@ -136,7 +179,7 @@ export default function Dashboard() {
             }}
           >
             Review AML
-          </a>
+          </Link>
         </div>
       </div>
     </div>

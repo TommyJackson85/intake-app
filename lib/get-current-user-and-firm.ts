@@ -1,7 +1,24 @@
 // lib/get-current-user-and-firm.ts
 import { createSupabaseServerClientStrict } from './serverClientStrict'
 
-export async function getCurrentUserAndFirm() {
+export type FirmRow = {
+  id: string
+  name: string
+  state: string
+  created_at: string | null
+}
+
+/**
+ * Get current user and optionally their firm.
+ * Use when the route requires a firm (e.g. clients, matters, AML).
+ * For dashboard/UI that supports "no firm yet", use getCurrentUser() and check profile.firm_id.
+ */
+export async function getCurrentUserAndFirm(): Promise<{
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClientStrict>>
+  user: { id: string; email?: string }
+  profile: { id: string; firm_id: string | null; full_name: string | null; email: string | null }
+  firm: FirmRow
+}> {
   const supabase = await createSupabaseServerClientStrict()
 
   const {
@@ -23,14 +40,62 @@ export async function getCurrentUserAndFirm() {
     throw new Error('PROFILE_NOT_FOUND')
   }
 
+  if (!profile.firm_id) {
+    throw new Error('FIRM_REQUIRED')
+  }
+
   const { data: firm, error: firmError } = await supabase
     .from('firms')
-    .select('id, name, firm_state, created_at')
+    .select('id, name, state, created_at')
     .eq('id', profile.firm_id)
     .single()
 
   if (firmError || !firm) {
     throw new Error('FIRM_NOT_FOUND')
+  }
+
+  return { supabase, user, profile, firm: firm as FirmRow }
+}
+
+/**
+ * Get current user and profile only. Firm may be null (user not yet registered a law firm).
+ * Use for dashboard and anywhere you need to support "no firm" state.
+ */
+export async function getCurrentUser(): Promise<{
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClientStrict>>
+  user: { id: string; email?: string }
+  profile: { id: string; firm_id: string | null; full_name: string | null; email: string | null }
+  firm: FirmRow | null
+}> {
+  const supabase = await createSupabaseServerClientStrict()
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    throw new Error('UNAUTHENTICATED')
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('id, firm_id, full_name, email')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    throw new Error('PROFILE_NOT_FOUND')
+  }
+
+  let firm: FirmRow | null = null
+  if (profile.firm_id) {
+    const { data: firmData } = await supabase
+      .from('firms')
+      .select('id, name, state, created_at')
+      .eq('id', profile.firm_id)
+      .single()
+    firm = firmData as FirmRow | null
   }
 
   return { supabase, user, profile, firm }

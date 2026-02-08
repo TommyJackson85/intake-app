@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/lib/auth-context'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/browserClient'
 
@@ -14,10 +15,18 @@ interface Client {
 }
 
 export default function ClientsPage() {
-  const { profile } = useAuth()
+  const { profile, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createSupabaseBrowserClient()
+
+  useEffect(() => {
+    if (!authLoading && !profile?.firm_id) {
+      router.replace('/dashboard')
+      return
+    }
+  }, [authLoading, profile?.firm_id, router])
 
   useEffect(() => {
     const loadClients = async () => {

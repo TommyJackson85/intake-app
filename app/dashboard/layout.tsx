@@ -9,10 +9,10 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { session, loading } = useAuth()
+  const { session, profile, firm, loading } = useAuth()
   const router = useRouter()
-  
-
+  const hasFirm = Boolean(profile?.firm_id)
+  const isTestFirm = Boolean(firm?.is_test_firm)
 
   useEffect(() => {
     if (!loading && !session) {
@@ -30,7 +30,6 @@ export default function DashboardLayout({
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
       <aside style={{
         width: '250px',
         background: '#134252',
@@ -40,12 +39,38 @@ export default function DashboardLayout({
         height: '100vh',
         overflowY: 'auto',
       }}>
-        <div style={{ marginBottom: '40px', fontSize: '20px', fontWeight: 600 }}>⚖️ LawIntake</div>
+        <div style={{ marginBottom: '40px', fontSize: '20px', fontWeight: 600 }}>
+          ⚖️ LawIntake
+          {isTestFirm && (
+            <span
+              style={{
+                display: 'inline-block',
+                marginLeft: '8px',
+                fontSize: '11px',
+                background: '#90cfd9',
+                color: '#134252',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontWeight: 600,
+              }}
+            >
+              Dev
+            </span>
+          )}
+        </div>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <a href="/dashboard" style={{ color: 'white', textDecoration: 'none' }}>Dashboard</a>
-          <a href="/dashboard/clients" style={{ color: 'white', textDecoration: 'none' }}>Clients</a>
-          <a href="/dashboard/matters" style={{ color: 'white', textDecoration: 'none' }}>Matters</a>
-          <a href="/dashboard/aml" style={{ color: 'white', textDecoration: 'none' }}>AML Checks</a>
+          {hasFirm ? (
+            <>
+              <a href="/dashboard/clients" style={{ color: 'white', textDecoration: 'none' }}>Clients</a>
+              <a href="/dashboard/matters" style={{ color: 'white', textDecoration: 'none' }}>Matters</a>
+              <a href="/dashboard/aml" style={{ color: 'white', textDecoration: 'none' }}>AML Checks</a>
+            </>
+          ) : (
+            <a href="/dashboard/register-firm" style={{ color: '#90cfd9', textDecoration: 'none', fontWeight: 600 }}>
+              Register law firm
+            </a>
+          )}
           <a href="/dashboard/settings" style={{ color: 'white', textDecoration: 'none' }}>Settings</a>
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
@@ -53,7 +78,6 @@ export default function DashboardLayout({
         </div>
       </aside>
 
-      {/* Main content */}
       <main style={{
         marginLeft: '250px',
         flex: 1,

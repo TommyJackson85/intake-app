@@ -1,12 +1,13 @@
 'use client'
 
+import { useAuth } from '@/lib/auth-context'
+import Link from 'next/link'
+
 export function FirmExportButton() {
   const handleExport = async () => {
     const res = await fetch('/api/gdpr/export', {
       method: 'GET',
-      headers: {
-        // If you add CSRF protection, include the token here.
-      },
+      headers: {},
     })
 
     if (!res.ok) {
@@ -38,8 +39,10 @@ export function FirmExportButton() {
   )
 }
 
-// DEFAULT EXPORT - Required by Next.js
 export default function SettingsPage() {
+  const { profile } = useAuth()
+  const hasFirm = Boolean(profile?.firm_id)
+
   return (
     <div className="dashboard-page">
       <div className="page-header">
@@ -50,8 +53,14 @@ export default function SettingsPage() {
       <div className="settings-section">
         <div className="settings-card">
           <h2>Data Export (GDPR)</h2>
-          <p>Download all your firm's data in JSON format for compliance or backup.</p>
-          <FirmExportButton />
+          <p>Download all your firm&apos;s data in JSON format for compliance or backup.</p>
+          {hasFirm ? (
+            <FirmExportButton />
+          ) : (
+            <p style={{ color: '#627c71', marginTop: '8px' }}>
+              <Link href="/dashboard/register-firm" style={{ color: '#208096' }}>Register your law firm</Link> to unlock firm data export.
+            </p>
+          )}
         </div>
       </div>
     </div>

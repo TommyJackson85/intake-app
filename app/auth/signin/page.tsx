@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-
+import Link from 'next/link'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false)
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -17,7 +18,7 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const res = await fetch('/auth/signin', {
+      const res = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -28,11 +29,16 @@ export default function Login() {
       const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        setError(data.error || 'Login failed')
+        setEmailNotConfirmed(data.code === 'EMAIL_NOT_CONFIRMED')
+        setError(
+          data.code === 'EMAIL_NOT_CONFIRMED'
+            ? data.error ||
+                'Please confirm your email address before signing in. Check your inbox and spam folder.'
+            : data.error || 'Login failed'
+        )
         return
       }
 
-      // Cookies (firm_id, user_id) are now set by the server route
       router.push('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Login failed')
@@ -92,6 +98,13 @@ export default function Login() {
               }}
             >
               {error}
+              {emailNotConfirmed && (
+                <p style={{ marginTop: '8px', marginBottom: 0 }}>
+                  <Link href="/auth/confirm-email" style={{ color: '#208096', fontWeight: 600 }}>
+                    Resend confirmation email
+                  </Link>
+                </p>
+              )}
             </div>
           )}
 

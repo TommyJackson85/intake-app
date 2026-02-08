@@ -204,6 +204,7 @@ export type Database = {
           created_at: string | null
           email_contact: string | null
           id: string
+          is_test_firm: boolean
           name: string
           state: string
         }
@@ -211,6 +212,7 @@ export type Database = {
           created_at?: string | null
           email_contact?: string | null
           id?: string
+          is_test_firm?: boolean
           name: string
           state: string
         }
@@ -218,6 +220,7 @@ export type Database = {
           created_at?: string | null
           email_contact?: string | null
           id?: string
+          is_test_firm?: boolean
           name?: string
           state?: string
         }
@@ -332,7 +335,7 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           email: string | null
-          firm_id: string
+          firm_id: string | null
           full_name: string | null
           id: string
           is_deleted: boolean
@@ -345,7 +348,7 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           email?: string | null
-          firm_id: string
+          firm_id?: string | null
           full_name?: string | null
           id: string
           is_deleted?: boolean

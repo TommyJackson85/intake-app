@@ -1,46 +1,54 @@
 'use client'
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signUpAction } from './signupAction'
+
+const ALLOW_DEV_SIGNUP = process.env.NEXT_PUBLIC_ALLOW_DEV_SIGNUP === 'true'
 
 export default function SignUp() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [firmName, setFirmName] = useState('')
   const [usState, setUsState] = useState('FL')
+  const [registerFirmNow, setRegisterFirmNow] = useState(false)
+  const [asDeveloper, setAsDeveloper] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
 
-const handleSignUp = async (e: React.FormEvent) => {
-  e.preventDefault()
-  if (loading) return
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (loading) return
 
-  setError('')
-  setLoading(true)
+    setError('')
+    setLoading(true)
 
-  try {
-    await signUpAction(
-      email.trim(),
-      password,
-      firmName.trim(),
-      usState.trim()
-    )
-
-    router.push('/dashboard')
-  } catch (err) {
-    if (err instanceof Error) {
-      setError(err.message)
-    } else {
-      setError('Something went wrong')
+    try {
+      const result = await signUpAction({
+        email: email.trim(),
+        password,
+        firmName: registerFirmNow ? firmName.trim() : undefined,
+        usState: registerFirmNow ? usState.trim() : undefined,
+        asDeveloper: ALLOW_DEV_SIGNUP && asDeveloper,
+      })
+      if (result.needsConfirmation) {
+        router.push('/auth/confirm-email')
+      } else {
+        router.push('/dashboard')
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Something went wrong')
+      }
+    } finally {
+      setLoading(false)
     }
-  } finally {
-    setLoading(false)
   }
-}
 
-
-   return (
+  return (
     <div
       style={{
         minHeight: '100vh',
@@ -56,79 +64,125 @@ const handleSignUp = async (e: React.FormEvent) => {
           padding: '40px',
           borderRadius: '8px',
           width: '100%',
-          maxWidth: '400px',
+          maxWidth: '420px',
           border: '1px solid rgba(94, 82, 64, 0.2)',
         }}
       >
         <h1
           style={{
-            marginBottom: '30px',
+            marginBottom: '10px',
             fontSize: '28px',
             textAlign: 'center',
           }}
         >
           Create Account
         </h1>
+        <p
+          style={{
+            marginBottom: '24px',
+            fontSize: '14px',
+            color: '#627c71',
+            textAlign: 'center',
+          }}
+        >
+          You can register a law firm now or later from your dashboard.
+        </p>
 
         <form onSubmit={handleSignUp}>
-          {/* Firm Name */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px' }}>
-              Firm Name
-            </label>
-            <input
-              type="text"
-              value={firmName}
-              onChange={(e) => setFirmName(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* State */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px' }}>
-              State
-            </label>
-            <input
-              type="text"
-              value={usState}
-              onChange={(e) => setUsState(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* Email */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px' }}>
-              Email
-            </label>
+            <label style={{ display: 'block', marginBottom: '8px' }}>Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              style={{ width: '100%', padding: '10px', boxSizing: 'border-box' }}
             />
           </div>
 
-          {/* Password */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px' }}>
-              Password
-            </label>
+            <label style={{ display: 'block', marginBottom: '8px' }}>Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              style={{ width: '100%', padding: '10px', boxSizing: 'border-box' }}
             />
           </div>
 
-          {error && <p style={{ color: 'red' }}>{error}</p>}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={registerFirmNow}
+                onChange={(e) => setRegisterFirmNow(e.target.checked)}
+              />
+              <span>Register with a law firm now</span>
+            </label>
+          </div>
 
-          <button type="submit" disabled={loading}>
+          {registerFirmNow && (
+            <>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '8px' }}>Firm Name</label>
+                <input
+                  type="text"
+                  value={firmName}
+                  onChange={(e) => setFirmName(e.target.value)}
+                  required={registerFirmNow}
+                  style={{ width: '100%', padding: '10px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '8px' }}>State</label>
+                <input
+                  type="text"
+                  value={usState}
+                  onChange={(e) => setUsState(e.target.value)}
+                  required={registerFirmNow}
+                  style={{ width: '100%', padding: '10px', boxSizing: 'border-box' }}
+                />
+              </div>
+            </>
+          )}
+
+          {ALLOW_DEV_SIGNUP && (
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={asDeveloper}
+                  onChange={(e) => setAsDeveloper(e.target.checked)}
+                />
+                <span>Sign up as developer (test law firm, full access)</span>
+              </label>
+            </div>
+          )}
+
+          {error && <p style={{ color: '#c00', marginBottom: '12px', fontSize: '14px' }}>{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: '100%',
+              padding: '12px',
+              background: '#208096',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+            }}
+          >
             {loading ? 'Creating…' : 'Create Account'}
           </button>
         </form>
+
+        <p style={{ marginTop: '20px', fontSize: '14px', color: '#627c71', textAlign: 'center' }}>
+          Already have an account? <a href="/auth/signin" style={{ color: '#208096' }}>Sign in</a>
+        </p>
       </div>
     </div>
   )
