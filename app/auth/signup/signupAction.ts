@@ -2,7 +2,8 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { createServerClient, createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 import type { Database } from '@/lib/database.types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
