@@ -1,11 +1,11 @@
 // app/api/auth/signin/route.ts
-// FINAL VERSION – matches your current lib/session.ts API
+// FIXED VERSION - Sets cookies properly in API route handler
 
 import { createClient } from '@supabase/supabase-js';
 import { validateRequest, SignInSchema } from '@/lib/validation-schemas';
 import { rateLimit } from '@/lib/rate-limit';
 import { logLogin } from '@/lib/auditLog';
-import { createSessionRecord, setSessionCookie } from '@/lib/session';
+import { createSessionRecord } from '@/lib/session';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -63,7 +63,6 @@ export async function POST(request: Request) {
 
     // 3) Validate input
     const validation = validateRequest(SignInSchema, body);
-
     if (!validation.success) {
       await logLogin(
         (body as any)?.email || 'unknown',
@@ -71,7 +70,6 @@ export async function POST(request: Request) {
         clientIp,
         'Invalid input'
       );
-
       return new Response(
         JSON.stringify({ error: 'Invalid email or password' }),
         { status: 400 }
@@ -125,7 +123,6 @@ export async function POST(request: Request) {
 
     if (userError || !userData) {
       await logLogin(email, 'failed', clientIp, 'User profile missing');
-
       return new Response(
         JSON.stringify({ error: 'User profile not found' }),
         { status: 500 }
@@ -149,15 +146,39 @@ export async function POST(request: Request) {
         clientIp,
         'Failed to create session'
       );
-
       return new Response(
         JSON.stringify({ error: 'Failed to create session' }),
         { status: 500 }
       );
     }
 
-    // 7) Prepare response
-    const response = new Response(
+    // 7) Create cookies array
+    const cookies: string[] = [];
+    const isProduction = process.env.NODE_ENV === 'production';
+    const maxAge = 30 * 60; // 30 minutes
+
+    // Session token cookie
+    cookies.push(
+      `session_token=${sessionId}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAge}`
+    );
+
+    // User ID cookie
+    cookies.push(
+      `user_id=${user.id}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAge}`
+    );
+
+    // Only set firm_id cookie when user has a firm
+    if (userData.firm_id) {
+      cookies.push(
+        `firm_id=${userData.firm_id}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAge}`
+      );
+    }
+
+    // 8) Log success
+    await logLogin(email, 'success', clientIp, 'Session created');
+
+    // 9) Return response with cookies set in headers
+    return new Response(
       JSON.stringify({
         success: true,
         user: {
@@ -172,27 +193,12 @@ export async function POST(request: Request) {
         headers: {
           'Content-Type': 'application/json',
           'X-RateLimit-Remaining': limitResult.remaining.toString(),
+          'Set-Cookie': cookies.join(', '),
         },
       }
     );
-
-    // 8) Set secure session cookie using your helper
-    await setSessionCookie('session_token', sessionId, {
-      maxAge: 30 * 60, // 30 minutes in seconds
-    });
-    await setSessionCookie('user_id', user.id);
-    // Only set firm_id cookie when user has a firm (so API routes get correct context)
-    if (userData.firm_id) {
-      await setSessionCookie('firm_id', String(userData.firm_id));
-    }
-
-    // 9) Log success
-    await logLogin(email, 'success', clientIp, 'Session created');
-
-    return response;
   } catch (error) {
     console.error('Signin endpoint error:', error);
-
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500 }
