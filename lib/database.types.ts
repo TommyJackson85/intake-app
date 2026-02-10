@@ -74,46 +74,46 @@ export type Database = {
           },
         ]
       }
-      audit_events: {
+      audit_logs: {
         Row: {
           created_at: string | null
-          details: Json | null
-          entity_id: string | null
-          entity_type: string | null
+          description: string | null
           event_type: string
-          firm_id: string
+          firm_id: string | null
           id: string
-          ip_address: unknown
-          lawful_basis: string | null
+          metadata: Json | null
+          resource_id: string | null
+          resource_type: string | null
+          timestamp: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
-          details?: Json | null
-          entity_id?: string | null
-          entity_type?: string | null
+          description?: string | null
           event_type: string
-          firm_id: string
+          firm_id?: string | null
           id?: string
-          ip_address?: unknown
-          lawful_basis?: string | null
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          timestamp?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
-          details?: Json | null
-          entity_id?: string | null
-          entity_type?: string | null
+          description?: string | null
           event_type?: string
-          firm_id?: string
+          firm_id?: string | null
           id?: string
-          ip_address?: unknown
-          lawful_basis?: string | null
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          timestamp?: string | null
           user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "audit_events_firm_id_fkey"
+            foreignKeyName: "audit_logs_firm_id_fkey"
             columns: ["firm_id"]
             isOneToOne: false
             referencedRelation: "firms"
@@ -183,13 +183,6 @@ export type Database = {
           zip_code?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "clients_firm_fk"
-            columns: ["firm_id"]
-            isOneToOne: false
-            referencedRelation: "firms"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "clients_firm_id_fkey"
             columns: ["firm_id"]
@@ -314,13 +307,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "matters_firm_fk"
-            columns: ["firm_id"]
-            isOneToOne: false
-            referencedRelation: "firms"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "matters_firm_id_fkey"
             columns: ["firm_id"]
             isOneToOne: false
@@ -338,7 +324,7 @@ export type Database = {
           firm_id: string | null
           full_name: string | null
           id: string
-          is_deleted: boolean
+          is_deleted: boolean | null
           is_us_citizen_or_resident: boolean | null
           phone: string | null
           role: string | null
@@ -351,7 +337,7 @@ export type Database = {
           firm_id?: string | null
           full_name?: string | null
           id: string
-          is_deleted?: boolean
+          is_deleted?: boolean | null
           is_us_citizen_or_resident?: boolean | null
           phone?: string | null
           role?: string | null
@@ -361,23 +347,59 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           email?: string | null
-          firm_id?: string
+          firm_id?: string | null
           full_name?: string | null
           id?: string
-          is_deleted?: boolean
+          is_deleted?: boolean | null
           is_us_citizen_or_resident?: boolean | null
           phone?: string | null
           role?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "profiles_firm_fk"
+            foreignKeyName: "profiles_firm_id_fkey"
             columns: ["firm_id"]
             isOneToOne: false
             referencedRelation: "firms"
             referencedColumns: ["id"]
           },
         ]
+      }
+      sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          ip_address: unknown
+          is_valid: boolean
+          last_activity: string
+          token_hash: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown
+          is_valid?: boolean
+          last_activity?: string
+          token_hash: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown
+          is_valid?: boolean
+          last_activity?: string
+          token_hash?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
