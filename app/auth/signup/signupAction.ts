@@ -43,21 +43,21 @@ const DEV_FIRM_STATE = 'FL';
 export type SignUpOptions = {
   email: string;
   password: string;
-  /** Omit for "register without firm" flow; user can add firm later from dashboard. */
   firmName?: string;
   usState?: string;
-  /** Create a test law firm for developers (full feature access). */
   asDeveloper?: boolean;
 };
 
 /**
  * Sign up: with firm, without firm, or as developer (test firm).
- * User is logged in after signup; redirect to /dashboard.
+ * Profile is auto-created by database trigger.
  */
 export async function signUpAction(options: SignUpOptions) {
   const { email, password, firmName, usState, asDeveloper = false } = options;
+  
   const supabase = await getServerSupabase();
-
+  
+  // 1. Create the auth user (trigger will auto-create profile)
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
     password,
@@ -76,6 +76,7 @@ export async function signUpAction(options: SignUpOptions) {
   const admin = getAdminSupabase();
   let firmId: string | null = null;
 
+  // 2. Create firm if needed
   if (asDeveloper) {
     const { data: firm, error: firmError } = await admin
       .from('firms')
@@ -86,6 +87,7 @@ export async function signUpAction(options: SignUpOptions) {
       })
       .select('id')
       .single();
+
     if (firmError || !firm) {
       console.error('signUpAction dev firm insert error:', firmError);
       throw new Error('Account created but test firm setup failed');
@@ -97,6 +99,7 @@ export async function signUpAction(options: SignUpOptions) {
       .insert({ name: firmName.trim(), state: usState.trim() })
       .select('id')
       .single();
+
     if (firmError || !firm) {
       console.error('signUpAction firms.insert error:', firmError);
       throw new Error('Account created but firm setup failed');
@@ -104,20 +107,20 @@ export async function signUpAction(options: SignUpOptions) {
     firmId = firm.id;
   }
 
-  const { error: profileError } = await admin
-    .from('profiles')
-    .upsert(
-      {
-        id: userId,
-        email: email.trim(),
-        firm_id: firmId,
-      },
-      { onConflict: 'id' }
-    );
+  // 3. Wait briefly for trigger to create profile
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
-  if (profileError) {
-    console.error('signUpAction profiles.upsert error:', profileError);
-    throw new Error('Account created but profile setup failed');
+  // 4. Update profile with firm_id if we created a firm
+  if (firmId) {
+    const { error: profileError } = await admin
+      .from('profiles')
+      .update({ firm_id: firmId })
+      .eq('id', userId);
+
+    if (profileError) {
+      console.error('signUpAction profiles.update error:', profileError);
+      throw new Error('Account created but profile firm link failed');
+    }
   }
 
   const needsConfirmation = !data.session;

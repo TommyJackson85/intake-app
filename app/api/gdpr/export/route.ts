@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
         .select('*')
         .eq('firm_id', firmId),
       createSupabaseServerClientStrict()
-        .from('audit_events')
+        .from('audit_logs')
         .select('*')
         .eq('firm_id', firmId),
       createSupabaseServerClientStrict()
