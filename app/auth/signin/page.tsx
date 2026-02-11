@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { createSupabaseBrowserClient } from '@/lib/browserClient'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -11,6 +12,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [emailNotConfirmed, setEmailNotConfirmed] = useState(false)
   const router = useRouter()
+  const supabase = createSupabaseBrowserClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,24 +20,27 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
 
-      const data = await res.json().catch(() => ({}))
+      if (error) {
+        const message = error.message.toLowerCase()
+        const isEmailNotConfirmed =
+          message.includes('confirm') || message.includes('email not confirmed')
 
-      if (!res.ok) {
-        setEmailNotConfirmed(data.code === 'EMAIL_NOT_CONFIRMED')
+        setEmailNotConfirmed(isEmailNotConfirmed)
         setError(
-          data.code === 'EMAIL_NOT_CONFIRMED'
-            ? data.error ||
-                'Please confirm your email address before signing in. Check your inbox and spam folder.'
-            : data.error || 'Login failed'
+          isEmailNotConfirmed
+            ? 'Please confirm your email address before signing in. Check your inbox and spam folder.'
+            : error.message || 'Login failed'
         )
+        return
+      }
+
+      if (!data.session) {
+        setError('Login failed: no session returned')
         return
       }
 

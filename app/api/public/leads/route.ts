@@ -104,8 +104,9 @@ export async function POST(request: Request) {
       lead.id,              // resourceId
       {                     // metadata (optional)
         email: leadData.email,
-        matterType: leadData.matterType,
-        source: leadData.source || 'website_form',
+        firm_name: leadData.firm_name ?? null,
+        state: leadData.state ?? null,
+        source: 'website_form',
         ip: clientIp,
       }
     );
