@@ -95,7 +95,7 @@ function checkSchemaVsRetention(
     'clients',
     'matters',
     'aml_checks',
-    'audit_events',
+    'audit_logs',
   ]
 
   const missing: string[] = []

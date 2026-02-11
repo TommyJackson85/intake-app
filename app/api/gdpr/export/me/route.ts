@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
         .eq('id', user.id)
         .maybeSingle(),
       supabase
-        .from('audit_events')
+        .from('audit_logs')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: true }),
