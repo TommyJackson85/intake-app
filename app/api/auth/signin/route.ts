@@ -5,7 +5,6 @@ import { createClient } from '@supabase/supabase-js';
 import { validateRequest, SignInSchema } from '@/lib/validation-schemas';
 import { rateLimit } from '@/lib/rate-limit';
 import { logLogin } from '@/lib/auditLog';
-import { createSessionRecord } from '@/lib/session';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -70,6 +69,7 @@ export async function POST(request: Request) {
         clientIp,
         'Invalid input'
       );
+
       return new Response(
         JSON.stringify({ error: 'Invalid email or password' }),
         { status: 400 }
@@ -129,32 +129,39 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6) Create session via existing lib/session.ts
+    // 6) Create session directly using supabaseAdmin
     const userAgent = request.headers.get('user-agent') || '';
     const tokenHashValue = userData.firm_id ?? '';
-    const sessionId = await createSessionRecord(
-      user.id,
-      clientIp,
-      userAgent,
-      tokenHashValue
-    );
+    
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 30);
 
-    if (!sessionId) {
-      await logLogin(
-        email,
-        'failed',
-        clientIp,
-        'Failed to create session'
-      );
+    const { data: sessionData, error: sessionError } = await supabaseAdmin
+      .from('sessions')
+      .insert({
+        user_id: user.id,
+        token_hash: tokenHashValue,
+        ip_address: clientIp,
+        user_agent: userAgent,
+        expires_at: expiresAt.toISOString(),
+        last_activity: new Date().toISOString(),
+        is_valid: true,
+      })
+      .select('id')
+      .single();
+
+    if (sessionError || !sessionData) {
+      await logLogin(email, 'failed', clientIp, 'Failed to create session');
       return new Response(
         JSON.stringify({ error: 'Failed to create session' }),
         { status: 500 }
       );
     }
 
+    const sessionId = sessionData.id;
+
     // 7) Create cookies array
     const cookies: string[] = [];
-    const isProduction = process.env.NODE_ENV === 'production';
     const maxAge = 30 * 60; // 30 minutes
 
     // Session token cookie
