@@ -141,7 +141,7 @@ export async function POST(request: Request) {
       .insert({
         user_id: user.id,
         token_hash: tokenHashValue,
-        ip_address: clientIp,
+        ip_address: clientIp === 'unknown' ? null : clientIp,  // ← Fix: set null instead of 'unknown'
         user_agent: userAgent,
         expires_at: expiresAt.toISOString(),
         last_activity: new Date().toISOString(),
