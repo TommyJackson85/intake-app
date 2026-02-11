@@ -4,8 +4,6 @@
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 
-import { createSupabaseServerClientStrict } from './serverClientStrict';
-const supabase = async () => await createSupabaseServerClientStrict()
 
 // ============================================
 // Get Client IP Address
