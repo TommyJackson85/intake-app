@@ -67,7 +67,7 @@ function checkSchemaVsRetention(retentionCfg, schemaTables) {
         'clients',
         'matters',
         'aml_checks',
-        'audit_events',
+        'audit_logs',
     ];
     const missing = [];
     for (const tbl of requiredTables) {

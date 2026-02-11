@@ -3,8 +3,8 @@
 
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-import { createSupabaseServerClientStrict } from './serverClientStrict';
 
+import { createSupabaseServerClientStrict } from './serverClientStrict';
 const supabase = async () => await createSupabaseServerClientStrict()
 
 // ============================================
@@ -189,7 +189,8 @@ export async function verifyAuth(): Promise<{
         authenticated: false,
       };
     }
-
+    // Create client here
+    const supabase = await createSupabaseServerClientStrict();
     // Optionally verify session in database
     const { data: session } = await supabase
       .from('sessions')
@@ -224,6 +225,8 @@ export async function verifyAuth(): Promise<{
  */
 export async function invalidateAllUserSessions(userId: string): Promise<boolean> {
   try {
+    // Create client here
+    const supabase = await createSupabaseServerClientStrict();
     const { error } = await supabase
       .from('sessions')
       .update({ is_valid: false })
@@ -246,6 +249,8 @@ export async function invalidateAllUserSessions(userId: string): Promise<boolean
  */
 export async function getUserActiveSessions(userId: string): Promise<any[] | null> {
   try {
+    // Create client here
+    const supabase = await createSupabaseServerClientStrict();
     const { data: sessions, error } = await supabase
       .from('sessions')
       .select('id, ip_address, user_agent, created_at, last_activity')
@@ -277,7 +282,8 @@ export async function createSessionRecord(
   try {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 30);
-
+    // Create client here
+    const supabase = await createSupabaseServerClientStrict();
     const { data, error } = await supabase
       .from('sessions')
       .insert({
@@ -309,6 +315,8 @@ export async function createSessionRecord(
  */
 export async function cleanupExpiredSessions(): Promise<number> {
   try {
+    // Create client here
+    const supabase = await createSupabaseServerClientStrict();
     const { data, error } = await supabase
       .from('sessions')
       .delete()
