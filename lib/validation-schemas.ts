@@ -106,6 +106,13 @@ export const CreateLeadSchema = z.object({
 
 export const UpdateLeadSchema = CreateLeadSchema.partial();
 
+// Public marketing lead schema – minimal fields for landing page form
+export const PublicMarketingLeadSchema = z.object({
+  email: z.string().email('Invalid email').max(255),
+  firm_name: z.string().max(255).optional(),
+  state: z.string().max(100).optional(),
+});
+
 export const UpdateLeadStatusSchema = z.object({
   status: z.enum(['new', 'contacted', 'qualified', 'converted', 'rejected']),
   notes: z.string().max(1000).optional(),
@@ -234,6 +241,7 @@ export type UpdateLeadStatusInput = z.infer<typeof UpdateLeadStatusSchema>;
 export type CreateMatterInput = z.infer<typeof CreateMatterSchema>;
 export type CreateAMLCheckInput = z.infer<typeof CreateAMLCheckSchema>;
 export type UpdateFirmSettingsInput = z.infer<typeof UpdateFirmSettingsSchema>;
+export type PublicMarketingLeadInput = z.infer<typeof PublicMarketingLeadSchema>;
 
 // ============================================
 // Validation Helper

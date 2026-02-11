@@ -6,21 +6,41 @@ import { validateRequest, SignInSchema } from '@/lib/validation-schemas';
 import { rateLimit } from '@/lib/rate-limit';
 import { logLogin } from '@/lib/auditLog';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+/**
+ * Create Supabase clients with explicit env checks so we fail gracefully
+ * instead of crashing at module import time on Vercel.
+ */
+function getSupabaseClients() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+  if (!url || !anonKey || !serviceRoleKey) {
+    console.error('[auth/signin] Missing Supabase env vars', {
+      hasUrl: Boolean(url),
+      hasAnonKey: Boolean(anonKey),
+      hasServiceRoleKey: Boolean(serviceRoleKey),
+    });
+    throw new Error(
+      'Server misconfigured: Supabase environment variables are missing. ' +
+        'Ensure NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are set.'
+    );
+  }
+
+  const supabase = createClient(url, anonKey);
+  const supabaseAdmin = createClient(url, serviceRoleKey);
+
+  return { supabase, supabaseAdmin };
+}
 
 /**
  * POST /api/auth/signin
  */
 export async function POST(request: Request) {
   try {
+    // 0) Ensure Supabase clients are configured correctly
+    const { supabase, supabaseAdmin } = getSupabaseClients();
+
     // 1) Rate limiting
     const limitResult = await rateLimit(request, 'signin-attempt');
     const clientIp =

@@ -2,8 +2,7 @@
 // Copy-paste ready - with correct logAuditEvent signature
 
 import { createClient } from '@supabase/supabase-js';
-import { validateRequest } from '@/lib/validation-schemas';
-import { CreateLeadSchema } from '@/lib/validation-schemas';
+import { validateRequest, PublicMarketingLeadSchema } from '@/lib/validation-schemas';
 import { rateLimit } from '@/lib/rate-limit';
 import { logAuditEvent } from '@/lib/auditLog';
 
@@ -52,8 +51,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // ✅ 3. VALIDATE INPUT
-    const validation = validateRequest(CreateLeadSchema, body);
+    // ✅ 3. VALIDATE INPUT (minimal marketing fields)
+    const validation = validateRequest(PublicMarketingLeadSchema, body);
 
     if (!validation.success) {
       return new Response(
@@ -73,23 +72,15 @@ export async function POST(request: Request) {
       request.headers.get('x-real-ip') ||
       'unknown';
 
-    // ✅ 4. CREATE LEAD IN DATABASE
+    // ✅ 4. CREATE LEAD IN DATABASE (marketing_leads)
     const { data: lead, error: createError } = await supabase
       .from('marketing_leads')
       .insert({
-        first_name: leadData.firstName,
-        last_name: leadData.lastName,
         email: leadData.email,
-        phone: leadData.phone || null,
-        matter_type: leadData.matterType,
-        property_address: leadData.propertyAddress || null,
-        budget: leadData.budget || null,
-        timeline: leadData.timeline || null,
-        notes: leadData.notes || null,
-        source: leadData.source || 'website_form',
-        status: 'new',
-        submitted_at: new Date().toISOString(),
+        firm_name: leadData.firm_name ?? null,
+        state: leadData.state ?? null,
         ip_address: clientIp,
+        submitted_at: new Date().toISOString(),
       })
       .select('id')
       .single();

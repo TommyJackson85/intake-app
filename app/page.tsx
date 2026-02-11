@@ -14,14 +14,14 @@ export default function Home() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/leads', {
+      const response = await fetch('/api/public/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email,
-          firm_name: '',
-          state: '',
-        }),
+        email,
+        firm_name: '',
+        state: '',
+      }),
       })
 
       const data = await response.json()
