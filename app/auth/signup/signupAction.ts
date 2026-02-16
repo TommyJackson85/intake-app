@@ -46,6 +46,7 @@ export type SignUpOptions = {
   firmName?: string;
   usState?: string;
   asDeveloper?: boolean;
+  termsAccepted: boolean;
 };
 
 /**
@@ -53,7 +54,11 @@ export type SignUpOptions = {
  * Profile is auto-created by database trigger.
  */
 export async function signUpAction(options: SignUpOptions) {
-  const { email, password, firmName, usState, asDeveloper = false } = options;
+  const { email, password, firmName, usState, asDeveloper = false, termsAccepted } = options;
+  
+  if (!termsAccepted) {
+    throw new Error('Terms acceptance is required');
+  }
   
   const supabase = await getServerSupabase();
   
@@ -110,17 +115,26 @@ export async function signUpAction(options: SignUpOptions) {
   // 3. Wait briefly for trigger to create profile
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-  // 4. Update profile with firm_id if we created a firm
+  // 4. Update profile with firm_id (if created) and terms acceptance
+  const CURRENT_TERMS_VERSION = '1.0'; // TODO: Import from terms-config.ts
+  const updateData: any = {
+    terms_accepted_at: new Date().toISOString(),
+    terms_version: CURRENT_TERMS_VERSION,
+    privacy_accepted_at: new Date().toISOString(),
+  };
+  
   if (firmId) {
-    const { error: profileError } = await admin
-      .from('profiles')
-      .update({ firm_id: firmId })
-      .eq('id', userId);
+    updateData.firm_id = firmId;
+  }
 
-    if (profileError) {
-      console.error('signUpAction profiles.update error:', profileError);
-      throw new Error('Account created but profile firm link failed');
-    }
+  const { error: profileError } = await admin
+    .from('profiles')
+    .update(updateData)
+    .eq('id', userId);
+
+  if (profileError) {
+    console.error('signUpAction profiles.update error:', profileError);
+    throw new Error('Account created but profile update failed');
   }
 
   const needsConfirmation = !data.session;

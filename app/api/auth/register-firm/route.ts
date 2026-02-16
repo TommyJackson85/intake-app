@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let body: { firmName?: string; state?: string };
+    let body: { name?: string; state?: string; email_contact?: string | null };
     try {
       body = await request.json();
     } catch {
@@ -34,11 +34,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const firmName = typeof body.firmName === 'string' ? body.firmName.trim() : '';
+    const firmName = typeof body.name === 'string' ? body.name.trim() : '';
     const state = typeof body.state === 'string' ? body.state.trim() : '';
+    const emailContact = typeof body.email_contact === 'string' ? body.email_contact.trim() : null;
+    
     if (!firmName || !state) {
       return new Response(
-        JSON.stringify({ error: 'firmName and state are required' }),
+        JSON.stringify({ error: 'name and state are required' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -66,7 +68,11 @@ export async function POST(request: NextRequest) {
 
     const { data: firm, error: firmError } = await admin
       .from('firms')
-      .insert({ name: firmName, state })
+      .insert({ 
+        name: firmName, 
+        state,
+        email_contact: emailContact || null,
+      })
       .select('id')
       .single();
 

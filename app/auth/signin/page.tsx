@@ -8,6 +8,7 @@ import { createSupabaseBrowserClient } from '@/lib/browserClient'
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [emailNotConfirmed, setEmailNotConfirmed] = useState(false)
@@ -44,6 +45,9 @@ export default function Login() {
         return
       }
 
+      // Post-login routing: check if user has a firm
+      // This will be handled by middleware/routing logic, but for now redirect to dashboard
+      // The dashboard layout will redirect to firm-setup if needed
       router.push('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Login failed')
@@ -55,7 +59,10 @@ export default function Login() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fcfcf9' }}>
       <div style={{ background: 'white', padding: '40px', borderRadius: '8px', width: '100%', maxWidth: '400px', border: '1px solid rgba(94, 82, 64, 0.2)' }}>
-        <h1 style={{ marginBottom: '30px', fontSize: '28px', textAlign: 'center' }}>Sign In</h1>
+        <h1 style={{ marginBottom: '10px', fontSize: '28px', textAlign: 'center' }}>Sign In</h1>
+        <p style={{ marginBottom: '30px', fontSize: '14px', color: '#627c71', textAlign: 'center' }}>
+          Secure client portal for your real estate matters.
+        </p>
 
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: '20px' }}>
@@ -71,24 +78,53 @@ export default function Login() {
                 padding: '12px',
                 border: '1px solid rgba(94, 82, 64, 0.2)',
                 borderRadius: '6px',
+                boxSizing: 'border-box',
               }}
             />
           </div>
 
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid rgba(94, 82, 64, 0.2)',
-                borderRadius: '6px',
-              }}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  paddingRight: '40px',
+                  border: '1px solid rgba(94, 82, 64, 0.2)',
+                  borderRadius: '6px',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#627c71',
+                  fontSize: '14px',
+                  padding: '4px 8px',
+                }}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '20px', textAlign: 'right' }}>
+            <Link href="/auth/forgot-password" style={{ color: '#208096', fontSize: '14px', textDecoration: 'none' }}>
+              Forgot password?
+            </Link>
           </div>
 
           {error && (
@@ -131,12 +167,32 @@ export default function Login() {
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px' }}>
-          Don't have an account?{' '}
-          <a href="/auth/signup" style={{ color: '#208096', fontWeight: 600 }}>
-            Sign Up
-          </a>
-        </p>
+        <div style={{ marginTop: '24px', fontSize: '12px', color: '#627c71', textAlign: 'center', lineHeight: '1.6' }}>
+          <p style={{ marginBottom: '8px' }}>
+            <Link href="/terms" style={{ color: '#208096', textDecoration: 'none' }}>Terms of Use</Link>
+            {' · '}
+            <Link href="/privacy" style={{ color: '#208096', textDecoration: 'none' }}>Privacy Policy</Link>
+            {' · '}
+            <Link href="/portal-agreement" style={{ color: '#208096', textDecoration: 'none' }}>Client Portal Agreement</Link>
+          </p>
+          <p style={{ marginTop: '8px', marginBottom: '8px', fontSize: '11px' }}>
+            Data is handled in line with our Privacy Policy.
+          </p>
+        </div>
+
+        <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(94, 82, 64, 0.1)', textAlign: 'center' }}>
+          <p style={{ fontSize: '14px', marginBottom: '8px' }}>
+            Don't have an account?{' '}
+            <Link href="/auth/signup" style={{ color: '#208096', fontWeight: 600, textDecoration: 'none' }}>
+              Sign Up
+            </Link>
+          </p>
+          <p style={{ fontSize: '12px', color: '#627c71' }}>
+            <Link href="/auth/firm-registration" style={{ color: '#208096', textDecoration: 'none' }}>
+              Law firm admin registering your firm? Start here.
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )

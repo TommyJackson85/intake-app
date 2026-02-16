@@ -190,11 +190,11 @@ export async function verifyAuth(): Promise<{
     }
     // Create client here
     const supabase = await createSupabaseServerClientStrict();
-    // Optionally verify session in database
+    // Verify session in database (session_token cookie contains the session ID)
     const { data: session } = await supabase
       .from('sessions')
       .select('user_id, is_valid')
-      .eq('token', sessionData.sessionToken)
+      .eq('id', sessionData.sessionToken)
       .single();
 
     if (!session?.is_valid) {

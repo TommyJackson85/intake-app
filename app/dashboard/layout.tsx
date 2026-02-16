@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@/lib/auth-context'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 
 export default function DashboardLayout({
@@ -11,14 +11,29 @@ export default function DashboardLayout({
 }) {
   const { session, profile, firm, loading } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
   const hasFirm = Boolean(profile?.firm_id)
   const isTestFirm = Boolean(firm?.is_test_firm)
+  const isFirmSetupPage = pathname === '/dashboard/firm-setup'
 
   useEffect(() => {
     if (!loading && !session) {
       router.push('/auth/signin')
+      return
     }
-  }, [session, loading, router])
+
+    // Post-login routing: redirect to firm-setup if user has no firm
+    // Skip redirect if already on firm-setup page to avoid loops
+    if (!loading && session && !hasFirm && !isFirmSetupPage) {
+      router.push('/dashboard/firm-setup')
+    }
+  }, [session, loading, router, hasFirm, isFirmSetupPage])
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    // Use server-side logout route
+    window.location.href = '/auth/logout'
+  }
 
   if (loading) {
     return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>
@@ -59,22 +74,31 @@ export default function DashboardLayout({
           )}
         </div>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <a href="/dashboard" style={{ color: 'white', textDecoration: 'none' }}>Dashboard</a>
-          {hasFirm ? (
+          {hasFirm && (
             <>
+              <a href="/dashboard" style={{ color: 'white', textDecoration: 'none' }}>Dashboard</a>
               <a href="/dashboard/clients" style={{ color: 'white', textDecoration: 'none' }}>Clients</a>
               <a href="/dashboard/matters" style={{ color: 'white', textDecoration: 'none' }}>Matters</a>
               <a href="/dashboard/aml" style={{ color: 'white', textDecoration: 'none' }}>AML Checks</a>
             </>
-          ) : (
-            <a href="/dashboard/register-firm" style={{ color: '#90cfd9', textDecoration: 'none', fontWeight: 600 }}>
-              Register law firm
+          )}
+          {!hasFirm && !isFirmSetupPage && (
+            <a href="/dashboard/firm-setup" style={{ color: '#90cfd9', textDecoration: 'none', fontWeight: 600 }}>
+              Set up your firm
             </a>
           )}
-          <a href="/dashboard/settings" style={{ color: 'white', textDecoration: 'none' }}>Settings</a>
+          {hasFirm && (
+            <a href="/dashboard/settings" style={{ color: 'white', textDecoration: 'none' }}>Settings</a>
+          )}
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-          <a href="/auth/logout" style={{ color: '#90cfd9', textDecoration: 'none', fontSize: '14px' }}>Sign Out</a>
+          <a 
+            href="/auth/logout" 
+            onClick={handleLogout}
+            style={{ color: '#90cfd9', textDecoration: 'none', fontSize: '14px', cursor: 'pointer' }}
+          >
+            Sign Out
+          </a>
         </div>
       </aside>
 

@@ -13,6 +13,8 @@ export default function SignUp() {
   const [usState, setUsState] = useState('FL')
   const [registerFirmNow, setRegisterFirmNow] = useState(false)
   const [asDeveloper, setAsDeveloper] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [privacyAcknowledged, setPrivacyAcknowledged] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -25,12 +27,18 @@ export default function SignUp() {
     setLoading(true)
 
     try {
+      if (!termsAccepted) {
+        setError('You must agree to the Terms of Use to create an account')
+        return
+      }
+
       const result = await signUpAction({
         email: email.trim(),
         password,
         firmName: registerFirmNow ? firmName.trim() : undefined,
         usState: registerFirmNow ? usState.trim() : undefined,
         asDeveloper: ALLOW_DEV_SIGNUP && asDeveloper,
+        termsAccepted: true,
       })
       if (result.needsConfirmation) {
         router.push('/auth/confirm-email')
@@ -160,20 +168,44 @@ export default function SignUp() {
             </div>
           )}
 
+          {/* Terms Acceptance */}
+          <div style={{ marginBottom: '20px', padding: '16px', background: '#f5f5f5', borderRadius: '6px' }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                required
+                style={{ marginTop: '4px' }}
+              />
+              <span style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                I agree to the{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#208096', fontWeight: 600 }}>
+                  Terms of Use
+                </a>
+                {' '}and acknowledge the{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#208096', fontWeight: 600 }}>
+                  Privacy Policy
+                </a>
+                . <span style={{ color: '#c00' }}>*</span>
+              </span>
+            </label>
+          </div>
+
           {error && <p style={{ color: '#c00', marginBottom: '12px', fontSize: '14px' }}>{error}</p>}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !termsAccepted}
             style={{
               width: '100%',
               padding: '12px',
-              background: '#208096',
+              background: (loading || !termsAccepted) ? '#ccc' : '#208096',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
               fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer',
+              cursor: (loading || !termsAccepted) ? 'not-allowed' : 'pointer',
             }}
           >
             {loading ? 'Creating…' : 'Create Account'}
