@@ -3,6 +3,7 @@
 import { useAuth } from '@/lib/auth-context'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
+import { needsTermsAcceptance } from '@/lib/terms-config'
 
 export default function DashboardLayout({
   children,
@@ -19,6 +20,21 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!loading && !session) {
       router.push('/auth/signin')
+      return
+    }
+
+    // Terms acceptance has highest priority
+    if (!loading && session && profile) {
+      const p: any = profile
+      if (needsTermsAcceptance(p.terms_version, p.terms_accepted_at)) {
+        router.replace('/auth/accept-terms')
+        return
+      }
+    }
+
+    // Role split: clients should never see the law-firm dashboard.
+    if (!loading && session && profile?.role === 'client') {
+      router.replace('/portal')
       return
     }
 
@@ -77,9 +93,13 @@ export default function DashboardLayout({
           {hasFirm && (
             <>
               <a href="/dashboard" style={{ color: 'white', textDecoration: 'none' }}>Dashboard</a>
-              <a href="/dashboard/clients" style={{ color: 'white', textDecoration: 'none' }}>Clients</a>
               <a href="/dashboard/matters" style={{ color: 'white', textDecoration: 'none' }}>Matters</a>
-              <a href="/dashboard/aml" style={{ color: 'white', textDecoration: 'none' }}>AML Checks</a>
+              <a href="/dashboard/intakes" style={{ color: 'white', textDecoration: 'none' }}>Intake/Leads</a>
+              <a href="/dashboard/calendar" style={{ color: 'white', textDecoration: 'none' }}>Calendar</a>
+              <a href="/dashboard/documents" style={{ color: 'white', textDecoration: 'none' }}>Documents</a>
+              <a href="/dashboard/billing" style={{ color: 'white', textDecoration: 'none' }}>Billing</a>
+              <a href="/dashboard/clients" style={{ color: 'white', textDecoration: 'none' }}>Clients</a>
+              <a href="/dashboard/aml" style={{ color: 'white', textDecoration: 'none' }}>AML</a>
             </>
           )}
           {!hasFirm && !isFirmSetupPage && (
@@ -88,7 +108,7 @@ export default function DashboardLayout({
             </a>
           )}
           {hasFirm && (
-            <a href="/dashboard/settings" style={{ color: 'white', textDecoration: 'none' }}>Settings</a>
+            <a href="/dashboard/settings" style={{ color: 'white', textDecoration: 'none' }}>Settings / Firm</a>
           )}
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>

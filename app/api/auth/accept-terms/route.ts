@@ -1,15 +1,21 @@
 // app/api/auth/accept-terms/route.ts
-// API route to accept updated terms
+// Accept updated terms for the currently authenticated user (Supabase Auth session).
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserId } from '@/lib/session'
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
+import { createSupabaseServerClientWithAuth } from '@/lib/serverClientWithAuth'
 import { CURRENT_TERMS_VERSION } from '@/lib/terms-config'
+import { getServerSupabase } from '@/lib/serverSupabase'
+import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getUserId()
-    if (!userId) {
+    const supabase = await getServerSupabase()
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
@@ -26,17 +32,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createSupabaseServerClientStrict()
+    const admin = await createSupabaseServerClientStrict()
 
     // Update profile with terms acceptance
-    const { error } = await supabase
+    const { error } = await admin
       .from('profiles')
       .update({
         terms_accepted_at: new Date().toISOString(),
         terms_version: CURRENT_TERMS_VERSION,
         privacy_accepted_at: new Date().toISOString(), // Also update privacy acceptance
       })
-      .eq('id', userId)
+      .eq('id', user.id)
 
     if (error) {
       console.error('[accept-terms] Error updating profile:', error)

@@ -43,7 +43,7 @@ export default function SignUp() {
       if (result.needsConfirmation) {
         router.push('/auth/confirm-email')
       } else {
-        router.push('/dashboard')
+        router.push('/auth/post-login')
       }
     } catch (err) {
       if (err instanceof Error) {

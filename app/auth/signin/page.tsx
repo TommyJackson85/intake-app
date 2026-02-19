@@ -45,10 +45,8 @@ export default function Login() {
         return
       }
 
-      // Post-login routing: check if user has a firm
-      // This will be handled by middleware/routing logic, but for now redirect to dashboard
-      // The dashboard layout will redirect to firm-setup if needed
-      router.push('/dashboard')
+      // Centralized post-login routing (terms, role, firm setup)
+      router.push('/auth/post-login')
     } catch (err: any) {
       setError(err.message || 'Login failed')
     } finally {

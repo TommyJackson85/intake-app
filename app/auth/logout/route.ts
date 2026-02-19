@@ -1,11 +1,9 @@
 // app/auth/logout/route.ts
-// Robust logout handler that clears all auth state
+// Logout via Supabase Auth session (SSR cookies) and clear legacy cookies.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
-import { clearSessionCookies, invalidateAllUserSessions } from '@/lib/session'
-import { getUserId } from '@/lib/session'
+import { getServerSupabase } from '@/lib/serverSupabase'
 
 /**
  * POST /auth/logout
@@ -16,64 +14,22 @@ import { getUserId } from '@/lib/session'
  * 4. Redirecting to login page
  */
 export async function POST(request: NextRequest) {
-  console.log('[Logout] Logout handler called')
-
   try {
-    // Get user ID before clearing cookies
-    const userId = await getUserId()
+    const supabase = await getServerSupabase()
+    await supabase.auth.signOut()
 
-    // 1. Invalidate session in database if we have a user ID
-    if (userId) {
-      console.log('[Logout] Invalidating sessions for user:', userId)
-      await invalidateAllUserSessions(userId)
-    }
-
-    // 2. Clear all session cookies
-    console.log('[Logout] Clearing session cookies')
-    await clearSessionCookies()
-
-    // 3. Sign out from Supabase auth (clears Supabase session)
-    try {
-      const supabase = await createSupabaseServerClientStrict()
-      await supabase.auth.signOut()
-      console.log('[Logout] Supabase auth signout completed')
-    } catch (supabaseError) {
-      console.error('[Logout] Supabase signout error (non-critical):', supabaseError)
-      // Continue even if Supabase signout fails
-    }
-
-    // 4. Clear any additional cookies that might exist
+    // Clear any legacy cookies from older session experiments.
     const cookieStore = await cookies()
     cookieStore.delete('session_token')
     cookieStore.delete('user_id')
     cookieStore.delete('firm_id')
     cookieStore.delete('_csrf')
 
-    console.log('[Logout] Logout completed successfully, redirecting to login')
-
-    // 5. Redirect to login page
-    return NextResponse.redirect(new URL('/auth/signin', request.url), {
-      status: 302,
-      headers: {
-        // Ensure cookies are cleared by setting them to expire
-        'Set-Cookie': [
-          'session_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict',
-          'user_id=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict',
-          'firm_id=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict',
-        ].join(', '),
-      },
-    })
+    return NextResponse.redirect(new URL('/auth/signin', request.url), { status: 302 })
   } catch (error) {
     console.error('[Logout] Error during logout:', error)
-    
-    // Best-effort logout: clear cookies and redirect even on error
-    try {
-      await clearSessionCookies()
-    } catch (clearError) {
-      console.error('[Logout] Error clearing cookies:', clearError)
-    }
 
-    // Still redirect to login
+    // Best-effort redirect.
     return NextResponse.redirect(new URL('/auth/signin', request.url), {
       status: 302,
     })

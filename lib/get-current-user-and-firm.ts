@@ -1,5 +1,6 @@
 // lib/get-current-user-and-firm.ts
 import { createSupabaseServerClientStrict } from './serverClientStrict'
+import { ensureProfileForUser } from '@/lib/server/ensure-profile'
 
 export type FirmRow = {
   id: string
@@ -30,14 +31,25 @@ export async function getCurrentUserAndFirm(): Promise<{
     throw new Error('UNAUTHENTICATED')
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profileRow, error: profileError } = await supabase
     .from('profiles')
     .select('id, firm_id, full_name, email')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
+
+  let profile = profileRow
 
   if (profileError || !profile) {
-    throw new Error('PROFILE_NOT_FOUND')
+    const ensured = await ensureProfileForUser({ id: user.id, email: user.email ?? undefined })
+    if (!ensured) {
+      throw new Error('PROFILE_NOT_FOUND')
+    }
+    profile = {
+      id: ensured.id,
+      firm_id: (ensured as { firm_id?: string | null }).firm_id ?? null,
+      full_name: (ensured as { full_name?: string | null }).full_name ?? null,
+      email: (ensured as { email?: string | null }).email ?? null,
+    }
   }
 
   if (!profile.firm_id) {
@@ -78,14 +90,25 @@ export async function getCurrentUser(): Promise<{
     throw new Error('UNAUTHENTICATED')
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profileRow, error: profileError } = await supabase
     .from('profiles')
     .select('id, firm_id, full_name, email')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
+
+  let profile = profileRow
 
   if (profileError || !profile) {
-    throw new Error('PROFILE_NOT_FOUND')
+    const ensured = await ensureProfileForUser({ id: user.id, email: user.email ?? undefined })
+    if (!ensured) {
+      throw new Error('PROFILE_NOT_FOUND')
+    }
+    profile = {
+      id: ensured.id,
+      firm_id: (ensured as { firm_id?: string | null }).firm_id ?? null,
+      full_name: (ensured as { full_name?: string | null }).full_name ?? null,
+      email: (ensured as { email?: string | null }).email ?? null,
+    }
   }
 
   let firm: FirmRow | null = null
