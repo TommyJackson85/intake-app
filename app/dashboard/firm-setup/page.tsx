@@ -67,10 +67,42 @@ export default function FirmSetupPage() {
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
       <h1 style={{ fontSize: '32px', marginBottom: '12px' }}>Welcome – Set up your firm</h1>
-      <p style={{ fontSize: '16px', color: '#627c71', marginBottom: '32px', lineHeight: '1.6' }}>
+      <p style={{ fontSize: '16px', color: '#627c71', marginBottom: '20px', lineHeight: '1.6' }}>
         To start using the client intake portal, first create your firm profile.
         Your firm profile helps us apply the correct legal and compliance settings.
       </p>
+
+      <div style={{
+        marginBottom: '32px',
+        padding: '16px',
+        background: '#f8f9fa',
+        borderRadius: '8px',
+        border: '1px solid rgba(94, 82, 64, 0.15)',
+      }}>
+        <p style={{ fontSize: '14px', color: '#627c71', marginBottom: '12px' }}>
+          Want to explore first? Try the demo firm to see the app in action.
+        </p>
+        <form action="/api/auth/demo-login" method="POST" style={{ display: 'inline' }}>
+          <button
+            type="submit"
+            style={{
+              padding: '8px 16px',
+              background: 'white',
+              color: '#208096',
+              border: '1px solid #208096',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 500,
+            }}
+          >
+            Try a demo firm
+          </button>
+        </form>
+        <p style={{ fontSize: '12px', color: '#999', marginTop: '8px', marginBottom: 0 }}>
+          You’ll be signed in as a demo lawyer. No signup needed. Data may be reset.
+        </p>
+      </div>
 
       {/* Stepper */}
       <div style={{ marginBottom: '32px', display: 'flex', gap: '16px', alignItems: 'center' }}>

@@ -28,7 +28,6 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.69.0",
     "stripe": "^13.11.0",
-    "supabase": "^2.70.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -41,6 +40,7 @@
     "eslint-config-next": "^14.0.0",
     "glob": "^10.3.10",
     "postcss": "^8.5.6",
+    "supabase": "^2.76.11",
     "tailwindcss": "^3.4.19",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

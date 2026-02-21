@@ -1,0 +1,75 @@
+import Link from 'next/link'
+
+export type Profile = { id: string; email: string | null; full_name: string | null; role: string | null; firm_id: string | null }
+type Firm = { id: string; name: string; is_test_firm: boolean; is_demo_firm?: boolean }
+
+type Props = {
+  byFirm: [string | null, Profile[]][]
+  firmMap: Record<string, Firm>
+  currentUserId: string
+}
+
+export function SudoUserList({ byFirm, firmMap, currentUserId }: Props) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {byFirm.map(([firmId, profiles]) => {
+        const firm = firmId ? firmMap[firmId] : null
+        const label = firmId
+          ? `${firm?.name ?? firmId}${firm?.is_demo_firm ? ' (Demo firm)' : ''}${firm?.is_test_firm && !firm?.is_demo_firm ? ' (Test)' : ''}`
+          : 'No firm'
+        return (
+          <div key={firmId ?? 'none'} style={{ border: '1px solid rgba(94,82,64,0.2)', borderRadius: '8px', padding: '16px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#134252' }}>{label}</h2>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {profiles.map((p) => (
+                <li
+                  key={p.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 0',
+                    borderBottom: '1px solid rgba(94,82,64,0.1)',
+                    gap: '16px',
+                  }}
+                >
+                  <span style={{ fontSize: '14px' }}>
+                    {p.full_name || p.email || p.id}
+                    {p.email && p.email !== (p.full_name || '') && (
+                      <span style={{ color: '#627c71', marginLeft: '8px' }}>{p.email}</span>
+                    )}
+                    {p.role && <span style={{ marginLeft: '8px', fontSize: '12px', color: '#627c71' }}>({p.role})</span>}
+                  </span>
+                  {p.id === currentUserId ? (
+                    <span style={{ fontSize: '12px', color: '#627c71' }}>You</span>
+                  ) : (
+                    <form action="/api/dev/impersonate" method="POST" style={{ display: 'inline' }}>
+                      <input type="hidden" name="userId" value={p.id} />
+                      <button
+                        type="submit"
+                        style={{
+                          padding: '4px 12px',
+                          fontSize: '13px',
+                          background: '#208096',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Impersonate
+                      </button>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      })}
+      <p style={{ fontSize: '13px', color: '#627c71' }}>
+        <Link href="/dashboard" style={{ color: '#208096' }}>Back to dashboard</Link>
+      </p>
+    </div>
+  )
+}

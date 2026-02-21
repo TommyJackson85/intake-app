@@ -55,6 +55,11 @@ export default function Home() {
             <a href="#features" style={{ textDecoration: 'none', color: '#134252', fontSize: '14px' }}>Features</a>
             <a href="#security" style={{ textDecoration: 'none', color: '#134252', fontSize: '14px' }}>Security</a>
             <a href="/privacy" style={{ textDecoration: 'none', color: '#134252', fontSize: '14px' }}>Privacy</a>
+            <form action="/api/auth/demo-login" method="POST" style={{ display: 'inline' }}>
+              <button type="submit" style={{ background: 'transparent', color: '#134252', padding: '10px 20px', borderRadius: '6px', border: '1px solid rgba(94, 82, 64, 0.3)', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>
+                Try a demo firm
+              </button>
+            </form>
             <a href="/auth/signin" style={{ background: '#208096', color: 'white', padding: '10px 20px', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Sign In</a>
           </nav>
         </div>

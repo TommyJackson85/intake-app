@@ -15,7 +15,9 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const hasFirm = Boolean(profile?.firm_id)
   const isTestFirm = Boolean(firm?.is_test_firm)
+  const isDemoFirm = Boolean((firm as { is_demo_firm?: boolean } | null)?.is_demo_firm)
   const isFirmSetupPage = pathname === '/dashboard/firm-setup'
+  const isDevSudoPage = pathname === '/dashboard/dev/sudo'
 
   useEffect(() => {
     if (!loading && !session) {
@@ -39,11 +41,11 @@ export default function DashboardLayout({
     }
 
     // Post-login routing: redirect to firm-setup if user has no firm
-    // Skip redirect if already on firm-setup page to avoid loops
-    if (!loading && session && !hasFirm && !isFirmSetupPage) {
+    // Skip redirect if already on firm-setup or dev sudo page
+    if (!loading && session && !hasFirm && !isFirmSetupPage && !isDevSudoPage) {
       router.push('/dashboard/firm-setup')
     }
-  }, [session, loading, router, hasFirm, isFirmSetupPage])
+  }, [session, loading, router, hasFirm, isFirmSetupPage, isDevSudoPage])
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -72,7 +74,23 @@ export default function DashboardLayout({
       }}>
         <div style={{ marginBottom: '40px', fontSize: '20px', fontWeight: 600 }}>
           ⚖️ LawIntake
-          {isTestFirm && (
+          {isDemoFirm && (
+            <span
+              style={{
+                display: 'inline-block',
+                marginLeft: '8px',
+                fontSize: '11px',
+                background: '#f0b429',
+                color: '#134252',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontWeight: 600,
+              }}
+            >
+              Demo
+            </span>
+          )}
+          {isTestFirm && !isDemoFirm && (
             <span
               style={{
                 display: 'inline-block',
@@ -110,6 +128,9 @@ export default function DashboardLayout({
           {hasFirm && (
             <a href="/dashboard/settings" style={{ color: 'white', textDecoration: 'none' }}>Settings / Firm</a>
           )}
+          {typeof process !== 'undefined' && process.env.NODE_ENV !== 'production' && (profile as { is_dev_sudo?: boolean } | null)?.is_dev_sudo && (
+            <a href="/dashboard/dev/sudo" style={{ color: '#f0b429', textDecoration: 'none', fontSize: '14px' }}>Dev Sudo</a>
+          )}
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
           <a 
@@ -128,6 +149,22 @@ export default function DashboardLayout({
         padding: '40px',
         background: '#fcfcf9',
       }}>
+        {isDemoFirm && (
+          <div
+            role="alert"
+            style={{
+              marginBottom: '20px',
+              padding: '12px 16px',
+              background: '#fff8e6',
+              border: '1px solid #f0b429',
+              borderRadius: '6px',
+              fontSize: '14px',
+              color: '#134252',
+            }}
+          >
+            <strong>Demo firm</strong> – for testing only. Do not enter real client data. Data may be reset regularly.
+          </div>
+        )}
         {children}
       </main>
     </div>

@@ -197,6 +197,7 @@ export type Database = {
           created_at: string | null
           email_contact: string | null
           id: string
+          is_demo_firm: boolean
           is_test_firm: boolean
           name: string
           state: string
@@ -205,6 +206,7 @@ export type Database = {
           created_at?: string | null
           email_contact?: string | null
           id?: string
+          is_demo_firm?: boolean
           is_test_firm?: boolean
           name: string
           state: string
@@ -213,6 +215,7 @@ export type Database = {
           created_at?: string | null
           email_contact?: string | null
           id?: string
+          is_demo_firm?: boolean
           is_test_firm?: boolean
           name?: string
           state?: string
@@ -318,6 +321,7 @@ export type Database = {
       profiles: {
         Row: {
           citizenship_country: string | null
+          client_id: string | null
           created_at: string | null
           deleted_at: string | null
           email: string | null
@@ -325,12 +329,14 @@ export type Database = {
           full_name: string | null
           id: string
           is_deleted: boolean | null
+          is_dev_sudo: boolean
           is_us_citizen_or_resident: boolean | null
           phone: string | null
           role: string | null
         }
         Insert: {
           citizenship_country?: string | null
+          client_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           email?: string | null
@@ -338,12 +344,14 @@ export type Database = {
           full_name?: string | null
           id: string
           is_deleted?: boolean | null
+          is_dev_sudo?: boolean
           is_us_citizen_or_resident?: boolean | null
           phone?: string | null
           role?: string | null
         }
         Update: {
           citizenship_country?: string | null
+          client_id?: string | null
           created_at?: string | null
           deleted_at?: string | null
           email?: string | null
@@ -351,6 +359,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_deleted?: boolean | null
+          is_dev_sudo?: boolean
           is_us_citizen_or_resident?: boolean | null
           phone?: string | null
           role?: string | null

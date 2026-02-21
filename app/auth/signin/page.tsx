@@ -179,6 +179,28 @@ export default function Login() {
         </div>
 
         <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(94, 82, 64, 0.1)', textAlign: 'center' }}>
+          <p style={{ fontSize: '14px', marginBottom: '12px' }}>
+            <form action="/api/auth/demo-login" method="POST" style={{ display: 'inline' }}>
+              <button
+                type="submit"
+                style={{
+                  background: 'none',
+                  border: '1px solid #208096',
+                  color: '#208096',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                }}
+              >
+                Try a demo firm
+              </button>
+            </form>
+          </p>
+          <p style={{ fontSize: '12px', color: '#627c71', marginBottom: '8px' }}>
+            Explore the app as a demo lawyer. No signup required. Data may be reset.
+          </p>
           <p style={{ fontSize: '14px', marginBottom: '8px' }}>
             Don't have an account?{' '}
             <Link href="/auth/signup" style={{ color: '#208096', fontWeight: 600, textDecoration: 'none' }}>

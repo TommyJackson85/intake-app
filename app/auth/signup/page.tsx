@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signUpAction } from './signupAction'
 
-const ALLOW_DEV_SIGNUP = process.env.NEXT_PUBLIC_ALLOW_DEV_SIGNUP === 'true'
+// Only show "Sign up as developer" in non-production when explicitly enabled; does NOT grant sudo.
+const ALLOW_DEV_SIGNUP =
+  process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_ALLOW_DEV_SIGNUP === 'true'
 
 export default function SignUp() {
   const [email, setEmail] = useState('')

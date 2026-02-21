@@ -1,14 +1,13 @@
 /**
  * POST /api/auth/register-firm
  * For users who signed up without a firm: create a law firm and link it to their profile.
- * Requires authenticated session; profile must have firm_id = null.
+ * Requires authenticated session (Supabase auth); profile must have firm_id = null.
  */
 
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
-import { getUserId } from '@/lib/session';
-import { setSessionCookie } from '@/lib/session';
+import { getServerSupabase } from '@/lib/serverSupabase';
 import { logAuditEvent } from '@/lib/auditLog';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -16,13 +15,15 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getUserId();
-    if (!userId) {
+    const supabase = await getServerSupabase();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) {
       return new Response(
         JSON.stringify({ error: 'Not authenticated' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
+    const userId = user.id;
 
     let body: { name?: string; state?: string; email_contact?: string | null };
     try {
@@ -97,7 +98,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await setSessionCookie('firm_id', firm.id);
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('x-real-ip') || 'unknown';
     await logAuditEvent(
