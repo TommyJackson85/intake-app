@@ -2,8 +2,14 @@
  * Seed the demo law firm "Demo Conveyancing LLP" with demo data.
  * Run: npx ts-node scripts/seed-demo-firm.ts
  *
- * Requires: SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL in env.
+ * Loads .env.local or .env from project root automatically.
  */
+
+import { config } from 'dotenv'
+import path from 'path'
+
+config({ path: path.join(process.cwd(), '.env') })
+config({ path: path.join(process.cwd(), '.env.local'), override: true })
 
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../lib/database.types'
@@ -26,37 +32,19 @@ const DEMO_LAWYER_PASSWORD = 'DemoLawyer2025!' // Change in production or use en
 async function seedDemoFirm() {
   console.log('[seed-demo-firm] Starting…')
 
-  // 1) Create or find demo firm
+  // 1) Create or find demo firm via RPC (bypasses RLS)
   let firmId: string
 
-  const { data: existingFirm } = await admin
-    .from('firms')
-    .select('id')
-    .eq('name', DEMO_FIRM_NAME)
-    .maybeSingle()
-
-  if (existingFirm) {
-    firmId = existingFirm.id
-    await admin.from('firms').update({ is_demo_firm: true, is_test_firm: true }).eq('id', firmId)
-    console.log('[seed-demo-firm] Using existing demo firm:', firmId)
-  } else {
-    const { data: firm, error } = await admin
-      .from('firms')
-      .insert({
-        name: DEMO_FIRM_NAME,
-        state: DEMO_FIRM_STATE,
-        is_test_firm: true,
-        is_demo_firm: true,
-      })
-      .select('id')
-      .single()
-    if (error || !firm) {
-      console.error('[seed-demo-firm] Failed to create firm:', error)
-      process.exit(1)
-    }
-    firmId = firm.id
-    console.log('[seed-demo-firm] Created demo firm:', firmId)
+  const { data: rpcFirmId, error: rpcError } = await admin.rpc('create_or_get_demo_firm')
+  if (rpcError) {
+    console.error('[seed-demo-firm] RPC failed:', rpcError)
+    console.error('')
+    console.error('Run the SQL in supabase/seed-demo-firm.sql in Supabase Dashboard → SQL Editor first.')
+    console.error('That creates the create_or_get_demo_firm() function.')
+    process.exit(1)
   }
+  firmId = rpcFirmId as string
+  console.log('[seed-demo-firm] Demo firm:', firmId)
 
   // 2) Create demo auth user (Supabase Auth) + profile
   const { data: authUser, error: authError } = await admin.auth.admin.createUser({

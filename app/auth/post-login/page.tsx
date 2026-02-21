@@ -29,7 +29,7 @@ export default async function PostLoginPage() {
     redirect('/portal')
   }
 
-  // 3) Firm onboarding for law-firm users
+  // 3) Users without a firm go to firm-setup (they can use "Try a demo firm" from there)
   if (!profile.firm_id) {
     redirect('/dashboard/firm-setup')
   }

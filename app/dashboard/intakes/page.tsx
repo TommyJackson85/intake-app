@@ -3,6 +3,44 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
+function SendLinkButton({ intakeId, clientEmail }: { intakeId: string; clientEmail: string | null }) {
+  const [loading, setLoading] = useState(false)
+  const [sent, setSent] = useState(false)
+  if (!clientEmail) return null
+  const handleSend = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/dashboard/intakes/${intakeId}/send-link`, { method: 'POST' })
+      const body = await res.json().catch(() => null)
+      if (res.ok) setSent(true)
+      else alert(body?.error || 'Failed to send')
+    } catch {
+      alert('Failed to send')
+    } finally {
+      setLoading(false)
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={handleSend}
+      disabled={loading || sent}
+      style={{
+        background: 'none',
+        border: 'none',
+        color: '#208096',
+        cursor: loading || sent ? 'default' : 'pointer',
+        fontSize: '13px',
+        fontWeight: 600,
+        padding: 0,
+      }}
+    >
+      {sent ? 'Sent' : loading ? 'Sending…' : 'Send link'}
+    </button>
+  )
+}
+
 type IntakeRow = {
   id: string
   created_at: string | null
@@ -84,6 +122,7 @@ export default function IntakesPage() {
                 <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Matter</th>
                 <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Status</th>
                 <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Created</th>
+                <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -102,6 +141,17 @@ export default function IntakesPage() {
                   <td style={{ padding: '14px', color: '#627c71', fontWeight: 800 }}>{i.status || 'new'}</td>
                   <td style={{ padding: '14px', color: '#627c71' }}>
                     {i.created_at ? new Date(i.created_at).toLocaleDateString() : '—'}
+                  </td>
+                  <td style={{ padding: '14px' }}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <SendLinkButton intakeId={i.id} clientEmail={i.client_email} />
+                      <Link
+                        href={`/dashboard/intakes/${i.id}/client-preview`}
+                        style={{ color: '#208096', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}
+                      >
+                        Preview
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

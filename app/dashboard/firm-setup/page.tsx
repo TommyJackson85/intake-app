@@ -1,27 +1,38 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import Link from 'next/link'
 
-export default function FirmSetupPage() {
+function FirmSetupContent() {
   const { profile, firm, loading: authLoading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [demoError, setDemoError] = useState('')
 
   // Form state
   const [firmName, setFirmName] = useState('')
   const [state, setState] = useState('FL')
   const [emailContact, setEmailContact] = useState('')
 
-  // If user already has a firm, redirect to dashboard
-  if (!authLoading && profile?.firm_id) {
+  // If user already has a non-demo firm, redirect to dashboard
+  const isDemoFirm = Boolean((firm as { is_demo_firm?: boolean } | null)?.is_demo_firm)
+  if (!authLoading && profile?.firm_id && !isDemoFirm) {
     router.push('/dashboard')
     return null
   }
+
+  useEffect(() => {
+    const msg = searchParams.get('demo_error')
+    if (msg) {
+      setDemoError(msg)
+      window.history.replaceState({}, '', '/dashboard/firm-setup')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,6 +83,21 @@ export default function FirmSetupPage() {
         Your firm profile helps us apply the correct legal and compliance settings.
       </p>
 
+      {demoError && (
+        <div
+          style={{
+            marginBottom: '20px',
+            padding: '12px 16px',
+            background: '#fff8e6',
+            border: '1px solid #f0b429',
+            borderRadius: '6px',
+            color: '#134252',
+            fontSize: '14px',
+          }}
+        >
+          {demoError}
+        </div>
+      )}
       <div style={{
         marginBottom: '32px',
         padding: '16px',
@@ -82,7 +108,7 @@ export default function FirmSetupPage() {
         <p style={{ fontSize: '14px', color: '#627c71', marginBottom: '12px' }}>
           Want to explore first? Try the demo firm to see the app in action.
         </p>
-        <form action="/api/auth/demo-login" method="POST" style={{ display: 'inline' }}>
+        <form action="/api/auth/use-demo-firm" method="POST" style={{ display: 'inline' }}>
           <button
             type="submit"
             style={{
@@ -100,7 +126,7 @@ export default function FirmSetupPage() {
           </button>
         </form>
         <p style={{ fontSize: '12px', color: '#999', marginTop: '8px', marginBottom: 0 }}>
-          You’ll be signed in as a demo lawyer. No signup needed. Data may be reset.
+          You’ll be signed in as a demo lawyer. Use your own account. Demo data only.
         </p>
       </div>
 
@@ -366,5 +392,13 @@ export default function FirmSetupPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function FirmSetupPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>}>
+      <FirmSetupContent />
+    </Suspense>
   )
 }

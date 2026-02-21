@@ -17,7 +17,6 @@ export default function DashboardLayout({
   const isTestFirm = Boolean(firm?.is_test_firm)
   const isDemoFirm = Boolean((firm as { is_demo_firm?: boolean } | null)?.is_demo_firm)
   const isFirmSetupPage = pathname === '/dashboard/firm-setup'
-  const isDevSudoPage = pathname === '/dashboard/dev/sudo'
 
   useEffect(() => {
     if (!loading && !session) {
@@ -40,12 +39,11 @@ export default function DashboardLayout({
       return
     }
 
-    // Post-login routing: redirect to firm-setup if user has no firm
-    // Skip redirect if already on firm-setup or dev sudo page
-    if (!loading && session && !hasFirm && !isFirmSetupPage && !isDevSudoPage) {
-      router.push('/dashboard/firm-setup')
+    // Users without a firm go to firm-setup (where they can register or try demo)
+    if (!loading && session && !hasFirm && !isFirmSetupPage) {
+      router.replace('/dashboard/firm-setup')
     }
-  }, [session, loading, router, hasFirm, isFirmSetupPage, isDevSudoPage])
+  }, [session, loading, router, hasFirm, isFirmSetupPage])
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -115,7 +113,9 @@ export default function DashboardLayout({
               <a href="/dashboard/intakes" style={{ color: 'white', textDecoration: 'none' }}>Intake/Leads</a>
               <a href="/dashboard/calendar" style={{ color: 'white', textDecoration: 'none' }}>Calendar</a>
               <a href="/dashboard/documents" style={{ color: 'white', textDecoration: 'none' }}>Documents</a>
-              <a href="/dashboard/billing" style={{ color: 'white', textDecoration: 'none' }}>Billing</a>
+              {!isDemoFirm && (
+                <a href="/dashboard/billing" style={{ color: 'white', textDecoration: 'none' }}>Billing</a>
+              )}
               <a href="/dashboard/clients" style={{ color: 'white', textDecoration: 'none' }}>Clients</a>
               <a href="/dashboard/aml" style={{ color: 'white', textDecoration: 'none' }}>AML</a>
             </>
@@ -126,7 +126,9 @@ export default function DashboardLayout({
             </a>
           )}
           {hasFirm && (
-            <a href="/dashboard/settings" style={{ color: 'white', textDecoration: 'none' }}>Settings / Firm</a>
+            <a href="/dashboard/settings" style={{ color: isDemoFirm ? 'rgba(255,255,255,0.8)' : 'white', textDecoration: 'none' }} title={isDemoFirm ? 'Settings are limited in demo mode' : undefined}>
+              Settings{isDemoFirm ? ' (limited)' : ' / Firm'}
+            </a>
           )}
           {typeof process !== 'undefined' && process.env.NODE_ENV !== 'production' && (profile as { is_dev_sudo?: boolean } | null)?.is_dev_sudo && (
             <a href="/dashboard/dev/sudo" style={{ color: '#f0b429', textDecoration: 'none', fontSize: '14px' }}>Dev Sudo</a>

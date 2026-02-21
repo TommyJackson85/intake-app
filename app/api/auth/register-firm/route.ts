@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const firmName = typeof body.name === 'string' ? body.name.trim() : '';
+    const firmName = (typeof body.name === 'string' ? body.name : typeof (body as { firmName?: string }).firmName === 'string' ? (body as { firmName: string }).firmName : '').trim();
     const state = typeof body.state === 'string' ? body.state.trim() : '';
     const emailContact = typeof body.email_contact === 'string' ? body.email_contact.trim() : null;
     
@@ -60,11 +60,21 @@ export async function POST(request: NextRequest) {
         { status: 404, headers: { 'Content-Type': 'application/json' } }
       );
     }
+    // Allow creating own firm when upgrading from demo (current firm is is_demo_firm)
+    let fromDemo = false
     if (profile.firm_id) {
-      return new Response(
-        JSON.stringify({ error: 'You already have a law firm registered' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      const { data: currentFirm } = await admin
+        .from('firms')
+        .select('is_demo_firm')
+        .eq('id', profile.firm_id)
+        .single()
+      if (!currentFirm?.is_demo_firm) {
+        return new Response(
+          JSON.stringify({ error: 'You already have a law firm registered' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      fromDemo = true
     }
 
     const { data: firm, error: firmError } = await admin

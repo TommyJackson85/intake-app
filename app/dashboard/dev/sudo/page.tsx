@@ -4,6 +4,7 @@ import { isSudoEnabled } from '@/lib/env'
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 import { getServerSupabase } from '@/lib/serverSupabase'
 import { SudoUserList } from './SudoUserList'
+import { SendTestLinkForm } from './SendTestLinkForm'
 
 export default async function DevSudoPage() {
   if (!isSudoEnabled()) {
@@ -68,6 +69,7 @@ export default async function DevSudoPage() {
           </form>
         </div>
       )}
+      <SendTestLinkForm />
       <SudoUserList byFirm={byFirmArray} firmMap={firmMap} currentUserId={current.authUser.id} />
     </div>
   )

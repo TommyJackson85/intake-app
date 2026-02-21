@@ -7,6 +7,7 @@ export type FirmRow = {
   name: string
   state: string
   created_at: string | null
+  is_demo_firm?: boolean
 }
 
 /**
@@ -58,7 +59,7 @@ export async function getCurrentUserAndFirm(): Promise<{
 
   const { data: firm, error: firmError } = await supabase
     .from('firms')
-    .select('id, name, state, created_at')
+    .select('id, name, state, created_at, is_demo_firm')
     .eq('id', profile.firm_id)
     .single()
 
@@ -115,7 +116,7 @@ export async function getCurrentUser(): Promise<{
   if (profile.firm_id) {
     const { data: firmData } = await supabase
       .from('firms')
-      .select('id, name, state, created_at')
+      .select('id, name, state, created_at, is_demo_firm')
       .eq('id', profile.firm_id)
       .single()
     firm = firmData as FirmRow | null

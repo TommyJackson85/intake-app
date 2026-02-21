@@ -222,6 +222,81 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          assigned_to_user_id: string | null
+          client_email: string
+          client_full_name: string | null
+          client_phone: string | null
+          created_at: string
+          firm_id: string
+          id: string
+          intake_data: Json
+          last_client_activity_at: string | null
+          matter_type: string
+          notes: string | null
+          portal_token_created_at: string | null
+          portal_token_hash: string | null
+          property_address: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to_user_id?: string | null
+          client_email: string
+          client_full_name?: string | null
+          client_phone?: string | null
+          created_at?: string
+          firm_id: string
+          id?: string
+          intake_data?: Json
+          last_client_activity_at?: string | null
+          matter_type: string
+          notes?: string | null
+          portal_token_created_at?: string | null
+          portal_token_hash?: string | null
+          property_address?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to_user_id?: string | null
+          client_email?: string
+          client_full_name?: string | null
+          client_phone?: string | null
+          created_at?: string
+          firm_id?: string
+          id?: string
+          intake_data?: Json
+          last_client_activity_at?: string | null
+          matter_type?: string
+          notes?: string | null
+          portal_token_created_at?: string | null
+          portal_token_hash?: string | null
+          property_address?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_assigned_to_user_id_fkey"
+            columns: ["assigned_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_leads: {
         Row: {
           created_at: string | null
@@ -332,7 +407,10 @@ export type Database = {
           is_dev_sudo: boolean
           is_us_citizen_or_resident: boolean | null
           phone: string | null
+          privacy_accepted_at: string | null
           role: string | null
+          terms_accepted_at: string | null
+          terms_version: string | null
         }
         Insert: {
           citizenship_country?: string | null
@@ -347,7 +425,10 @@ export type Database = {
           is_dev_sudo?: boolean
           is_us_citizen_or_resident?: boolean | null
           phone?: string | null
+          privacy_accepted_at?: string | null
           role?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
         }
         Update: {
           citizenship_country?: string | null
@@ -362,9 +443,19 @@ export type Database = {
           is_dev_sudo?: boolean
           is_us_citizen_or_resident?: boolean | null
           phone?: string | null
+          privacy_accepted_at?: string | null
           role?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_firm_id_fkey"
             columns: ["firm_id"]
@@ -415,7 +506,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_or_get_demo_firm: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

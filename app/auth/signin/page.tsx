@@ -1,19 +1,29 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/browserClient'
 
-export default function Login() {
+function LoginForm() {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [emailNotConfirmed, setEmailNotConfirmed] = useState(false)
+  const [demoError, setDemoError] = useState('')
   const router = useRouter()
   const supabase = createSupabaseBrowserClient()
+
+  useEffect(() => {
+    const msg = searchParams.get('demo_error')
+    if (msg) {
+      setDemoError(msg)
+      window.history.replaceState({}, '', '/auth/signin')
+    }
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,6 +72,21 @@ export default function Login() {
           Secure client portal for your real estate matters.
         </p>
 
+        {demoError && (
+          <div
+            style={{
+              background: '#fff8e6',
+              border: '1px solid #f0b429',
+              color: '#134252',
+              padding: '12px',
+              borderRadius: '6px',
+              marginBottom: '20px',
+              fontSize: '14px',
+            }}
+          >
+            {demoError}
+          </div>
+        )}
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Email</label>
@@ -179,27 +204,8 @@ export default function Login() {
         </div>
 
         <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(94, 82, 64, 0.1)', textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', marginBottom: '12px' }}>
-            <form action="/api/auth/demo-login" method="POST" style={{ display: 'inline' }}>
-              <button
-                type="submit"
-                style={{
-                  background: 'none',
-                  border: '1px solid #208096',
-                  color: '#208096',
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                Try a demo firm
-              </button>
-            </form>
-          </p>
           <p style={{ fontSize: '12px', color: '#627c71', marginBottom: '8px' }}>
-            Explore the app as a demo lawyer. No signup required. Data may be reset.
+            After signing in, you can try the demo dashboard from the setup page (no separate login).
           </p>
           <p style={{ fontSize: '14px', marginBottom: '8px' }}>
             Don't have an account?{' '}
@@ -215,5 +221,13 @@ export default function Login() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fcfcf9' }}>Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }

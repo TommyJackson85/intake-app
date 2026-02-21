@@ -31,6 +31,30 @@ export async function sendWelcomeEmail(email: string, firmName: string) {
   }
 }
 
+export async function sendIntakeLink(email: string, clientName: string, intakeUrl: string) {
+  try {
+    const result = await mg.messages.create(
+      process.env.MAILGUN_DOMAIN!,
+      {
+        from: process.env.MAILGUN_FROM_EMAIL!,
+        to: email,
+        subject: `Your intake form – ${clientName || 'Client'}`,
+        html: `
+          <h2>Complete your intake form</h2>
+          <p>Hi ${clientName || 'there'},</p>
+          <p>Your law firm has sent you a secure link to complete your intake form.</p>
+          <p><a href="${intakeUrl}">Open intake form</a></p>
+          <p>This link is unique and secure. Do not share it with others.</p>
+        `,
+      }
+    )
+    return result
+  } catch (error) {
+    console.error('Mailgun error:', error)
+    throw error
+  }
+}
+
 export async function sendIntakeConfirmation(email: string, clientName: string) {
   try {
     const result = await mg.messages.create(
