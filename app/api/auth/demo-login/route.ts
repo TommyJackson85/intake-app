@@ -105,7 +105,7 @@ export async function POST(request: Request) {
   }
 
   // Use upsert so we create the profile with firm_id if it doesn't exist,
-  // or update it if it does (UPDATE affects 0 rows when profile doesn't exist)
+  // or update it if it does. is_demo_guest=true marks shared demo account (Flow A).
   const { error: upsertError } = await admin
     .from('profiles')
     .upsert(
@@ -114,6 +114,7 @@ export async function POST(request: Request) {
         email: data.session.user.email ?? null,
         firm_id: demoFirm.id,
         role: 'lawyer',
+        is_demo_guest: true,
       },
       { onConflict: 'id' }
     )

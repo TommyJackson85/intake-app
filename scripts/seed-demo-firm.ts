@@ -78,13 +78,16 @@ async function seedDemoFirm() {
 
   if (profile) {
     if (profile.firm_id !== firmId) {
-      await admin.from('profiles').update({ firm_id: firmId, role: 'lawyer' }).eq('id', userId)
+      await admin.from('profiles').update({ firm_id: firmId, role: 'lawyer', is_demo_guest: true }).eq('id', userId)
       console.log('[seed-demo-firm] Updated profile firm_id')
+    } else {
+      await admin.from('profiles').update({ is_demo_guest: true }).eq('id', userId)
+      console.log('[seed-demo-firm] Set is_demo_guest on profile')
     }
   } else {
     const { error: profileError } = await admin
       .from('profiles')
-      .insert({ id: userId, email: DEMO_LAWYER_EMAIL, firm_id: firmId, role: 'lawyer' })
+      .insert({ id: userId, email: DEMO_LAWYER_EMAIL, firm_id: firmId, role: 'lawyer', is_demo_guest: true })
     if (profileError) {
       console.error('[seed-demo-firm] Failed to create profile:', profileError)
       process.exit(1)

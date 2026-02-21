@@ -404,6 +404,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_deleted: boolean | null
+          is_demo_guest: boolean
           is_dev_sudo: boolean
           is_us_citizen_or_resident: boolean | null
           phone: string | null
@@ -422,6 +423,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_deleted?: boolean | null
+          is_demo_guest?: boolean
           is_dev_sudo?: boolean
           is_us_citizen_or_resident?: boolean | null
           phone?: string | null
@@ -440,6 +442,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_deleted?: boolean | null
+          is_demo_guest?: boolean
           is_dev_sudo?: boolean
           is_us_citizen_or_resident?: boolean | null
           phone?: string | null

@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     return NextResponse.redirect(fallbackUrl, 302)
   }
 
+  // is_demo_guest remains false: user is on their own account (Flow B)
   const { error: upsertError } = await admin
     .from('profiles')
     .upsert(
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
         email: user.email ?? null,
         firm_id: demoFirm.id,
         role: 'lawyer',
+        is_demo_guest: false,
       },
       { onConflict: 'id' }
     )

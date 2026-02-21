@@ -106,7 +106,7 @@ function FirmSetupContent() {
         border: '1px solid rgba(94, 82, 64, 0.15)',
       }}>
         <p style={{ fontSize: '14px', color: '#627c71', marginBottom: '12px' }}>
-          Want to explore first? Try the demo firm to see the app in action.
+          Want to explore first? Use the demo firm to see the app in action with sample data.
         </p>
         <form action="/api/auth/use-demo-firm" method="POST" style={{ display: 'inline' }}>
           <button
@@ -122,11 +122,11 @@ function FirmSetupContent() {
               fontWeight: 500,
             }}
           >
-            Try a demo firm
+            Explore demo firm
           </button>
         </form>
         <p style={{ fontSize: '12px', color: '#999', marginTop: '8px', marginBottom: 0 }}>
-          You’ll be signed in as a demo lawyer. Use your own account. Demo data only.
+          You stay on your own account. Demo data only. No real firm created.
         </p>
       </div>
 

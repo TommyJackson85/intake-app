@@ -25,6 +25,13 @@ export async function POST(
     if ((current.profile.role ?? 'lawyer') === 'client') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+    // Demo firm: block real outbound emails to external recipients
+    if (current.firm?.is_demo_firm) {
+      return NextResponse.json(
+        { error: 'Sending intake links is disabled in demo mode. Register your own firm to send real emails.' },
+        { status: 403 }
+      )
+    }
 
     const { id } = await ctx.params
     if (!id) return NextResponse.json({ error: 'Not found' }, { status: 404 })

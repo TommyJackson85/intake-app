@@ -81,7 +81,10 @@ export default function IntakeTokenPage({ params }: { params: { token: string } 
         setIsUsPerson(d.isUsPerson || '')
         setSourceOfFunds(d.sourceOfFunds || '')
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load intake')
+        const msg = e instanceof Error ? e.message : 'Failed to load intake'
+        setError(msg === 'Not found' || msg.includes('invalid') || msg.includes('expired')
+          ? 'This intake link is invalid or expired.'
+          : msg)
       } finally {
         setLoading(false)
       }
@@ -180,11 +183,16 @@ export default function IntakeTokenPage({ params }: { params: { token: string } 
   }
 
   if (error && !data) {
+    const isNotFound = error.includes('invalid') || error.includes('expired') || error.includes('not found')
     return (
       <div style={{ minHeight: '100vh', background: '#fcfcf9', padding: '40px 20px' }}>
         <div style={{ maxWidth: '760px', margin: '0 auto', background: 'white', borderRadius: '8px', border: '1px solid rgba(94, 82, 64, 0.2)', padding: '22px' }}>
-          <h1 style={{ marginTop: 0, marginBottom: '10px' }}>{firmName}</h1>
-          <div style={{ background: '#fee', color: '#c0152f', padding: '12px', borderRadius: '6px' }}>{error}</div>
+          <h1 style={{ marginTop: 0, marginBottom: '10px' }}>{isNotFound ? 'Intake form not found' : 'Unable to load form'}</h1>
+          <p style={{ marginTop: 0, marginBottom: '12px', color: '#627c71' }}>
+            {isNotFound
+              ? 'This intake link is invalid, expired, or has been removed. Please request a new link from your law firm.'
+              : 'There was a problem loading this intake form. Please try again or contact your law firm.'}
+          </p>
           <div style={{ marginTop: '16px' }}>
             <Link href="/privacy" style={{ color: '#208096', textDecoration: 'none', fontWeight: 700 }}>Privacy Policy</Link>
           </div>

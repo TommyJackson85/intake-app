@@ -33,11 +33,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const fetchProfileAndFirm = async (userId: string) => {
+      // Use maybeSingle to avoid 406 when profile/firm missing (e.g. new user, RLS block)
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
 
       if (!error && profileData) {
         setProfile(profileData)
@@ -46,12 +47,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .from('firms')
             .select('*')
             .eq('id', profileData.firm_id)
-            .single()
+            .maybeSingle()
           setFirm(firmData)
         } else {
           setFirm(null)
         }
       } else {
+        setProfile(null)
         setFirm(null)
       }
     }

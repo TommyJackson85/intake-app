@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { useAuth } from '@/lib/auth-context'
 
-function SendLinkButton({ intakeId, clientEmail }: { intakeId: string; clientEmail: string | null }) {
+function SendLinkButton({ intakeId, clientEmail, isDemoFirm }: { intakeId: string; clientEmail: string | null; isDemoFirm: boolean }) {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   if (!clientEmail) return null
+  if (isDemoFirm) return <span style={{ fontSize: '12px', color: '#999' }}>Demo – send disabled</span>
   const handleSend = async (e: React.MouseEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -55,6 +57,8 @@ type IntakeRow = {
 }
 
 export default function IntakesPage() {
+  const { firm } = useAuth()
+  const isDemoFirm = Boolean((firm as { is_demo_firm?: boolean } | null)?.is_demo_firm)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [intakes, setIntakes] = useState<IntakeRow[]>([])
@@ -144,7 +148,7 @@ export default function IntakesPage() {
                   </td>
                   <td style={{ padding: '14px' }}>
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                      <SendLinkButton intakeId={i.id} clientEmail={i.client_email} />
+                      <SendLinkButton intakeId={i.id} clientEmail={i.client_email} isDemoFirm={isDemoFirm} />
                       <Link
                         href={`/dashboard/intakes/${i.id}/client-preview`}
                         style={{ color: '#208096', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}

@@ -68,7 +68,7 @@ export async function getCurrentUserServer(): Promise<CurrentUserServer | null> 
             .from('firms')
             .select('*')
             .eq('id', targetProfile.firm_id)
-            .single()
+            .maybeSingle()
           firm = firmRow as unknown as FirmRow | null
         }
         if (process.env.NODE_ENV !== 'production') {
@@ -109,12 +109,12 @@ export async function getCurrentUserServer(): Promise<CurrentUserServer | null> 
 
   let firm: FirmRow | null = null
   if (profile.firm_id) {
-    const { data: firmRow, error: firmError } = await admin
+    const { data: firmRow } = await admin
       .from('firms')
       .select('*')
       .eq('id', profile.firm_id)
-      .single()
-    if (!firmError && firmRow) firm = firmRow as unknown as FirmRow
+      .maybeSingle()
+    if (firmRow) firm = firmRow as unknown as FirmRow
   }
 
   return {

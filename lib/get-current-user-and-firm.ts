@@ -61,7 +61,7 @@ export async function getCurrentUserAndFirm(): Promise<{
     .from('firms')
     .select('id, name, state, created_at, is_demo_firm')
     .eq('id', profile.firm_id)
-    .single()
+    .maybeSingle()
 
   if (firmError || !firm) {
     throw new Error('FIRM_NOT_FOUND')
@@ -118,7 +118,7 @@ export async function getCurrentUser(): Promise<{
       .from('firms')
       .select('id, name, state, created_at, is_demo_firm')
       .eq('id', profile.firm_id)
-      .single()
+      .maybeSingle()
     firm = firmData as FirmRow | null
   }
 

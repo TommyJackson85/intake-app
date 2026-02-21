@@ -16,6 +16,7 @@ export default function DashboardLayout({
   const hasFirm = Boolean(profile?.firm_id)
   const isTestFirm = Boolean(firm?.is_test_firm)
   const isDemoFirm = Boolean((firm as { is_demo_firm?: boolean } | null)?.is_demo_firm)
+  const isDemoGuest = Boolean((profile as { is_demo_guest?: boolean } | null)?.is_demo_guest)
   const isFirmSetupPage = pathname === '/dashboard/firm-setup'
 
   useEffect(() => {
@@ -151,6 +152,7 @@ export default function DashboardLayout({
         padding: '40px',
         background: '#fcfcf9',
       }}>
+        {/* Demo firm banner: shown when currentFirm.is_demo_firm. CTA = Register (logged-in) or Create account (anonymous). */}
         {isDemoFirm && (
           <div
             role="alert"
@@ -164,7 +166,44 @@ export default function DashboardLayout({
               color: '#134252',
             }}
           >
-            <strong>Demo firm</strong> – for testing only. Do not enter real client data. Data may be reset regularly.
+            <strong>Demo firm</strong> – You are using a demo firm with dummy data. Do not enter real client information. Data may be reset regularly.
+            <span style={{ marginLeft: '12px' }}>
+              {isDemoGuest ? (
+                <a
+                  href="/auth/signup"
+                  style={{
+                    display: 'inline-block',
+                    marginTop: '8px',
+                    padding: '8px 16px',
+                    background: '#208096',
+                    color: 'white',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                  }}
+                >
+                  Create your account
+                </a>
+              ) : (
+                <a
+                  href="/dashboard/register-firm"
+                  style={{
+                    display: 'inline-block',
+                    marginTop: '8px',
+                    padding: '8px 16px',
+                    background: '#208096',
+                    color: 'white',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                  }}
+                >
+                  Register your law firm
+                </a>
+              )}
+            </span>
           </div>
         )}
         {children}
