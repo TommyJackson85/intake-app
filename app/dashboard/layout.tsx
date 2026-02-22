@@ -17,7 +17,7 @@ export default function DashboardLayout({
   const isTestFirm = Boolean(firm?.is_test_firm)
   const isDemoFirm = Boolean((firm as { is_demo_firm?: boolean } | null)?.is_demo_firm)
   const isDemoGuest = Boolean((profile as { is_demo_guest?: boolean } | null)?.is_demo_guest)
-  const isFirmSetupPage = pathname === '/dashboard/firm-setup'
+  const isRegisterFirmPage = pathname === '/dashboard/register-firm'
 
   useEffect(() => {
     if (!loading && !session) {
@@ -40,11 +40,11 @@ export default function DashboardLayout({
       return
     }
 
-    // Users without a firm go to firm-setup (where they can register or try demo)
-    if (!loading && session && !hasFirm && !isFirmSetupPage) {
-      router.replace('/dashboard/firm-setup')
+    // Users without a firm go to register-firm (with option to explore demo first)
+    if (!loading && session && !hasFirm && !isRegisterFirmPage) {
+      router.replace('/dashboard/register-firm')
     }
-  }, [session, loading, router, hasFirm, isFirmSetupPage])
+  }, [session, loading, router, hasFirm, isRegisterFirmPage])
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -72,7 +72,7 @@ export default function DashboardLayout({
         overflowY: 'auto',
       }}>
         <div style={{ marginBottom: '40px', fontSize: '20px', fontWeight: 600 }}>
-          ⚖️ LawIntake
+          <a href="/" style={{ color: 'inherit', textDecoration: 'none' }}>⚖️ LawIntake</a>
           {isDemoFirm && (
             <span
               style={{
@@ -121,9 +121,9 @@ export default function DashboardLayout({
               <a href="/dashboard/aml" style={{ color: 'white', textDecoration: 'none' }}>AML</a>
             </>
           )}
-          {!hasFirm && !isFirmSetupPage && (
-            <a href="/dashboard/firm-setup" style={{ color: '#90cfd9', textDecoration: 'none', fontWeight: 600 }}>
-              Set up your firm
+          {!hasFirm && !isRegisterFirmPage && (
+            <a href="/dashboard/register-firm" style={{ color: '#90cfd9', textDecoration: 'none', fontWeight: 600 }}>
+              Register your firm
             </a>
           )}
           {hasFirm && (
@@ -136,13 +136,22 @@ export default function DashboardLayout({
           )}
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-          <a 
-            href="/auth/logout" 
-            onClick={handleLogout}
-            style={{ color: '#90cfd9', textDecoration: 'none', fontSize: '14px', cursor: 'pointer' }}
-          >
-            Sign Out
-          </a>
+          {isDemoGuest ? (
+            <a
+              href="/auth/signup"
+              style={{ color: '#f0b429', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}
+            >
+              Create your account
+            </a>
+          ) : (
+            <a
+              href="/auth/logout"
+              onClick={handleLogout}
+              style={{ color: '#90cfd9', textDecoration: 'none', fontSize: '14px', cursor: 'pointer' }}
+            >
+              Sign Out
+            </a>
+          )}
         </div>
       </aside>
 
@@ -152,58 +161,70 @@ export default function DashboardLayout({
         padding: '40px',
         background: '#fcfcf9',
       }}>
-        {/* Demo firm banner: shown when currentFirm.is_demo_firm. CTA = Register (logged-in) or Create account (anonymous). */}
+        {/* Demo firm banner: shown on every dashboard page when currentFirm.is_demo_firm. CTA = Create account (Flow A) or Register firm (Flow B). */}
         {isDemoFirm && (
           <div
             role="alert"
+            aria-live="polite"
             style={{
-              marginBottom: '20px',
-              padding: '12px 16px',
-              background: '#fff8e6',
-              border: '1px solid #f0b429',
-              borderRadius: '6px',
-              fontSize: '14px',
+              marginBottom: '24px',
+              padding: '16px 20px',
+              background: 'linear-gradient(135deg, #fff8e6 0%, #fff4d6 100%)',
+              border: '2px solid #f0b429',
+              borderRadius: '8px',
+              fontSize: '15px',
               color: '#134252',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+              boxShadow: '0 2px 8px rgba(240, 180, 41, 0.15)',
             }}
           >
-            <strong>Demo firm</strong> – You are using a demo firm with dummy data. Do not enter real client information. Data may be reset regularly.
-            <span style={{ marginLeft: '12px' }}>
-              {isDemoGuest ? (
-                <a
-                  href="/auth/signup"
-                  style={{
-                    display: 'inline-block',
-                    marginTop: '8px',
-                    padding: '8px 16px',
-                    background: '#208096',
-                    color: 'white',
-                    borderRadius: '6px',
-                    textDecoration: 'none',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                  }}
-                >
-                  Create your account
-                </a>
-              ) : (
-                <a
-                  href="/dashboard/register-firm"
-                  style={{
-                    display: 'inline-block',
-                    marginTop: '8px',
-                    padding: '8px 16px',
-                    background: '#208096',
-                    color: 'white',
-                    borderRadius: '6px',
-                    textDecoration: 'none',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                  }}
-                >
-                  Register your law firm
-                </a>
-              )}
-            </span>
+            <div>
+              <strong style={{ fontSize: '16px' }}>You are using a demo firm</strong>
+              <p style={{ margin: '6px 0 0', fontSize: '14px', opacity: 0.9 }}>
+                This is dummy data. Do not enter real client information. Data may be reset regularly.
+              </p>
+            </div>
+            {isDemoGuest ? (
+              <a
+                href="/auth/signup"
+                style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  background: '#208096',
+                  color: 'white',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontWeight: 700,
+                  fontSize: '15px',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 4px rgba(32, 128, 150, 0.3)',
+                }}
+              >
+                Create your account
+              </a>
+            ) : (
+              <a
+                href="/dashboard/register-firm"
+                style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  background: '#208096',
+                  color: 'white',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontWeight: 700,
+                  fontSize: '15px',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 4px rgba(32, 128, 150, 0.3)',
+                }}
+              >
+                Register your law firm
+              </a>
+            )}
           </div>
         )}
         {children}

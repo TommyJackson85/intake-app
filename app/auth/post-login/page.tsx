@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { getCurrentUserServer } from '@/lib/server/current-user'
 import { needsTermsAcceptance } from '@/lib/terms-config'
 
+export const dynamic = 'force-dynamic'
+
 export default async function PostLoginPage() {
   let current = null
   try {
@@ -29,9 +31,9 @@ export default async function PostLoginPage() {
     redirect('/portal')
   }
 
-  // 3) Users without a firm go to firm-setup (they can use "Try a demo firm" from there)
+  // 3) Users without a firm go to register-firm (with option to explore demo first)
   if (!profile.firm_id) {
-    redirect('/dashboard/firm-setup')
+    redirect('/dashboard/register-firm')
   }
 
   redirect('/dashboard')

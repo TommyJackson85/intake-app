@@ -13,7 +13,7 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export async function POST(request: Request) {
-  const fallbackUrl = new URL('/dashboard/firm-setup', request.url)
+  const fallbackUrl = new URL('/dashboard/register-firm', request.url)
   const dashboardUrl = new URL('/dashboard', request.url)
 
   if (!url) {

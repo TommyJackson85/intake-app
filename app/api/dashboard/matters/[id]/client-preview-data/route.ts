@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 import { getCurrentUserServer } from '@/lib/server/current-user'
+import { logAuditEvent } from '@/lib/auditLog'
 
 export async function GET(
   _request: Request,
@@ -36,12 +37,23 @@ export async function GET(
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
+    await logAuditEvent(
+      firmId,
+      current.authUser.id,
+      'client_preview_viewed',
+      'matter',
+      id,
+      { resource_id: id }
+    )
+
     const clientId = (matter as { client_id: string }).client_id
+    // Defense-in-depth: ensure client belongs to same firm
     const { data: client } = await admin
       .from('clients')
       .select('id, full_name, email, phone')
       .eq('id', clientId)
-      .single()
+      .eq('firm_id', firmId)
+      .maybeSingle()
 
     return NextResponse.json({
       firm: current.firm ? { id: current.firm.id, name: current.firm.name, state: current.firm.state } : null,

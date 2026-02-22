@@ -32,27 +32,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createSupabaseBrowserClient()
 
   useEffect(() => {
-    const fetchProfileAndFirm = async (userId: string) => {
-      // Use maybeSingle to avoid 406 when profile/firm missing (e.g. new user, RLS block)
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
-
-      if (!error && profileData) {
-        setProfile(profileData)
-        if (profileData.firm_id) {
-          const { data: firmData } = await supabase
-            .from('firms')
-            .select('*')
-            .eq('id', profileData.firm_id)
-            .maybeSingle()
-          setFirm(firmData)
+    const fetchProfileAndFirm = async (_userId: string) => {
+      // Use /api/auth/me (server-side, service-role) so profile/firm load reliably.
+      // Client-side Supabase + RLS can block firm reads, causing firm=null and demo banner to not show.
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' })
+        if (res.ok) {
+          const { profile: p, firm: f } = await res.json()
+          setProfile(p)
+          setFirm(f)
         } else {
+          setProfile(null)
           setFirm(null)
         }
-      } else {
+      } catch {
         setProfile(null)
         setFirm(null)
       }

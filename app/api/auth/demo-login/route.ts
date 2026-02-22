@@ -71,8 +71,8 @@ export async function POST(request: Request) {
     )
   }
 
-  // On error, redirect back to firm-setup (where the button lives) with error message
-  const fallbackUrl = new URL('/dashboard/firm-setup', request.url)
+  // On error, redirect back to register-firm with error message
+  const fallbackUrl = new URL('/dashboard/register-firm', request.url)
 
   if (!serviceRoleKey) {
     console.error('[demo-login] SUPABASE_SERVICE_ROLE_KEY missing')

@@ -1,5 +1,5 @@
 // lib/post-login-routing.ts
-// Post-login routing logic: redirects users to firm-setup if they don't have a firm
+// Post-login routing logic: redirects users to register-firm if they don't have a firm
 
 import { createSupabaseServerClientStrict } from './serverClientStrict'
 import { CURRENT_TERMS_VERSION, needsTermsAcceptance } from './terms-config'
@@ -13,7 +13,7 @@ export interface PostLoginRouteResult {
 /**
  * Determines where a user should be redirected after login
  * - If user needs to accept updated terms: redirect to /auth/accept-terms (highest priority)
- * - If user has no firm: redirect to /dashboard/firm-setup
+ * - If user has no firm: redirect to /dashboard/register-firm
  * - If user has firm: redirect to /dashboard
  */
 export async function getPostLoginRoute(userId: string): Promise<PostLoginRouteResult> {
@@ -46,7 +46,7 @@ export async function getPostLoginRoute(userId: string): Promise<PostLoginRouteR
     if (!profile.firm_id) {
       return {
         shouldRedirect: true,
-        redirectTo: '/dashboard/firm-setup',
+        redirectTo: '/dashboard/register-firm',
         reason: 'no_firm',
       }
     }

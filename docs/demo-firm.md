@@ -90,6 +90,25 @@ After registering a real firm, users switch to it via the normal profile update 
 | `DEMO_LAWYER_PASSWORD`    | Flow A       | Shared demo account password |
 | `SUPABASE_SERVICE_ROLE_KEY` | Flow A, Flow B | Create/link profile, find demo firm |
 
+## Demo → Real Firm Flow
+
+When a user is in a demo firm (Flow B) and wants to create their own law firm:
+
+1. **Entry** – User is logged in and viewing the dashboard with demo data.
+2. **CTA** – Banner shows **"Register your law firm"** linking to `/dashboard/register-firm`.
+3. **Form** – User enters firm name, state, and optional contact email.
+4. **API** – `POST /api/auth/register-firm` validates the session and:
+   - Ensures profile exists and either has no firm or has a demo firm (`is_demo_firm = true`).
+   - Creates a new firm row (non-demo).
+   - Updates `profiles.firm_id` to the new firm.
+   - Logs a `firm_registered` audit event.
+5. **Redirect** – Page redirects to `/dashboard`; auth context refetches profile with the new `firm_id`.
+6. **Result** – User is now in their real firm. Demo firm data is no longer visible.
+
+### Returning to Demo
+
+Once a user registers a real firm, they cannot switch back to the demo firm from the normal UI. The demo firm remains a separate tenant; returning would require an explicit “Explore demo firm” action (e.g. on firm-setup) and is only available when the user has no firm or is in a demo context.
+
 ## Manual Test Steps
 
 ### Flow A: Home-page anonymous demo

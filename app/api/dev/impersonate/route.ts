@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const role = (targetProfile as { role?: string }).role ?? 'lawyer'
   const hasFirm = Boolean((targetProfile as { firm_id?: string | null }).firm_id)
 
-  const redirectPath = role === 'client' ? '/portal' : hasFirm ? '/dashboard' : '/dashboard/firm-setup'
+  const redirectPath = role === 'client' ? '/portal' : hasFirm ? '/dashboard' : '/dashboard/register-firm'
   const url = new URL(redirectPath, request.url)
 
   const res = NextResponse.redirect(url, 302)

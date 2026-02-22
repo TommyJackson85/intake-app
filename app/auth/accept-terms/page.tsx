@@ -30,8 +30,7 @@ export default function AcceptTermsPage() {
         profileWithTerms.terms_version === CURRENT_TERMS_VERSION
 
       if (hasAcceptedCurrentTerms) {
-        // User already accepted current terms, continue through centralized routing
-        router.push('/auth/post-login')
+        window.location.href = '/api/auth/post-login-redirect'
       }
     }
   }, [profile, authLoading, router])
@@ -58,8 +57,7 @@ export default function AcceptTermsPage() {
         throw new Error(data.error || 'Failed to accept terms')
       }
 
-      // Success - redirect to dashboard (or firm-setup if needed)
-      window.location.href = '/auth/post-login'
+      window.location.href = '/api/auth/post-login-redirect'
     } catch (err: any) {
       setError(err.message || 'Something went wrong')
     } finally {

@@ -42,7 +42,6 @@ type DashboardHomeResponse = {
 
 export default function Dashboard() {
   const { profile, firm } = useAuth()
-  const isDemoFirm = Boolean((firm as { is_demo_firm?: boolean } | null)?.is_demo_firm)
   const hasFirm = Boolean(profile?.firm_id)
   const [activeTab, setActiveTab] = useState<'intakes' | 'matters'>('intakes')
   const [loading, setLoading] = useState(true)
@@ -120,45 +119,6 @@ export default function Dashboard() {
 
   return (
     <div>
-      {isDemoFirm && (
-        <div
-          role="alert"
-          style={{
-            marginBottom: '20px',
-            padding: '16px 20px',
-            background: 'white',
-            border: '2px solid #208096',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '16px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 800, color: '#134252', marginBottom: '4px' }}>Ready to use LawIntake for your firm?</div>
-            <div style={{ fontSize: '14px', color: '#627c71' }}>
-              Register your own firm to unlock billing, integrations, user management, and real client data.
-            </div>
-          </div>
-          <Link
-            href="/dashboard/register-firm"
-            style={{
-              display: 'inline-block',
-              background: '#208096',
-              color: 'white',
-              padding: '12px 24px',
-              borderRadius: '6px',
-              textDecoration: 'none',
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Register your own firm
-          </Link>
-        </div>
-      )}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '20px' }}>

@@ -45,7 +45,7 @@ export default function SignUp() {
       if (result.needsConfirmation) {
         router.push('/auth/confirm-email')
       } else {
-        router.push('/auth/post-login')
+        window.location.href = '/api/auth/post-login-redirect'
       }
     } catch (err) {
       if (err instanceof Error) {
