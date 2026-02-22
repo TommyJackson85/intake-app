@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 export type Profile = { id: string; email: string | null; full_name: string | null; role: string | null; firm_id: string | null }
-type Firm = { id: string; name: string; is_test_firm: boolean; is_demo_firm?: boolean }
+type Firm = { id: string; name: string; state?: string | null; is_test_firm: boolean; is_demo_firm?: boolean }
 
 type Props = {
   byFirm: [string | null, Profile[]][]
@@ -15,7 +15,7 @@ export function SudoUserList({ byFirm, firmMap, currentUserId }: Props) {
       {byFirm.map(([firmId, profiles]) => {
         const firm = firmId ? firmMap[firmId] : null
         const label = firmId
-          ? `${firm?.name ?? firmId}${firm?.is_demo_firm ? ' (Demo firm)' : ''}${firm?.is_test_firm && !firm?.is_demo_firm ? ' (Test)' : ''}`
+          ? `${firm?.name ?? firmId}${firm?.state ? ` · ${firm.state}` : ''}${firm?.is_demo_firm ? ' (Demo firm)' : ''}${firm?.is_test_firm && !firm?.is_demo_firm ? ' (Test)' : ''}`
           : 'No firm'
         return (
           <div key={firmId ?? 'none'} style={{ border: '1px solid rgba(94,82,64,0.2)', borderRadius: '8px', padding: '16px' }}>

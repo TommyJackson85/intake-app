@@ -297,6 +297,54 @@ export type Database = {
           },
         ]
       }
+      impersonation_sessions: {
+        Row: {
+          id: string
+          impersonator_user_id: string
+          impersonated_user_id: string
+          started_at: string
+          ended_at: string | null
+          reason: string | null
+          env: 'development' | 'staging' | 'production'
+          metadata: Json
+        }
+        Insert: {
+          id?: string
+          impersonator_user_id: string
+          impersonated_user_id: string
+          started_at?: string
+          ended_at?: string | null
+          reason?: string | null
+          env?: 'development' | 'staging' | 'production'
+          metadata?: Json
+        }
+        Update: {
+          id?: string
+          impersonator_user_id?: string
+          impersonated_user_id?: string
+          started_at?: string
+          ended_at?: string | null
+          reason?: string | null
+          env?: 'development' | 'staging' | 'production'
+          metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impersonation_sessions_impersonator_user_id_fkey"
+            columns: ["impersonator_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impersonation_sessions_impersonated_user_id_fkey"
+            columns: ["impersonated_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_leads: {
         Row: {
           created_at: string | null

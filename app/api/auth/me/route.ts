@@ -17,6 +17,8 @@ export async function GET() {
     return NextResponse.json({
       profile: current.profile,
       firm: current.firm,
+      impersonating: current.impersonating ?? false,
+      show_dev_sudo: current.show_dev_sudo ?? false,
     })
   } catch (err) {
     console.error('[auth/me] error:', err)

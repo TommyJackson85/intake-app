@@ -34,6 +34,8 @@ export type CurrentUserServer = {
   firm: FirmRow | null
   /** True when a dev sudo user is impersonating another user; app should act as impersonated user. */
   impersonating?: boolean
+  /** True when Dev Sudo link should be shown (impersonating or is_dev_sudo + sudo enabled). */
+  show_dev_sudo?: boolean
 }
 
 export async function getCurrentUserServer(): Promise<CurrentUserServer | null> {
@@ -79,6 +81,7 @@ export async function getCurrentUserServer(): Promise<CurrentUserServer | null> 
           profile: targetProfile as unknown as ProfileRow,
           firm,
           impersonating: true,
+          show_dev_sudo: true,
         }
       }
     }
@@ -117,10 +120,14 @@ export async function getCurrentUserServer(): Promise<CurrentUserServer | null> 
     if (firmRow) firm = firmRow as unknown as FirmRow
   }
 
+  const show_dev_sudo =
+    (profile as { is_dev_sudo?: boolean }).is_dev_sudo === true && isSudoEnabled()
+
   return {
     authUser: { id: realUserId, email: data.user.email ?? undefined },
     profile: profile as unknown as ProfileRow,
     firm,
+    show_dev_sudo,
   }
 }
 

@@ -13,11 +13,13 @@ export function isNonProductionEnv(): boolean {
 
 /**
  * True when developer sudo/impersonation is allowed.
- * Requires BOTH: non-production env AND ENABLE_SUDO not explicitly 'false'.
- * In production: always false regardless of ENABLE_SUDO.
+ * - In production: only if ENABLE_PROD_IMPERSONATION === 'true' (GDPR trade-off; must be explicit).
+ * - In non-production: true unless ENABLE_SUDO === 'false'.
  */
 export function isSudoEnabled(): boolean {
-  if (process.env.NODE_ENV === 'production') return false
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.ENABLE_PROD_IMPERSONATION === 'true'
+  }
   if (process.env.ENABLE_SUDO === 'false') return false
   return true
 }

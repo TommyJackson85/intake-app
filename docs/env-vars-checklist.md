@@ -9,6 +9,8 @@ For demo login to work, these must be set correctly in **Vercel** (Project → S
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ | The **service_role** (secret) key. **Not** the anon key. Required for demo login to link the profile to the demo firm. |
 | `DEMO_LAWYER_EMAIL` | ✅ | Must match the demo lawyer user in Supabase Auth (e.g. `demo.lawyer@demo.test`). |
 | `DEMO_LAWYER_PASSWORD` | ✅ | Must match the demo lawyer's password. |
+| `ENABLE_SUDO` | Optional | In non-production, set to `'false'` to disable developer sudo (impersonation, test email). |
+| `ENABLE_PROD_IMPERSONATION` | Optional | In production, set to `'true'` to enable impersonation for support/debug (GDPR trade-off). Default: disabled. |
 
 ## Common Mistakes
 

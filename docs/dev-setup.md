@@ -1,5 +1,7 @@
 # Developer setup (non-production)
 
+For a full step-by-step guide to creating and logging into a developer account, see **[dev-account-setup-and-login.md](./dev-account-setup-and-login.md)**.
+
 ## Marking a profile as developer sudo
 
 Developer sudo (impersonation) is only available in **non-production** and only for profiles explicitly marked with `is_dev_sudo = true`. There is no automatic path that sets this on signup.

@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/lib/auth-context'
+import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import { needsTermsAcceptance } from '@/lib/terms-config'
@@ -10,7 +11,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { session, profile, firm, loading } = useAuth()
+  const { session, profile, firm, loading, show_dev_sudo } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const hasFirm = Boolean(profile?.firm_id)
@@ -131,7 +132,7 @@ export default function DashboardLayout({
               Settings{isDemoFirm ? ' (limited)' : ' / Firm'}
             </a>
           )}
-          {typeof process !== 'undefined' && process.env.NODE_ENV !== 'production' && (profile as { is_dev_sudo?: boolean } | null)?.is_dev_sudo && (
+          {show_dev_sudo && (
             <a href="/dashboard/dev/sudo" style={{ color: '#f0b429', textDecoration: 'none', fontSize: '14px' }}>Dev Sudo</a>
           )}
         </nav>
@@ -161,6 +162,7 @@ export default function DashboardLayout({
         padding: '40px',
         background: '#fcfcf9',
       }}>
+        <ImpersonationBanner />
         {/* Demo firm banner: shown on every dashboard page when currentFirm.is_demo_firm. CTA = Create account (Flow A) or Register firm (Flow B). */}
         {isDemoFirm && (
           <div

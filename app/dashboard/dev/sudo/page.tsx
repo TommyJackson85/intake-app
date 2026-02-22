@@ -37,12 +37,18 @@ export default async function DevSudoPage() {
   const firmIds = [...new Set((profiles ?? []).map((p) => p.firm_id).filter(Boolean))] as string[]
   const { data: firms } = await admin
     .from('firms')
-    .select('id, name, is_test_firm, is_demo_firm')
+    .select('id, name, state, is_test_firm, is_demo_firm')
     .in('id', firmIds)
 
-  const firmMap: Record<string, { id: string; name: string; is_test_firm: boolean; is_demo_firm?: boolean }> = {}
+  const firmMap: Record<string, { id: string; name: string; state?: string | null; is_test_firm: boolean; is_demo_firm?: boolean }> = {}
   for (const f of firms ?? []) {
-    firmMap[f.id] = { id: f.id, name: f.name, is_test_firm: f.is_test_firm, is_demo_firm: (f as { is_demo_firm?: boolean }).is_demo_firm }
+    firmMap[f.id] = {
+      id: f.id,
+      name: f.name,
+      state: (f as { state?: string | null }).state,
+      is_test_firm: f.is_test_firm,
+      is_demo_firm: (f as { is_demo_firm?: boolean }).is_demo_firm,
+    }
   }
   const byFirm = new Map<string | null, typeof profiles>()
   for (const p of profiles ?? []) {

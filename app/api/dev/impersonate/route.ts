@@ -1,13 +1,20 @@
 /**
  * POST /api/dev/impersonate
  * Set dev_impersonate_user_id cookie and redirect to appropriate home for that user.
- * Only in non-production and only if current user has is_dev_sudo.
+ * Only when isSudoEnabled() and current user has is_dev_sudo.
+ * Logs to impersonation_sessions for audit.
  */
 
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 import { getServerSupabase } from '@/lib/serverSupabase'
 import { isSudoEnabled } from '@/lib/env'
+
+function getEnvLabel(): 'development' | 'staging' | 'production' {
+  if (process.env.NODE_ENV === 'production') return 'production'
+  if (process.env.VERCEL_ENV === 'preview' || process.env.VERCEL_ENV === 'staging') return 'staging'
+  return 'development'
+}
 
 export async function POST(request: Request) {
   if (!isSudoEnabled()) {
@@ -39,12 +46,30 @@ export async function POST(request: Request) {
 
   const { data: targetProfile } = await admin
     .from('profiles')
-    .select('role, firm_id')
+    .select('role, firm_id, email')
     .eq('id', userId)
     .maybeSingle()
 
   if (!targetProfile) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  }
+
+  const env = getEnvLabel()
+  const reason = formData.get('reason')?.toString() || null
+  const { error: insertError } = await admin.from('impersonation_sessions').insert({
+    impersonator_user_id: user.id,
+    impersonated_user_id: userId,
+    reason,
+    env,
+    metadata: { target_email: (targetProfile as { email?: string }).email ?? null },
+  })
+
+  if (insertError) {
+    console.error('[dev-impersonate] Failed to log session:', insertError)
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.info('[dev-impersonation]', { realUserId: user.id, impersonateId: userId, email: (targetProfile as { email?: string }).email })
   }
 
   const role = (targetProfile as { role?: string }).role ?? 'lawyer'
