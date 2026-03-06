@@ -2,17 +2,31 @@ import FormData from 'form-data'
 import Mailgun from 'mailgun.js'
 
 const mailgun = new Mailgun(FormData)
+
+// Use MAILGUN_HOST only for EU (api.eu.mailgun.net). If your Mailgun Dashboard shows Base URL https://api.mailgun.net, leave MAILGUN_HOST unset (US).
+const mailgunUrl = process.env.MAILGUN_HOST
+  ? `https://${process.env.MAILGUN_HOST.replace(/^https?:\/\//, '')}`
+  : undefined
+
+if (process.env.NODE_ENV !== 'production' && process.env.MAILGUN_API_KEY) {
+  const endpoint = mailgunUrl ?? 'https://api.mailgun.net'
+  const region = mailgunUrl?.includes('eu.mailgun.net') ? 'EU' : 'US'
+  console.log('[Mailgun] Using endpoint:', endpoint, `(${region}). For EU 401: set MAILGUN_HOST=api.eu.mailgun.net and use a Domain Sending Key from Sending → domain → Sending API keys.`)
+}
+
 const mg = mailgun.client({
   username: 'api',
   key: process.env.MAILGUN_API_KEY!,
+  ...(mailgunUrl && { url: mailgunUrl }),
 })
 
 export async function sendWelcomeEmail(email: string, firmName: string) {
   try {
+    const domain = getMailgunDomain()
     const result = await mg.messages.create(
-      process.env.MAILGUN_DOMAIN!,
+      domain,
       {
-        from: process.env.MAILGUN_FROM_EMAIL!,
+        from: getMailgunFrom(domain),
         to: email,
         subject: `Welcome to LawIntake, ${firmName}`,
         html: `
@@ -31,12 +45,36 @@ export async function sendWelcomeEmail(email: string, firmName: string) {
   }
 }
 
+/** Mailgun sending domain must look like a domain (e.g. sandboxXXX.mailgun.org), not an ID or key. */
+function getMailgunDomain(): string {
+  const d = process.env.MAILGUN_DOMAIN?.trim()
+  if (!d) throw new Error('MAILGUN_DOMAIN is not set')
+  if (!d.includes('.') || /^[0-9a-f-]{30,}$/i.test(d)) {
+    throw new Error(
+      'MAILGUN_DOMAIN must be your Mailgun sending domain (e.g. sandboxXXXX.mailgun.org or mg.yourdomain.com), not an ID or key. Check Mailgun Dashboard → Sending → Domain.'
+    )
+  }
+  return d
+}
+
+/** From address: use MAILGUN_FROM_EMAIL or default to postmaster@domain (required for Mailgun sandbox). */
+function getMailgunFrom(domain: string): string {
+  const from = process.env.MAILGUN_FROM_EMAIL?.trim()
+  if (from) return from
+  return `postmaster@${domain}`
+}
+
 export async function sendIntakeLink(email: string, clientName: string, intakeUrl: string) {
+  const domain = getMailgunDomain()
+  const fromEmail = getMailgunFrom(domain)
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6f2fcd2e-6c32-4111-92b0-167e64418104',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'emailService.ts:sendIntakeLink:before-create',message:'Mailgun request params',data:{domain,fromEmail,MAILGUN_HOST:process.env.MAILGUN_HOST||null,fromDomainMatches:fromEmail.includes('@')?fromEmail.split('@')[1]:null},timestamp:Date.now(),hypothesisId:'H1-H4'})}).catch(()=>{});
+    // #endregion
     const result = await mg.messages.create(
-      process.env.MAILGUN_DOMAIN!,
+      domain,
       {
-        from: process.env.MAILGUN_FROM_EMAIL!,
+        from: fromEmail,
         to: email,
         subject: `Your intake form – ${clientName || 'Client'}`,
         html: `
@@ -50,6 +88,9 @@ export async function sendIntakeLink(email: string, clientName: string, intakeUr
     )
     return result
   } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6f2fcd2e-6c32-4111-92b0-167e64418104',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'emailService.ts:sendIntakeLink:catch',message:'Mailgun error',data:{status:(error as {status?:number})?.status,details:(error as {details?:string})?.details,type:(error as {type?:string})?.type,message:(error as Error)?.message},timestamp:Date.now(),hypothesisId:'H1-H2-H4-H5'})}).catch(()=>{});
+    // #endregion
     console.error('Mailgun error:', error)
     throw error
   }
@@ -57,10 +98,11 @@ export async function sendIntakeLink(email: string, clientName: string, intakeUr
 
 export async function sendIntakeConfirmation(email: string, clientName: string) {
   try {
+    const domain = getMailgunDomain()
     const result = await mg.messages.create(
-      process.env.MAILGUN_DOMAIN!,
+      domain,
       {
-        from: process.env.MAILGUN_FROM_EMAIL!,
+        from: getMailgunFrom(domain),
         to: email,
         subject: `Intake form received for ${clientName}`,
         html: `

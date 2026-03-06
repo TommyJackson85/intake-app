@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useState, useMemo } from 'react'
 
 export type Profile = { id: string; email: string | null; full_name: string | null; role: string | null; firm_id: string | null }
 type Firm = { id: string; name: string; state?: string | null; is_test_firm: boolean; is_demo_firm?: boolean }
@@ -9,10 +12,48 @@ type Props = {
   currentUserId: string
 }
 
+type FirmFilter = 'all' | 'test' | 'demo'
+
 export function SudoUserList({ byFirm, firmMap, currentUserId }: Props) {
+  const [filter, setFilter] = useState<FirmFilter>('test')
+
+  const filteredByFirm = useMemo(() => {
+    if (filter === 'all') return byFirm
+    return byFirm.filter(([firmId]) => {
+      if (!firmId) return false
+      const firm = firmMap[firmId]
+      if (!firm) return false
+      if (filter === 'test') return firm.is_test_firm && !firm.is_demo_firm
+      if (filter === 'demo') return firm.is_demo_firm
+      return true
+    })
+  }, [byFirm, firmMap, filter])
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {byFirm.map(([firmId, profiles]) => {
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+        <span style={{ fontSize: '14px', color: '#627c71' }}>Firms:</span>
+        {(['test', 'demo', 'all'] as const).map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setFilter(f)}
+            style={{
+              padding: '6px 12px',
+              fontSize: '13px',
+              background: filter === f ? '#208096' : 'white',
+              color: filter === f ? 'white' : '#134252',
+              border: '1px solid #208096',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: filter === f ? 600 : 400,
+            }}
+          >
+            {f === 'test' ? 'Test firms only' : f === 'demo' ? 'Demo only' : 'All'}
+          </button>
+        ))}
+      </div>
+      {filteredByFirm.map(([firmId, profiles]) => {
         const firm = firmId ? firmMap[firmId] : null
         const label = firmId
           ? `${firm?.name ?? firmId}${firm?.state ? ` · ${firm.state}` : ''}${firm?.is_demo_firm ? ' (Demo firm)' : ''}${firm?.is_test_firm && !firm?.is_demo_firm ? ' (Test)' : ''}`

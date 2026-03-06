@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { use, useEffect, useMemo, useState } from 'react'
 
 type IntakeApiResponse = {
   firm: { id: string; name: string; state: string } | null
@@ -21,8 +21,8 @@ type IntakeApiResponse = {
 
 type StepKey = 'contact' | 'property' | 'matter' | 'kyc'
 
-export default function IntakeTokenPage({ params }: { params: { token: string } }) {
-  const token = params.token
+export default function IntakeTokenPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = use(params)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)

@@ -54,6 +54,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
+  const targetFirmId = (targetProfile as { firm_id?: string | null }).firm_id
+  if (process.env.NODE_ENV === 'production' && targetFirmId) {
+    const { data: targetFirm } = await admin
+      .from('firms')
+      .select('is_test_firm')
+      .eq('id', targetFirmId)
+      .maybeSingle()
+    if (!(targetFirm as { is_test_firm?: boolean })?.is_test_firm) {
+      return NextResponse.json(
+        { error: 'In production, impersonation is restricted to test firms only' },
+        { status: 403 }
+      )
+    }
+  }
+
   const env = getEnvLabel()
   const reason = formData.get('reason')?.toString() || null
   const { error: insertError } = await admin.from('impersonation_sessions').insert({

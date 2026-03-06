@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 
 function RegisterFirmContent() {
-  const { profile, firm, loading: authLoading } = useAuth()
+  const { profile, firm, loading: authLoading, show_dev_sudo } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [firmName, setFirmName] = useState('')
@@ -68,6 +68,42 @@ function RegisterFirmContent() {
         To use client intake, matters, AML checks, and other practice features, we need your firm
         details. This supports multijurisdictional and data privacy compliance.
       </p>
+
+      {show_dev_sudo && (
+        <div
+          style={{
+            marginBottom: '24px',
+            padding: '16px',
+            background: 'linear-gradient(135deg, #e8f4f6 0%, #d4edf0 100%)',
+            borderRadius: '8px',
+            border: '2px solid #208096',
+          }}
+        >
+          <p style={{ fontSize: '14px', color: '#134252', marginBottom: '12px', fontWeight: 600 }}>
+            Developer: Use the dev test firm for full dashboard (no demo banners)
+          </p>
+          <form action="/api/auth/use-dev-test-firm" method="POST" style={{ display: 'inline' }}>
+            <button
+              type="submit"
+              style={{
+                padding: '10px 20px',
+                background: '#208096',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 600,
+              }}
+            >
+              Use Dev Test Firm
+            </button>
+          </form>
+          <p style={{ fontSize: '12px', color: '#627c71', marginTop: '8px', marginBottom: 0 }}>
+            Internal test firm with synthetic data. Full features.
+          </p>
+        </div>
+      )}
 
       <div
         style={{

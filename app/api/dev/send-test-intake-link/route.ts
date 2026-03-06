@@ -89,6 +89,15 @@ export async function POST(request: Request) {
     })
   } catch (e) {
     console.error('[dev/send-test-intake-link] error', e)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const status = (e as { status?: number })?.status
+    let message = e instanceof Error ? e.message : 'Internal server error'
+    if (status === 401) {
+      const isEu = process.env.MAILGUN_HOST?.includes('eu.mailgun.net')
+      message = isEu
+        ? 'Mailgun 401: For EU, use a Domain Sending Key. Mailgun Dashboard → Sending → your domain → Sending API keys → Add key, then set MAILGUN_API_KEY to that key.'
+        : 'Mailgun 401: If you are in EU/Ireland, set MAILGUN_HOST=api.eu.mailgun.net in .env.local and use a Domain Sending Key (Sending → domain → Sending API keys) as MAILGUN_API_KEY.'
+    }
+    const httpStatus = message.includes('MAILGUN_DOMAIN') ? 400 : status === 401 ? 400 : 500
+    return NextResponse.json({ error: message }, { status: httpStatus })
   }
 }

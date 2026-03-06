@@ -63,7 +63,8 @@ export default async function DevSudoPage() {
     <div style={{ maxWidth: '900px' }}>
       <h1 style={{ fontSize: '24px', marginBottom: '8px' }}>Developer Sudo</h1>
       <p style={{ color: '#627c71', marginBottom: '24px', fontSize: '14px' }}>
-        Impersonate a user to see the app as they would. Only available in non-production.
+        Impersonate a user to see the app as they would. Test firms show full dashboard (no demo banners).
+        In production, impersonation is restricted to test firms only.
       </p>
       {(current as { impersonating?: boolean }).impersonating && (
         <div style={{ marginBottom: '16px', padding: '12px', background: '#fff8e6', borderRadius: '6px', fontSize: '14px' }}>

@@ -17,6 +17,8 @@ Only profiles with `profiles.is_dev_sudo = true` can access developer sudo tools
 - **Impersonation**: Act as another user temporarily to see the app as they do
 - **Stop impersonating**: Return to your developer account
 
+For the full design of dev test firms vs demo firms, see **[developer-sudo-and-test-firms.md](./developer-sudo-and-test-firms.md)**.
+
 ## 3. Separation from demo firm
 
 | Feature | Demo firm | Developer sudo |
