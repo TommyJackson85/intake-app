@@ -20,6 +20,17 @@ function RegisterFirmContent() {
     return null
   }
 
+  // If user landed here with demo firm still linked (e.g. direct URL or back), leave demo first
+  // so layout shows "no firm" state (no demo nav links/banner).
+  useEffect(() => {
+    if (authLoading || !profile?.firm_id || !isDemoFirm) return
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action = '/api/auth/leave-demo-firm'
+    document.body.appendChild(form)
+    form.submit()
+  }, [authLoading, profile?.firm_id, isDemoFirm])
+
   useEffect(() => {
     const msg = searchParams.get('demo_error')
     if (msg) {
@@ -57,6 +68,15 @@ function RegisterFirmContent() {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <p>Loading...</p>
+      </div>
+    )
+  }
+
+  // While we're leaving demo (form submit in flight), show brief message to avoid flash of wrong nav
+  if (profile?.firm_id && isDemoFirm) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center' }}>
+        <p>Leaving demo…</p>
       </div>
     )
   }

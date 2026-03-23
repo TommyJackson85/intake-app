@@ -127,6 +127,25 @@ export default function DashboardLayout({
               Register your firm
             </a>
           )}
+          {hasFirm && isDemoFirm && (
+            <form action="/api/auth/leave-demo-firm" method="POST" style={{ display: 'inline' }}>
+              <button
+                type="submit"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#90cfd9',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  fontSize: 'inherit',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                Register your firm
+              </button>
+            </form>
+          )}
           {hasFirm && (
             <a href="/dashboard/settings" style={{ color: isDemoFirm ? 'rgba(255,255,255,0.8)' : 'white', textDecoration: 'none' }} title={isDemoFirm ? 'Settings are limited in demo mode' : undefined}>
               Settings{isDemoFirm ? ' (limited)' : ' / Firm'}
@@ -209,23 +228,26 @@ export default function DashboardLayout({
                 Create your account
               </a>
             ) : (
-              <a
-                href="/dashboard/register-firm"
-                style={{
-                  display: 'inline-block',
-                  padding: '12px 24px',
-                  background: '#208096',
-                  color: 'white',
-                  borderRadius: '8px',
-                  textDecoration: 'none',
-                  fontWeight: 700,
-                  fontSize: '15px',
-                  whiteSpace: 'nowrap',
-                  boxShadow: '0 2px 4px rgba(32, 128, 150, 0.3)',
-                }}
-              >
-                Register your law firm
-              </a>
+              <form action="/api/auth/leave-demo-firm" method="POST" style={{ display: 'inline' }}>
+                <button
+                  type="submit"
+                  style={{
+                    display: 'inline-block',
+                    padding: '12px 24px',
+                    background: '#208096',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '15px',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(32, 128, 150, 0.3)',
+                  }}
+                >
+                  Register your law firm
+                </button>
+              </form>
             )}
           </div>
         )}

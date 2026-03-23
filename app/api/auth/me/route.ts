@@ -1,8 +1,8 @@
 /**
  * GET /api/auth/me
  * Returns the current user's profile and firm.
- * Uses service-role server-side, so it bypasses RLS and reliably returns is_demo_firm, is_demo_guest, etc.
- * Used by auth context to drive the demo banner when client-side Supabase RLS might block firm reads.
+ * Uses getCurrentUserServer() which for normal/demo users reads via session-bound anon client (RLS).
+ * For dev impersonation only, service-role is used. Auth context uses this for demo banner, nav, etc.
  */
 
 import { NextResponse } from 'next/server'

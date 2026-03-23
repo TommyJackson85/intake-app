@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
+import { getServerSupabase } from '@/lib/serverSupabase'
 import { getCurrentUserServer } from '@/lib/server/current-user'
 
 export async function GET(request: Request) {
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Firm required' }, { status: 400 })
     }
 
-    const admin = createSupabaseServerClientStrict()
+    const supabase = await getServerSupabase()
     const firmId = current.profile.firm_id
     const userId = current.profile.id
 
@@ -33,31 +33,31 @@ export async function GET(request: Request) {
 
     const [newIntakesRes, waitingRes, mattersRes, closingsRes, intakesListRes, mattersListRes] =
       await Promise.all([
-        admin
+        supabase
           .from('leads')
           .select('id', { count: 'exact', head: true })
           .eq('firm_id', firmId)
           .eq('status', 'submitted')
           .match(assignedFilter ? { assigned_to_user_id: assignedFilter } : {}),
-        admin
+        supabase
           .from('leads')
           .select('id', { count: 'exact', head: true })
           .eq('firm_id', firmId)
           .eq('status', 'waiting_on_client')
           .match(assignedFilter ? { assigned_to_user_id: assignedFilter } : {}),
-        admin
+        supabase
           .from('matters')
           .select('id', { count: 'exact', head: true })
           .eq('firm_id', firmId)
           .neq('status', 'closed'),
-        admin
+        supabase
           .from('matters')
           .select('id', { count: 'exact', head: true })
           .eq('firm_id', firmId)
           .gte('expected_closing_date', now.toISOString())
           .lte('expected_closing_date', in7.toISOString())
           .neq('status', 'closed'),
-        admin
+        supabase
           .from('leads')
           .select(
             'id, created_at, status, client_full_name, client_email, matter_type, property_address, assigned_to_user_id'
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
           .match(assignedFilter ? { assigned_to_user_id: assignedFilter } : {})
           .order('created_at', { ascending: false })
           .limit(10),
-        admin
+        supabase
           .from('matters')
           .select(
             'id, created_at, status, matter_type, property_address, expected_closing_date, client:clients(id, full_name, email)'

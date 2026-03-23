@@ -6,7 +6,7 @@
 
 import crypto from 'crypto'
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
+import { getServerSupabase } from '@/lib/serverSupabase'
 import { getCurrentUserServer } from '@/lib/server/current-user'
 import { sendIntakeLink } from '@/lib/emailService'
 
@@ -36,10 +36,10 @@ export async function POST(
     const { id } = await ctx.params
     if (!id) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const admin = createSupabaseServerClientStrict()
+    const supabase = await getServerSupabase()
     const firmId = current.profile.firm_id
 
-    const { data: lead, error } = await admin
+    const { data: lead, error } = await supabase
       .from('leads')
       .select('id, firm_id, client_email, client_full_name, portal_token_hash')
       .eq('id', id)
@@ -62,7 +62,7 @@ export async function POST(
     // Alternative: add a "resend" flow that generates a NEW token and sends it.
     const newToken = crypto.randomUUID()
     const tokenHash = sha256Hex(newToken)
-    const { error: updateError } = await admin
+    const { error: updateError } = await supabase
       .from('leads')
       .update({
         portal_token_hash: tokenHash,

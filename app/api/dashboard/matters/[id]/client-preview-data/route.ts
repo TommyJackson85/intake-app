@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
+import { getServerSupabase } from '@/lib/serverSupabase'
 import { getCurrentUserServer } from '@/lib/server/current-user'
 import { logAuditEvent } from '@/lib/auditLog'
 
@@ -23,10 +23,10 @@ export async function GET(
     const { id } = await ctx.params
     if (!id) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const admin = createSupabaseServerClientStrict()
+    const supabase = await getServerSupabase()
     const firmId = current.profile.firm_id
 
-    const { data: matter, error: matterError } = await admin
+    const { data: matter, error: matterError } = await supabase
       .from('matters')
       .select('id, client_id, matter_type, status, property_address, expected_closing_date, created_at')
       .eq('id', id)
@@ -48,7 +48,7 @@ export async function GET(
 
     const clientId = (matter as { client_id: string }).client_id
     // Defense-in-depth: ensure client belongs to same firm
-    const { data: client } = await admin
+    const { data: client } = await supabase
       .from('clients')
       .select('id, full_name, email, phone')
       .eq('id', clientId)

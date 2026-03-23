@@ -3,17 +3,14 @@
  * Run: npm test
  *
  * These tests verify that client-preview APIs enforce firm_id isolation.
- * They use mocked getCurrentUserServer and Supabase responses.
+ * They use mocked getCurrentUserServer and getServerSupabase (session-bound anon client).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock server dependencies before importing route handlers
-vi.mock('@/lib/server/current-user', () => ({
-  getCurrentUserServer: vi.fn(),
-}));
-vi.mock('@/lib/serverClientStrict', () => ({
-  createSupabaseServerClientStrict: vi.fn(() => ({
+// Session-bound client mock: from().select().eq().eq().single() returns no row (RLS would block other firm)
+function createMockSupabaseClient() {
+  return {
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
@@ -21,17 +18,18 @@ vi.mock('@/lib/serverClientStrict', () => ({
             single: vi.fn(() =>
               Promise.resolve({ data: null, error: { message: 'PGRST116' } })
             ),
-            maybeSingle: vi.fn(() =>
-              Promise.resolve({ data: null, error: null })
-            ),
           })),
-          single: vi.fn(() =>
-            Promise.resolve({ data: null, error: { message: 'PGRST116' } })
-          ),
         })),
       })),
     })),
-  })),
+  };
+}
+
+vi.mock('@/lib/server/current-user', () => ({
+  getCurrentUserServer: vi.fn(),
+}));
+vi.mock('@/lib/serverSupabase', () => ({
+  getServerSupabase: vi.fn(() => Promise.resolve(createMockSupabaseClient())),
 }));
 vi.mock('@/lib/auditLog', () => ({
   logAuditEvent: vi.fn(() => Promise.resolve()),

@@ -87,7 +87,8 @@ export async function getCurrentUserServer(): Promise<CurrentUserServer | null> 
     }
   }
 
-  const { data: profileRow, error: profileError } = await admin
+  // User-facing path: use session-bound anon client so RLS enforces access (profile/firm scoped to auth.uid())
+  const { data: profileRow, error: profileError } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', realUserId)
@@ -100,10 +101,10 @@ export async function getCurrentUserServer(): Promise<CurrentUserServer | null> 
       userId: realUserId,
       profileError,
     })
-    profile = await ensureProfileForUser({
-      id: realUserId,
-      email: data.user.email ?? undefined,
-    })
+    profile = await ensureProfileForUser(
+      { id: realUserId, email: data.user.email ?? undefined },
+      supabase
+    )
   }
 
   if (!profile) {
@@ -112,7 +113,7 @@ export async function getCurrentUserServer(): Promise<CurrentUserServer | null> 
 
   let firm: FirmRow | null = null
   if (profile.firm_id) {
-    const { data: firmRow } = await admin
+    const { data: firmRow } = await supabase
       .from('firms')
       .select('*')
       .eq('id', profile.firm_id)

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
+import { getServerSupabase } from '@/lib/serverSupabase'
 import { getCurrentUserServer } from '@/lib/server/current-user'
 
 export async function GET() {
@@ -11,8 +11,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const admin = createSupabaseServerClientStrict()
-    const { data, error } = await admin
+    const supabase = await getServerSupabase()
+    const { data, error } = await supabase
       .from('matters')
       .select(
         'id, created_at, status, matter_type, property_address, expected_closing_date, client:clients(id, full_name, email)'
