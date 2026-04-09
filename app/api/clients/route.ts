@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     const body: CreateClientInput = await request.json();
 
     // Validate required fields
-    if (!body.name) {
+    if (!body.full_name) {
       return badRequestResponse('Client name is required');
     }
 
@@ -101,10 +101,10 @@ export async function POST(request: NextRequest) {
       .insert([
         {
           firm_id: firmId,
-          name: body.name,
-          email: body.email || null,
+          full_name: body.full_name,
+          email: body.email ?? '',
           phone: body.phone || null,
-          address: body.address || null,
+          address_line_1: body.address || null,
         },
       ])
       .select('*')
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       {
         entity_type: 'client',
         entity_id: client?.id,
-        name: body.name,
+        name: body.full_name,
         email: body.email,
         route: '/api/clients',
         method: 'POST',
