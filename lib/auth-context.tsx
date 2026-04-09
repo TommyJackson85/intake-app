@@ -14,6 +14,8 @@ interface AuthContextType {
   profile: ProfileRow | null
   firm: FirmRow | null
   loading: boolean
+  impersonating: boolean
+  show_dev_sudo: boolean
 }
 
 const AuthContext = React.createContext<AuthContextType>({
@@ -21,6 +23,8 @@ const AuthContext = React.createContext<AuthContextType>({
   profile: null,
   firm: null,
   loading: true,
+  impersonating: false,
+  show_dev_sudo: false,
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -28,31 +32,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [firm, setFirm] = useState<FirmRow | null>(null)
   const [loading, setLoading] = useState(true)
+  const [impersonating, setImpersonating] = useState(false)
+  const [showDevSudo, setShowDevSudo] = useState(false)
 
   const supabase = createSupabaseBrowserClient()
 
   useEffect(() => {
-    const fetchProfileAndFirm = async (userId: string) => {
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (!error && profileData) {
-        setProfile(profileData)
-        if (profileData.firm_id) {
-          const { data: firmData } = await supabase
-            .from('firms')
-            .select('*')
-            .eq('id', profileData.firm_id)
-            .single()
-          setFirm(firmData)
+    const fetchProfileAndFirm = async (_userId: string) => {
+      // Use /api/auth/me (server-side, service-role) so profile/firm load reliably.
+      // Client-side Supabase + RLS can block firm reads, causing firm=null and demo banner to not show.
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' })
+        if (res.ok) {
+          const { profile: p, firm: f, impersonating: imp, show_dev_sudo: sds } = await res.json()
+          setProfile(p)
+          setFirm(f)
+          setImpersonating(imp ?? false)
+          setShowDevSudo(sds ?? false)
         } else {
+          setProfile(null)
           setFirm(null)
+          setImpersonating(false)
+          setShowDevSudo(false)
         }
-      } else {
+      } catch {
+        setProfile(null)
         setFirm(null)
+        setImpersonating(false)
+        setShowDevSudo(false)
       }
     }
 
@@ -67,6 +74,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setProfile(null)
         setFirm(null)
+        setImpersonating(false)
+        setShowDevSudo(false)
       }
 
       setLoading(false)
@@ -83,6 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setProfile(null)
         setFirm(null)
+        setImpersonating(false)
+        setShowDevSudo(false)
       }
     })
 
@@ -90,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase])
 
   return (
-    <AuthContext.Provider value={{ session, profile, firm, loading }}>
+    <AuthContext.Provider value={{ session, profile, firm, loading, impersonating, show_dev_sudo: showDevSudo }}>
       {children}
     </AuthContext.Provider>
   )

@@ -41,7 +41,7 @@ type DashboardHomeResponse = {
 }
 
 export default function Dashboard() {
-  const { profile } = useAuth()
+  const { profile, firm } = useAuth()
   const hasFirm = Boolean(profile?.firm_id)
   const [activeTab, setActiveTab] = useState<'intakes' | 'matters'>('intakes')
   const [loading, setLoading] = useState(true)
@@ -284,7 +284,8 @@ export default function Dashboard() {
                       {data?.worklists.intakes?.map((row) => (
                         <tr key={row.id} style={{ borderTop: '1px solid rgba(94, 82, 64, 0.12)' }}>
                           <td style={{ padding: '12px 8px', fontWeight: 700, color: '#134252' }}>
-                            {row.client_full_name || row.client_email || '—'}
+                            {row.client_full_name || row.client_email || '—'}{' '}
+                            <Link href={`/dashboard/intakes/${row.id}/client-preview`} style={{ color: '#208096', fontSize: '12px', marginLeft: '8px' }}>Preview</Link>
                           </td>
                           <td style={{ padding: '12px 8px', color: '#134252', fontSize: '14px' }}>
                             <div style={{ fontWeight: 700 }}>{row.matter_type || '—'}</div>
@@ -314,10 +315,11 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data?.worklists.matters?.map((row) => (
-                      <tr key={row.id} style={{ borderTop: '1px solid rgba(94, 82, 64, 0.12)' }}>
-                        <td style={{ padding: '12px 8px', fontWeight: 700, color: '#134252' }}>
-                          {row.client?.full_name || '—'}
+                      {data?.worklists.matters?.map((row) => (
+                        <tr key={row.id} style={{ borderTop: '1px solid rgba(94, 82, 64, 0.12)' }}>
+                          <td style={{ padding: '12px 8px', fontWeight: 700, color: '#134252' }}>
+                            {row.client?.full_name || '—'}{' '}
+                            <Link href={`/dashboard/matters/${row.id}/client-preview`} style={{ color: '#208096', fontSize: '12px', marginLeft: '8px' }}>Preview</Link>
                           <div style={{ color: '#627c71', fontSize: '12px' }}>{row.client?.email || ''}</div>
                         </td>
                         <td style={{ padding: '12px 8px', color: '#134252' }}>

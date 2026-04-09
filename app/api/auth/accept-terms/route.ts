@@ -1,11 +1,9 @@
 // app/api/auth/accept-terms/route.ts
-// Accept updated terms for the currently authenticated user (Supabase Auth session).
+// Accept updated terms for the currently authenticated user. Uses anon client + RLS (update own profile).
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClientWithAuth } from '@/lib/serverClientWithAuth'
 import { CURRENT_TERMS_VERSION } from '@/lib/terms-config'
 import { getServerSupabase } from '@/lib/serverSupabase'
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,15 +30,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const admin = await createSupabaseServerClientStrict()
-
-    // Update profile with terms acceptance
-    const { error } = await admin
+    // RLS: Users can update own profile only
+    const { error } = await supabase
       .from('profiles')
       .update({
         terms_accepted_at: new Date().toISOString(),
         terms_version: CURRENT_TERMS_VERSION,
-        privacy_accepted_at: new Date().toISOString(), // Also update privacy acceptance
+        privacy_accepted_at: new Date().toISOString(),
       })
       .eq('id', user.id)
 

@@ -10,15 +10,20 @@ async function getLeadByToken(token: string) {
   const admin = createSupabaseServerClientStrict()
   const tokenHash = sha256Hex(token)
 
+  // Use maybeSingle to avoid 406 when no matching lead (token invalid/expired)
   const { data: lead, error } = await admin
     .from('leads')
     .select(
       'id, firm_id, status, client_full_name, client_email, client_phone, matter_type, property_address, intake_data, created_at, submitted_at'
     )
     .eq('portal_token_hash', tokenHash)
-    .single()
+    .maybeSingle()
 
-  if (error || !lead) return { lead: null as any, admin }
+  if (error) {
+    console.error('[intake] lead fetch error', { message: error.message, details: error.details, hint: error.hint, code: error.code })
+    return { lead: null as any, admin }
+  }
+  if (!lead) return { lead: null as any, admin }
   return { lead, admin }
 }
 
@@ -30,11 +35,20 @@ export async function GET(_request: Request, ctx: { params: Promise<{ token: str
     const { lead, admin } = await getLeadByToken(token)
     if (!lead) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const { data: firm } = await admin
+    // Use maybeSingle to avoid 406 when firm was deleted (orphaned lead)
+    const { data: firm, error: firmError } = await admin
       .from('firms')
       .select('id, name, state')
       .eq('id', lead.firm_id)
-      .single()
+      .maybeSingle()
+
+    if (firmError) {
+      console.error('[intake] firm fetch error', { message: firmError.message, details: firmError.details, hint: firmError.hint, code: firmError.code })
+      return NextResponse.json({ error: 'Unable to load intake form' }, { status: 500 })
+    }
+    if (!firm) {
+      return NextResponse.json({ error: 'Intake form not found' }, { status: 404 })
+    }
 
     return NextResponse.json({
       firm: firm ? { id: firm.id, name: firm.name, state: firm.state } : null,

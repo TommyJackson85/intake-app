@@ -5,6 +5,12 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import type { Database } from '@/lib/database.types';
 
+/**
+ * Server-side Supabase client using the ANON (publishable) key, bound to the
+ * current request's cookies so Supabase Auth session is applied. Use for all
+ * user-facing and demo dashboard/data access so RLS enforces firm isolation.
+ * Safe for server use only; do not expose to the browser.
+ */
 export async function getServerSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

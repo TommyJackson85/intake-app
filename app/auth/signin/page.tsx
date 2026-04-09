@@ -1,19 +1,30 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/browserClient'
+import { CURRENT_TERMS_VERSION } from '@/lib/terms-config'
 
-export default function Login() {
+function LoginForm() {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [emailNotConfirmed, setEmailNotConfirmed] = useState(false)
+  const [demoError, setDemoError] = useState('')
   const router = useRouter()
   const supabase = createSupabaseBrowserClient()
+
+  useEffect(() => {
+    const msg = searchParams.get('demo_error')
+    if (msg) {
+      setDemoError(msg)
+      window.history.replaceState({}, '', '/auth/signin')
+    }
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,8 +56,32 @@ export default function Login() {
         return
       }
 
-      // Centralized post-login routing (terms, role, firm setup)
-      router.push('/auth/post-login')
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('firm_id, role, terms_version, terms_accepted_at')
+        .eq('id', data.session.user.id)
+        .maybeSingle()
+
+      if (!profile) {
+        window.location.href = '/auth/signin'
+        return
+      }
+
+      const p = profile as { firm_id: string | null; role?: string; terms_version?: string; terms_accepted_at?: string }
+      const needsTerms = !p.terms_accepted_at || !p.terms_version || p.terms_version !== CURRENT_TERMS_VERSION
+      if (needsTerms) {
+        window.location.href = '/auth/accept-terms'
+        return
+      }
+      if ((p.role ?? 'lawyer') === 'client') {
+        window.location.href = '/portal'
+        return
+      }
+      if (!p.firm_id) {
+        window.location.href = '/dashboard/register-firm'
+        return
+      }
+      window.location.href = '/dashboard'
     } catch (err: any) {
       setError(err.message || 'Login failed')
     } finally {
@@ -62,6 +97,21 @@ export default function Login() {
           Secure client portal for your real estate matters.
         </p>
 
+        {demoError && (
+          <div
+            style={{
+              background: '#fff8e6',
+              border: '1px solid #f0b429',
+              color: '#134252',
+              padding: '12px',
+              borderRadius: '6px',
+              marginBottom: '20px',
+              fontSize: '14px',
+            }}
+          >
+            {demoError}
+          </div>
+        )}
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Email</label>
@@ -179,6 +229,9 @@ export default function Login() {
         </div>
 
         <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(94, 82, 64, 0.1)', textAlign: 'center' }}>
+          <p style={{ fontSize: '12px', color: '#627c71', marginBottom: '8px' }}>
+            After signing in, you can try the demo dashboard from the setup page (no separate login).
+          </p>
           <p style={{ fontSize: '14px', marginBottom: '8px' }}>
             Don't have an account?{' '}
             <Link href="/auth/signup" style={{ color: '#208096', fontWeight: 600, textDecoration: 'none' }}>
@@ -193,5 +246,13 @@ export default function Login() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fcfcf9' }}>Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }

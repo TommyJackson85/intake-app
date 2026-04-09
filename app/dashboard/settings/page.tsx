@@ -40,14 +40,20 @@ export function FirmExportButton() {
 }
 
 export default function SettingsPage() {
-  const { profile } = useAuth()
+  const { profile, firm } = useAuth()
   const hasFirm = Boolean(profile?.firm_id)
+  const isDemoFirm = Boolean((firm as { is_demo_firm?: boolean } | null)?.is_demo_firm)
 
   return (
     <div className="dashboard-page">
       <div className="page-header">
         <h1>Settings</h1>
         <p>Manage your firm settings and data</p>
+        {isDemoFirm && (
+          <div style={{ marginTop: '12px', padding: '12px 16px', background: '#fff8e6', border: '1px solid #f0b429', borderRadius: '6px', fontSize: '14px', color: '#134252' }}>
+            <strong>Settings are limited in demo mode.</strong> Register your own firm to unlock full configuration, billing, and user management.
+          </div>
+        )}
       </div>
 
       <div className="settings-section">

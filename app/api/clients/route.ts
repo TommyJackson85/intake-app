@@ -2,14 +2,13 @@
  * GET /api/clients - Fetch all clients for a firm
  * POST /api/clients - Create a new client
  *
- * Copy this entire file to: app/api/clients/route.ts
- * ✅ FIXED: Handle null userId by converting to undefined
- * ✅ FIXED: Avoid generic mismatch on createSupabaseServerClientStrict()
+ * Uses session-bound anon client + RLS for firm-scoped access (no service-role).
  */
 
 import { NextRequest } from 'next/server';
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict';
-import { getFirmId, getUserId, getClientIp } from '@/lib/session';
+import { getServerSupabase } from '@/lib/serverSupabase';
+import { getCurrentUserServer } from '@/lib/server/current-user';
+import { getClientIp } from '@/lib/session';
 import { logAuditEvent } from '@/lib/auditLog';
 import {
   listResponse,
@@ -18,24 +17,27 @@ import {
   serverErrorResponse,
   resourceResponse,
 } from '@/lib/apiResponse';
-import { Client, CreateClientInput } from '@/types/database';
+import { CreateClientInput } from '@/types/database';
 
 /**
  * GET /api/clients
- * Fetch all clients for the authenticated firm
+ * Fetch all clients for the authenticated firm (RLS enforces firm_id scope)
  */
 export async function GET(request: NextRequest) {
   try {
-    const firmId = await getFirmId();
-    const userId = await getUserId(); // Returns string | null
+    const current = await getCurrentUserServer();
+    if (!current) return unauthorizedResponse();
+    const firmId = current.profile.firm_id;
+    const userId = current.authUser.id;
     const ip = getClientIp(request);
 
     if (!firmId) {
       return unauthorizedResponse();
     }
 
-    // Query clients for this firm only
-    const { data: clients, error } = await createSupabaseServerClientStrict()
+    const supabase = await getServerSupabase();
+    // RLS: only rows where firm_id matches user's profile.firm_id are visible
+    const { data: clients, error } = await supabase
       .from('clients')
       .select('*')
       .eq('firm_id', firmId)
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest) {
       'CLIENTS_LIST_VIEWED',
       'Clients list viewed',
       ip,
-      userId ?? 'anonymous', // null → undefined
+      userId,
       firmId,
       {
         entity_type: 'client_list',
@@ -70,12 +72,14 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/clients
- * Create a new client for the authenticated firm
+ * Create a new client for the authenticated firm (RLS enforces INSERT only for own firm_id)
  */
 export async function POST(request: NextRequest) {
   try {
-    const firmId = await getFirmId();
-    const userId = await getUserId(); // Returns string | null
+    const current = await getCurrentUserServer();
+    if (!current) return unauthorizedResponse();
+    const firmId = current.profile.firm_id;
+    const userId = current.authUser.id;
     const ip = getClientIp(request);
 
     if (!firmId) {
@@ -90,8 +94,9 @@ export async function POST(request: NextRequest) {
       return badRequestResponse('Client name is required');
     }
 
-    // Create client with firm_id always set by server (not client)
-    const { data: client, error } = await createSupabaseServerClientStrict()
+    const supabase = await getServerSupabase();
+    // RLS: INSERT only allowed when firm_id matches user's profile.firm_id
+    const { data: client, error } = await supabase
       .from('clients')
       .insert([
         {
@@ -115,7 +120,7 @@ export async function POST(request: NextRequest) {
       'CLIENT_CREATED',
       'Client record created',
       ip,
-      userId ?? 'anonymous', // null → undefined
+      userId,
       firmId,
       {
         entity_type: 'client',

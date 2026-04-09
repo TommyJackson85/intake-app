@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Navbar from '@/components/Navbar'
 
 export default function Home() {
   const [email, setEmail] = useState('')
@@ -41,24 +42,7 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#fcfcf9' }}>
-      <header style={{
-        background: 'white',
-        borderBottom: '1px solid rgba(94, 82, 64, 0.2)',
-        padding: '20px 0',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontWeight: 600, fontSize: '24px', color: '#208096' }}>⚖️ LawIntake</div>
-          <nav style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
-            <a href="#features" style={{ textDecoration: 'none', color: '#134252', fontSize: '14px' }}>Features</a>
-            <a href="#security" style={{ textDecoration: 'none', color: '#134252', fontSize: '14px' }}>Security</a>
-            <a href="/privacy" style={{ textDecoration: 'none', color: '#134252', fontSize: '14px' }}>Privacy</a>
-            <a href="/auth/signin" style={{ background: '#208096', color: 'white', padding: '10px 20px', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Sign In</a>
-          </nav>
-        </div>
-      </header>
+      <Navbar />
 
       <main>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
