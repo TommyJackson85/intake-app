@@ -16,7 +16,9 @@ function LoginForm() {
   const [emailNotConfirmed, setEmailNotConfirmed] = useState(false)
   const [demoError, setDemoError] = useState('')
   const router = useRouter()
-  const supabase = createSupabaseBrowserClient()
+  const [supabase] = useState(() => {
+    try { return createSupabaseBrowserClient() } catch { return null }
+  })
 
   useEffect(() => {
     const msg = searchParams.get('demo_error')
@@ -28,6 +30,7 @@ function LoginForm() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!supabase) return
     setError('')
     setLoading(true)
 

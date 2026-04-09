@@ -3,10 +3,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 /**
  * Generic audit event logger
@@ -28,7 +30,7 @@ export async function logAuditEvent(
   metadata?: Record<string, any>
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('audit_logs')
       .insert({
         firm_id: firmId,
@@ -64,7 +66,7 @@ export async function logLogin(
   details?: string
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('audit_logs')
       .insert({
         firm_id: null,
@@ -101,7 +103,7 @@ export async function logGDPRExport(
   format: 'json' | 'csv'
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('audit_logs')
       .insert({
         firm_id: firmId,
@@ -137,7 +139,7 @@ export async function logGDPRDeletion(
   deletedCount: number
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('audit_logs')
       .insert({
         firm_id: firmId,
@@ -175,7 +177,7 @@ export async function logAPIKeyOperation(
   keyPrefix: string
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('audit_logs')
       .insert({
         firm_id: firmId,
@@ -216,7 +218,7 @@ export async function logSuspiciousActivity(
   details: string
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('audit_logs')
       .insert({
         firm_id: firmId,
@@ -254,7 +256,7 @@ export async function logRateLimitExceeded(
   limit: number
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('audit_logs')
       .insert({
         firm_id: null,
@@ -294,7 +296,7 @@ export async function logConfigurationChange(
   changes: Record<string, any>
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('audit_logs')
       .insert({
         firm_id: firmId,
@@ -335,7 +337,7 @@ export async function getAuditLogs(
   }
 ): Promise<any[] | null> {
   try {
-    let query = supabase
+    let query = getSupabase()
       .from('audit_logs')
       .select('*')
       .eq('firm_id', firmId)

@@ -2,14 +2,10 @@
 // Copy-paste ready - corrects TypeScript error with rate limiting
 
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict';
-
-import { createClient } from '@supabase/supabase-js';
 import { validateRequest } from '@/lib/validation-schemas';
 import { CreateLeadSchema } from '@/lib/validation-schemas';
 import { rateLimit } from '@/lib/rate-limit';
 import { NextResponse } from 'next/server';
-
-const supabase = await createSupabaseServerClientStrict();
 
 /**
  * POST /api/leads
@@ -19,6 +15,8 @@ const supabase = await createSupabaseServerClientStrict();
  */
 export async function POST(request: Request) {
   try {
+    const supabase = createSupabaseServerClientStrict();
+
     // ✅ 1. Rate limit by user/IP (FIXED - pass endpoint key instead of request)
     const limitResult = await rateLimit(request, 'leads-create');
     if (limitResult.isLimited) {
@@ -146,6 +144,8 @@ export async function POST(request: Request) {
  */
 export async function GET(request: Request) {
   try {
+    const supabase = createSupabaseServerClientStrict();
+
     // ✅ 1. Rate limit retrieval
     const limitResult = await rateLimit(request, 'leads-create');
     if (limitResult.isLimited) {

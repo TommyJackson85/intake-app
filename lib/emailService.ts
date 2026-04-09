@@ -1,29 +1,24 @@
 import FormData from 'form-data'
 import Mailgun from 'mailgun.js'
 
-const mailgun = new Mailgun(FormData)
+function getMailgunClient() {
+  const mailgun = new Mailgun(FormData)
 
-// Use MAILGUN_HOST only for EU (api.eu.mailgun.net). If your Mailgun Dashboard shows Base URL https://api.mailgun.net, leave MAILGUN_HOST unset (US).
-const mailgunUrl = process.env.MAILGUN_HOST
-  ? `https://${process.env.MAILGUN_HOST.replace(/^https?:\/\//, '')}`
-  : undefined
+  const mailgunUrl = process.env.MAILGUN_HOST
+    ? `https://${process.env.MAILGUN_HOST.replace(/^https?:\/\//, '')}`
+    : undefined
 
-if (process.env.NODE_ENV !== 'production' && process.env.MAILGUN_API_KEY) {
-  const endpoint = mailgunUrl ?? 'https://api.mailgun.net'
-  const region = mailgunUrl?.includes('eu.mailgun.net') ? 'EU' : 'US'
-  console.log('[Mailgun] Using endpoint:', endpoint, `(${region}). For EU 401: set MAILGUN_HOST=api.eu.mailgun.net and use a Domain Sending Key from Sending → domain → Sending API keys.`)
+  return mailgun.client({
+    username: 'api',
+    key: process.env.MAILGUN_API_KEY!,
+    ...(mailgunUrl && { url: mailgunUrl }),
+  })
 }
-
-const mg = mailgun.client({
-  username: 'api',
-  key: process.env.MAILGUN_API_KEY!,
-  ...(mailgunUrl && { url: mailgunUrl }),
-})
 
 export async function sendWelcomeEmail(email: string, firmName: string) {
   try {
     const domain = getMailgunDomain()
-    const result = await mg.messages.create(
+    const result = await getMailgunClient().messages.create(
       domain,
       {
         from: getMailgunFrom(domain),
@@ -68,7 +63,7 @@ export async function sendIntakeLink(email: string, clientName: string, intakeUr
   const domain = getMailgunDomain()
   const fromEmail = getMailgunFrom(domain)
   try {
-    const result = await mg.messages.create(
+    const result = await getMailgunClient().messages.create(
       domain,
       {
         from: fromEmail,
@@ -93,7 +88,7 @@ export async function sendIntakeLink(email: string, clientName: string, intakeUr
 export async function sendIntakeConfirmation(email: string, clientName: string) {
   try {
     const domain = getMailgunDomain()
-    const result = await mg.messages.create(
+    const result = await getMailgunClient().messages.create(
       domain,
       {
         from: getMailgunFrom(domain),

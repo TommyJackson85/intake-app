@@ -13,13 +13,12 @@ import { validateRequest } from '@/lib/validation-schemas';
 import { CreateMatterSchema } from '@/lib/validation-schemas';
 import { validateAPIKey, hasScope } from '@/lib/api-key-security';
 import { rateLimit } from '@/lib/rate-limit';
-import { createClient } from '@supabase/supabase-js';
 
-const supabase = await createSupabaseServerClientStrict()
+
 /**
  * POST /api/external/matters
  * Create a new matter
- * 
+ *
  * ✅ API key validated (header-only)
  * ✅ Input validated with Zod
  * ✅ Scope checked (requires 'matters:write')
@@ -28,6 +27,8 @@ const supabase = await createSupabaseServerClientStrict()
  */
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createSupabaseServerClientStrict();
+
     // Get client IP for rate limiting
     const clientIp =
       request.headers.get('x-forwarded-for')?.split(',')[0] ||
@@ -211,6 +212,8 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const supabase = createSupabaseServerClientStrict();
+
     // Rate limiting
     const limitResult = await rateLimit(request, 'api-general');
     if (limitResult.isLimited) {
@@ -292,6 +295,7 @@ async function logMatterEvent(
   clientIp: string
 ): Promise<void> {
   try {
+    const supabase = createSupabaseServerClientStrict();
     await supabase.from('audit_logs').insert({
       firm_id: firmId,
       user_id: null, // API key authentication

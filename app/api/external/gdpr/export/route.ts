@@ -6,10 +6,7 @@ import { logAuditEvent } from '@/lib/auditLog';
 // app/api/external/gdpr/export/route.ts - GDPR Data Export with TypeScript null-safety fix
 // Copy-paste ready - Fixed null type error
 
-import { createClient } from '@supabase/supabase-js';
 import { getFirmFromApiKey } from '@/lib/get-firm-from-api-key';
-
-const supabase = await createSupabaseServerClientStrict()
 
 /**
  * GET /api/external/gdpr/export
@@ -20,6 +17,8 @@ const supabase = await createSupabaseServerClientStrict()
  */
 export async function GET(request: NextRequest) {
   try {
+    const supabase = createSupabaseServerClientStrict();
+
     // ✅ Get API key from Authorization header only
     const authHeader = request.headers.get('authorization');
 

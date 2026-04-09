@@ -35,7 +35,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [impersonating, setImpersonating] = useState(false)
   const [showDevSudo, setShowDevSudo] = useState(false)
 
-  const supabase = createSupabaseBrowserClient()
+  const [supabase] = useState(() => {
+    try {
+      return createSupabaseBrowserClient()
+    } catch {
+      return null
+    }
+  })
 
   useEffect(() => {
     const fetchProfileAndFirm = async (_userId: string) => {
@@ -61,6 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setImpersonating(false)
         setShowDevSudo(false)
       }
+    }
+
+    if (!supabase) {
+      setLoading(false)
+      return
     }
 
     const getSession = async () => {

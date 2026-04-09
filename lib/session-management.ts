@@ -1,11 +1,12 @@
 // lib/session-management.ts - Secure session handling
 // Copy-paste ready - session expiration, token rotation, forced logout
 
-import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict';
 
-const supabase = await createSupabaseServerClientStrict();
+function getSupabase() {
+  return createSupabaseServerClientStrict();
+}
 
 // ✅ SESSION CONFIGURATION
 export const SESSION_CONFIG = {
@@ -48,7 +49,7 @@ export async function createSession(
     const token = generateSessionToken();
     const expiresAt = new Date(Date.now() + SESSION_CONFIG.LIFETIME);
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('sessions')
       .insert({
         user_id: userId,
@@ -88,7 +89,7 @@ export async function verifySession(
     const tokenHash = hashToken(sessionToken);
 
     // Get session from database
-    const { data: session, error } = await supabase
+    const { data: session, error } = await getSupabase()
       .from('sessions')
       .select('id, user_id, expires_at, ip_address, is_valid')
       .eq('token_hash', tokenHash)
@@ -104,7 +105,7 @@ export async function verifySession(
     const expiresAt = new Date(session.expires_at);
     if (new Date() > expiresAt) {
       // Invalidate expired session
-      await supabase
+      await getSupabase()
         .from('sessions')
         .update({ is_valid: false })
         .eq('id', session.id);
@@ -119,7 +120,7 @@ export async function verifySession(
     // }
 
     // ✅ Update last activity
-    await supabase
+    await getSupabase()
       .from('sessions')
       .update({ last_activity: new Date().toISOString() })
       .eq('id', session.id);
@@ -144,7 +145,7 @@ export async function rotateSessionToken(
 ): Promise<string | null> {
   try {
     // Get user from old session
-    const { data: oldSession } = await supabase
+    const { data: oldSession } = await getSupabase()
       .from('sessions')
       .select('user_id')
       .eq('id', oldSessionId)
@@ -166,7 +167,7 @@ export async function rotateSessionToken(
     }
 
     // Invalidate old session
-    await supabase
+    await getSupabase()
       .from('sessions')
       .update({ is_valid: false })
       .eq('id', oldSessionId);
@@ -189,7 +190,7 @@ export async function rotateSessionToken(
  */
 export async function invalidateSession(sessionId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('sessions')
       .update({ is_valid: false })
       .eq('id', sessionId);
@@ -212,7 +213,7 @@ export async function invalidateSession(sessionId: string): Promise<boolean> {
  */
 export async function invalidateAllUserSessions(userId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('sessions')
       .update({ is_valid: false })
       .eq('user_id', userId);
@@ -258,7 +259,7 @@ async function logSessionEvent(
   metadata: Record<string, any>
 ): Promise<void> {
   try {
-    await supabase
+    await getSupabase()
       .from('audit_logs')
       .insert({
         event_type: eventType,
@@ -281,7 +282,7 @@ export async function getUserActiveSessions(
   userId: string
 ): Promise<any[] | null> {
   try {
-    const { data: sessions, error } = await supabase
+    const { data: sessions, error } = await getSupabase()
       .from('sessions')
       .select('id, ip_address, user_agent, created_at, last_activity')
       .eq('user_id', userId)
@@ -305,7 +306,7 @@ export async function getUserActiveSessions(
  */
 export async function cleanupExpiredSessions(): Promise<number | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('sessions')
       .delete()
       .lt('expires_at', new Date().toISOString())
