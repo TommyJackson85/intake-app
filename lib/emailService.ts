@@ -68,9 +68,6 @@ export async function sendIntakeLink(email: string, clientName: string, intakeUr
   const domain = getMailgunDomain()
   const fromEmail = getMailgunFrom(domain)
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6f2fcd2e-6c32-4111-92b0-167e64418104',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'emailService.ts:sendIntakeLink:before-create',message:'Mailgun request params',data:{domain,fromEmail,MAILGUN_HOST:process.env.MAILGUN_HOST||null,fromDomainMatches:fromEmail.includes('@')?fromEmail.split('@')[1]:null},timestamp:Date.now(),hypothesisId:'H1-H4'})}).catch(()=>{});
-    // #endregion
     const result = await mg.messages.create(
       domain,
       {
@@ -88,9 +85,6 @@ export async function sendIntakeLink(email: string, clientName: string, intakeUr
     )
     return result
   } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6f2fcd2e-6c32-4111-92b0-167e64418104',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'emailService.ts:sendIntakeLink:catch',message:'Mailgun error',data:{status:(error as {status?:number})?.status,details:(error as {details?:string})?.details,type:(error as {type?:string})?.type,message:(error as Error)?.message},timestamp:Date.now(),hypothesisId:'H1-H2-H4-H5'})}).catch(()=>{});
-    // #endregion
     console.error('Mailgun error:', error)
     throw error
   }

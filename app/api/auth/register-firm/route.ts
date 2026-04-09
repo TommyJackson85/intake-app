@@ -6,9 +6,16 @@
 
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 import type { Database } from '@/lib/database.types';
 import { getServerSupabase } from '@/lib/serverSupabase';
 import { logAuditEvent } from '@/lib/auditLog';
+
+const RegisterFirmSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  state: z.string().trim().length(2).regex(/^[A-Z]{2}$/).optional(),
+  email_contact: z.string().email().optional().nullable(),
+});
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -25,9 +32,9 @@ export async function POST(request: NextRequest) {
     }
     const userId = user.id;
 
-    let body: { name?: string; state?: string; email_contact?: string | null };
+    let rawBody: unknown;
     try {
-      body = await request.json();
+      rawBody = await request.json();
     } catch {
       return new Response(
         JSON.stringify({ error: 'Invalid JSON' }),
@@ -35,10 +42,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const firmName = (typeof body.name === 'string' ? body.name : typeof (body as { firmName?: string }).firmName === 'string' ? (body as { firmName: string }).firmName : '').trim();
-    const state = typeof body.state === 'string' ? body.state.trim() : '';
-    const emailContact = typeof body.email_contact === 'string' ? body.email_contact.trim() : null;
-    
+    const parsed = RegisterFirmSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: parsed.error.errors.map(e => e.message).join(', ') }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const firmName = parsed.data.name;
+    const state = parsed.data.state ?? '';
+    const emailContact = parsed.data.email_contact ?? null;
+
     if (!firmName || !state) {
       return new Response(
         JSON.stringify({ error: 'name and state are required' }),
