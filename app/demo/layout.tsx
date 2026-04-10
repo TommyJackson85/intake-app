@@ -74,7 +74,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
           </nav>
 
           <div style={{ marginTop: '30px', fontSize: '12px', color: '#90cfd9' }}>
-            Demo data is local only and resets on refresh.
+            Matters &amp; FinCEN cert state persist in this browser (localStorage). Clear site data to reset.
           </div>
 
           <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
@@ -103,8 +103,8 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
               color: '#134252',
             }}
           >
-            <strong>You are in demo mode.</strong> Data is fake, in-memory only, and resets on full page
-            refresh. No real client data is stored.
+            <strong>You are in demo mode.</strong> Data is fake. Matters and FinCEN certification state persist in
+            your browser (localStorage) until you clear site data. No real client data is sent to a server.
           </div>
           {children}
           </main>

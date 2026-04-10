@@ -7,6 +7,8 @@ import { useDemoData } from '@/context/DemoDataContext'
 import DemoTaskChecklist from '@/components/demo/DemoTaskChecklist'
 import DemoTimelineNotes from '@/components/demo/DemoTimelineNotes'
 import { displayOrFallback, parseOtherPartyInfo } from '@/lib/demo/matterPartyDisplay'
+import DemoFinCENTab from '@/components/demo/DemoFinCENTab'
+import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 
 type MatterDetailModalProps = {
   matter: DemoMatter | null
@@ -66,7 +68,9 @@ type KeyDateItem = { label: string; dateStr: string }
 export default function MatterDetailModal({ matter, open, onClose, onArchive }: MatterDetailModalProps) {
   const { documents, staff } = useDemoStore()
   const { matters } = useDemoData()
-  const [activeTab, setActiveTab] = useState<'Overview' | 'Parties & Contacts' | 'Key Dates' | 'Tasks' | 'Documents' | 'Notes'>(
+  const [activeTab, setActiveTab] = useState<
+    'Overview' | 'Parties & Contacts' | 'Key Dates' | 'Tasks' | 'Documents' | 'Notes' | 'FinCEN / AML'
+  >(
     'Overview'
   )
 
@@ -212,9 +216,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive }: 
         >
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {(
-              ['Overview', 'Parties & Contacts', 'Key Dates', 'Tasks', 'Documents', 'Notes'] as const
+              ['Overview', 'Parties & Contacts', 'Key Dates', 'Tasks', 'Documents', 'Notes', 'FinCEN / AML'] as const
             ).map((tab) => {
               const active = tab === activeTab
+              const isFinCENRequired = isFincenEligibleMatter(effectiveMatter)
+              const isFinCENReady = (effectiveMatter.fincen?.completedFields ?? 0) >= 111
               return (
                 <button
                   key={tab}
@@ -232,6 +238,20 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive }: 
                   }}
                 >
                   {tab}
+                  {tab === 'FinCEN / AML' && isFinCENRequired && !isFinCENReady && (
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        background: '#c0152f',
+                        marginLeft: '5px',
+                        verticalAlign: 'middle',
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
                 </button>
               )
             })}
@@ -567,6 +587,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive }: 
               <DemoTimelineNotes matterId={effectiveMatter.id} />
             </div>
           )}
+
+          {activeTab === 'FinCEN / AML' && <DemoFinCENTab matter={effectiveMatter} />}
         </div>
 
         {/* Footer */}

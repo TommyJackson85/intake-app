@@ -56,6 +56,11 @@ export default function DemoPage() {
     }
   }, [selectedMatterFromQuery, matters])
 
+  useEffect(() => {
+    if (matters.length === 0) return
+    setSelectedMatterId((id) => (matters.some((m) => m.id === id) ? id : matters[0].id))
+  }, [matters])
+
   // Reset scroll trigger when the query changes.
   useEffect(() => {
     didScrollForQueryRef.current = false

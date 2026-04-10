@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import type { DemoNewMatterInitialValues } from '@/lib/demo/demoIntakeFlow'
-import type { DemoMatter, DemoTransactionRole } from '@/lib/demo/types'
+import type { DemoMatter, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
 import { useDemoStore } from '@/lib/demo/store'
 
 export function getNextDemoFileId(existingFileIds: string[]) {
@@ -39,6 +39,7 @@ const EMPTY_FORM: DemoNewMatterInitialValues = {
   transactionRole: undefined,
   partyRoleOther: '',
   contactName: '',
+  buyerType: 'individual',
 }
 
 type NewMatterModalProps = {
@@ -76,6 +77,7 @@ export default function NewMatterModal({
   const [intakeTransactionRole, setIntakeTransactionRole] = useState<DemoTransactionRole | null>(null)
   const [otherTitleRole, setOtherTitleRole] = useState('')
   const [titleName, setTitleName] = useState('')
+  const [buyerType, setBuyerType] = useState<DemoPartyType>('individual')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
@@ -102,6 +104,7 @@ export default function NewMatterModal({
       setIntakeTransactionRole(role)
       setOtherTitleRole(role === 'other' ? (initialValues.partyRoleOther ?? '') : '')
       setTitleName(role === 'other' ? (initialValues.contactName ?? '') : '')
+      setBuyerType(initialValues.buyerType ?? 'individual')
       return
     }
     setMatterType(EMPTY_FORM.matterType)
@@ -119,6 +122,7 @@ export default function NewMatterModal({
     setIntakeTransactionRole(null)
     setOtherTitleRole('')
     setTitleName('')
+    setBuyerType('individual')
   }, [isOpen, initialValues])
 
   useEffect(() => {
@@ -325,6 +329,18 @@ export default function NewMatterModal({
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '12px', color: '#627c71', fontWeight: 700 }}>Buyer type</label>
+              <select
+                value={buyerType}
+                onChange={(e) => setBuyerType(e.target.value as DemoPartyType)}
+                style={{ padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(94,82,64,0.22)' }}
+              >
+                <option value="individual">Individual</option>
+                <option value="entity">Legal entity / trust</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '12px', color: '#627c71', fontWeight: 700 }}>Buyer name</label>
               <input value={buyerName} onChange={(e) => setBuyerName(e.target.value)} style={{ padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(94,82,64,0.22)' }} />
             </div>
@@ -426,6 +442,7 @@ export default function NewMatterModal({
                     closing_date: closingDate,
                     buyer_name: buyerName,
                     seller_name: sellerName,
+                    buyer_type: buyerType,
                     buyer_email: buyerEmail,
                     buyer_phone: buyerPhone,
                     special_notes,

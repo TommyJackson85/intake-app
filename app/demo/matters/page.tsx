@@ -49,6 +49,14 @@ export default function DemoMattersPage() {
     return () => window.clearTimeout(t)
   }, [showDemoCreationDisabledBanner])
 
+  useEffect(() => {
+    setSelectedMatter((prev) => {
+      if (!prev) return null
+      const fresh = matters.find((m) => m.id === prev.id)
+      return fresh ?? prev
+    })
+  }, [matters])
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>

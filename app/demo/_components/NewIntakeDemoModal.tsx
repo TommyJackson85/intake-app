@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
-import type { DemoIntakeDemoDelivery, DemoIntakeSnapshot, DemoTransactionRole } from '@/lib/demo/types'
-import { DEMO_TRANSACTION_ROLE_OPTIONS } from '@/lib/demo/demoIntakeFlow'
+import type { DemoIntakeDemoDelivery, DemoIntakeSnapshot, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
+import { DEMO_BUYER_TYPE_OPTIONS, DEMO_TRANSACTION_ROLE_OPTIONS } from '@/lib/demo/demoIntakeFlow'
 import { useDemoStore } from '@/lib/demo/store'
 
 type Props = {
@@ -20,6 +20,7 @@ type FormValues = {
   clientPhone: string
   transactionRole: DemoTransactionRole
   transactionRoleOther: string
+  buyerType: DemoPartyType
   matterType: string
   propertyAddress: string
   county: string
@@ -100,6 +101,8 @@ function toIntakeSnapshot(values: FormValues): DemoIntakeSnapshot {
     clientPhone: values.clientPhone,
     transactionRole: values.transactionRole,
     transactionRoleOther: values.transactionRole === 'other' ? values.transactionRoleOther : '',
+    buyerType:
+      values.transactionRole === 'buyer' || values.transactionRole === 'both' ? values.buyerType : undefined,
     matterType: values.matterType,
     propertyAddress: values.propertyAddress,
     county: values.county,
@@ -162,6 +165,7 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
     clientPhone: '',
     transactionRole: 'buyer',
     transactionRoleOther: '',
+    buyerType: 'individual',
     matterType: 'Financed Residential Purchase',
     propertyAddress: '',
     county: '',
@@ -189,6 +193,7 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
       fileReference: nextFileId,
       transactionRole: 'buyer',
       transactionRoleOther: '',
+      buyerType: 'individual',
     }))
   }, [isOpen, nextFileId])
 
@@ -515,6 +520,31 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
                         />
                       </div>
                     )}
+                    {(values.transactionRole === 'buyer' || values.transactionRole === 'both') && (
+                      <div style={{ marginTop: 12 }}>
+                        <label htmlFor="intake-buyer-type" style={{ fontSize: 12, color: '#627c71', fontWeight: 800 }}>
+                          Buyer type
+                        </label>
+                        <select
+                          id="intake-buyer-type"
+                          value={values.buyerType}
+                          onChange={(e) => setLawyerValue('buyerType', e.target.value as DemoPartyType)}
+                          style={{
+                            width: '100%',
+                            marginTop: 4,
+                            padding: '10px 12px',
+                            borderRadius: 6,
+                            border: '1px solid rgba(94,82,64,0.22)',
+                          }}
+                        >
+                          {DEMO_BUYER_TYPE_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
 
                   {tailFieldRows.map((f) => (
@@ -666,6 +696,16 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
                           <input readOnly value={values.transactionRoleOther} style={roInput} />
                         </div>
                       ) : null}
+                      {(values.transactionRole === 'buyer' || values.transactionRole === 'both') && (
+                        <div style={{ marginTop: 10 }}>
+                          <div style={{ fontSize: 12, color: '#627c71', fontWeight: 800, marginBottom: 4 }}>Buyer type</div>
+                          <input
+                            readOnly
+                            value={DEMO_BUYER_TYPE_OPTIONS.find((o) => o.value === values.buyerType)?.label ?? ''}
+                            style={roInput}
+                          />
+                        </div>
+                      )}
                     </div>
                     {tailFieldRows.map((f) => (
                       <div key={`pv-${f.key}`}>

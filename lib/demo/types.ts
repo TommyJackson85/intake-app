@@ -1,5 +1,6 @@
 export type DemoTaskStatus = 'not_started' | 'in_progress' | 'completed'
 
+
 export type DemoPartyType = 'individual' | 'entity'
 
 export type DemoTask = {
@@ -19,7 +20,8 @@ export type DemoTimelineEvent = {
 export type DemoParty = {
   id: string
   name: string
-  type: DemoPartyType
+  /** Absent on very old demo/local data — do not assume entity. */
+  type?: DemoPartyType
   email: string
   phone: string
 }
@@ -37,6 +39,68 @@ export type DemoMatterStatus =
   | 'Cleared to Close'
   | 'Scheduled for Closing'
   | 'Closed/Post-Closing'
+
+export type FinCENReportStatus = 'not_started' | 'in_progress' | 'ready'
+
+export type FinCENCertStatus = 'pending_client' | 'submitted'
+
+export type FinCENBeneficialOwner = {
+  id: string
+  fullName: string
+  dob: string
+  address: string
+  citizenship: string
+  tin: string
+  /** Government-issued ID — type, number, and issuer (31 CFR 1031.320); no document image required. */
+  govIdType: string
+  govIdNumber: string
+  govIdIssuer: string
+  certifiedAt: string | null
+}
+
+/**
+ * Token-based certification request to the entity buyer (beneficial ownership).
+ * Mirrors `DemoIntakeLead` but scoped to BO certification.
+ */
+export type DemoFinCENCertRequest = {
+  id: string
+  token: string
+  matterId: string
+  createdAt: string
+  recipientName: string
+  recipientEmail: string
+  /** e.g. `/demo/fincen-cert/[token]` */
+  certUrl: string
+  status: FinCENCertStatus
+  submittedAt: string | null
+  submittedOwners: FinCENBeneficialOwner[] | null
+}
+
+export type FinCENReportingParty = {
+  firmName: string
+  firmAddress: string
+  firmEin: string
+  filingAttorney: string
+}
+
+export type FinCENPropertyInfo = {
+  purchaserEntityName: string
+  purchaserEntityType: string
+  purchaserEin: string
+  stateOfFormation: string
+  paymentMethods: string[]
+  totalCashAmount: string
+}
+
+export type DemoFinCEN = {
+  reportStatus: FinCENReportStatus
+  completedFields: number
+  reportingParty: FinCENReportingParty
+  propertyInfo: FinCENPropertyInfo
+  beneficialOwners: FinCENBeneficialOwner[]
+  certRequest: DemoFinCENCertRequest | null
+  retentionDeadline: string | null
+}
 
 export type DemoMatter = {
   id: string
@@ -76,6 +140,7 @@ export type DemoMatter = {
   hoaFlag: boolean
   referralSource: string
   specialNotes: string
+  fincen?: DemoFinCEN
 
   key_dates: {
     effective_date: string
@@ -114,6 +179,8 @@ export type DemoIntakeSnapshot = {
   county: string
   targetClosingDate: string
   notes: string
+  /** Purchaser is an individual vs legal entity/trust — used for FinCEN when buyer-side. */
+  buyerType?: DemoPartyType
 }
 
 export type DemoIntakeLeadStatus = 'pending_client' | 'submitted'
@@ -153,6 +220,7 @@ export type DemoSeedData = {
   calendarEvents: DemoCalendarEvent[]
   documents: DemoDocument[]
   intakeLeads: DemoIntakeLead[]
+  fincenCertRequests: DemoFinCENCertRequest[]
 }
 
 export type DemoClient = {
