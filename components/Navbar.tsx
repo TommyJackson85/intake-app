@@ -6,7 +6,7 @@ import Link from 'next/link'
 /**
  * Marketing/landing top navbar.
  * Behaviour:
- * - Anonymous: Logo, Features, Security, Privacy, Explore demo firm, Sign In
+ * - Anonymous: Logo, Features, Security, Privacy, Explore demo, Sign In
  * - Logged in (real firm): Logo, Features, Security, Privacy, Go to dashboard, Logout
  * - Logged in (no firm): Logo, Features, Security, Privacy, Register your law firm, Logout
  * - Demo guest (is_demo_guest): Logo, Features, Security, Privacy, Create your account (no Logout)
@@ -64,23 +64,21 @@ export default function Navbar() {
           {!loading && (
             <>
               {showExploreDemo && (
-                <form action="/api/auth/demo-login" method="POST" style={{ display: 'inline' }}>
-                  <button
-                    type="submit"
-                    style={{
-                      background: 'transparent',
-                      color: '#134252',
-                      padding: '10px 20px',
-                      borderRadius: '6px',
-                      border: '1px solid rgba(94, 82, 64, 0.3)',
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Explore demo firm
-                  </button>
-                </form>
+                <Link
+                  href="/demo"
+                  style={{
+                    background: 'transparent',
+                    color: '#134252',
+                    padding: '10px 20px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(94, 82, 64, 0.3)',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    textDecoration: 'none',
+                  }}
+                >
+                  Explore demo
+                </Link>
               )}
 
               {showDashboardLink && (

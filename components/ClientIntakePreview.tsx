@@ -35,7 +35,7 @@ export function ClientIntakePreview({
       <div style={{ marginBottom: '14px' }}>
         <div style={{ fontWeight: 900, fontSize: '22px', color: '#134252' }}>{firmName}</div>
         <div style={{ color: '#627c71', fontSize: '13px' }}>
-          Secure intake form · Preview (read-only)
+          ake form · Preview (read-only)
         </div>
       </div>
 

@@ -135,27 +135,27 @@ function RegisterFirmContent() {
         }}
       >
         <p style={{ fontSize: '14px', color: '#627c71', marginBottom: '12px' }}>
-          Want to explore first? Use the demo firm to see the app with sample data.
+          Want to explore first? Use the demo experience with sample data.
         </p>
-        <form action="/api/auth/use-demo-firm" method="POST" style={{ display: 'inline' }}>
-          <button
-            type="submit"
-            style={{
-              padding: '10px 20px',
-              background: 'white',
-              color: '#208096',
-              border: '1px solid #208096',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 600,
-            }}
-          >
-            Explore demo firm
-          </button>
-        </form>
+        <a
+          href="/demo"
+          style={{
+            display: 'inline-block',
+            padding: '10px 20px',
+            background: 'white',
+            color: '#208096',
+            border: '1px solid #208096',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 600,
+            textDecoration: 'none',
+          }}
+        >
+          Explore demo
+        </a>
         <p style={{ fontSize: '12px', color: '#999', marginTop: '8px', marginBottom: 0 }}>
-          You stay on your own account. Demo data only. No real firm created.
+          In-memory demo data only. It resets on full page refresh.
         </p>
       </div>
 

@@ -156,7 +156,7 @@ export default function Dashboard() {
                   fontSize: '14px',
                 }}
               >
-                + New matter
+                + 
               </Link>
               <Link
                 href="/dashboard/notes/new"

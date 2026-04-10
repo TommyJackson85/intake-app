@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
 import { createSupabaseBrowserClient } from './browserClient'
 import type { Database } from '@/lib/database.types'
+import { usePathname } from 'next/navigation'
 
 //This gives you the exact Row type of profiles
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
@@ -28,6 +29,7 @@ const AuthContext = React.createContext<AuthContextType>({
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [firm, setFirm] = useState<FirmRow | null>(null)
@@ -35,15 +37,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [impersonating, setImpersonating] = useState(false)
   const [showDevSudo, setShowDevSudo] = useState(false)
 
-  const [supabase] = useState(() => {
-    try {
-      return createSupabaseBrowserClient()
-    } catch {
-      return null
-    }
-  })
+  const supabase = createSupabaseBrowserClient()
 
   useEffect(() => {
+    if (pathname?.startsWith('/demo')) {
+      // Demo route is intentionally local-only and does not use Supabase.
+      setSession(null)
+      setProfile(null)
+      setFirm(null)
+      setImpersonating(false)
+      setShowDevSudo(false)
+      setLoading(false)
+      return
+    }
+
+    const supabase = createSupabaseBrowserClient()
+
     const fetchProfileAndFirm = async (_userId: string) => {
       // Use /api/auth/me (server-side, service-role) so profile/firm load reliably.
       // Client-side Supabase + RLS can block firm reads, causing firm=null and demo banner to not show.
@@ -109,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => subscription?.unsubscribe()
-  }, [supabase])
+  }, [pathname])
 
   return (
     <AuthContext.Provider value={{ session, profile, firm, loading, impersonating, show_dev_sudo: showDevSudo }}>

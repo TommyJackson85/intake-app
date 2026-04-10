@@ -71,7 +71,7 @@ export default function MattersPage() {
             fontWeight: 800,
           }}
         >
-          + New matter
+          + 
         </Link>
       </div>
 

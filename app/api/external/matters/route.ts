@@ -18,7 +18,7 @@ import { rateLimit } from '@/lib/rate-limit';
 /**
  * POST /api/external/matters
  * Create a new matter
- *
+ * 
  * ✅ API key validated (header-only)
  * ✅ Input validated with Zod
  * ✅ Scope checked (requires 'matters:write')
