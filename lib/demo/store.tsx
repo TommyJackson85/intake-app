@@ -3,13 +3,20 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { demoSeedData } from '@/lib/demo/demoData'
 import type {
+  DemoFinCEN,
+  DemoFinCENCertRequest,
   DemoCalendarEvent,
   DemoClient,
   DemoDocument,
+  FinCENBeneficialOwner,
+  FinCENPropertyInfo,
+  FinCENReportStatus,
+  FinCENReportingParty,
   DemoIntakeDemoDelivery,
   DemoIntakeLead,
   DemoIntakeSnapshot,
   DemoMatter,
+  DemoPartyType,
   DemoSeedData,
   DemoTaskStatus,
 } from '@/lib/demo/types'
@@ -65,7 +72,28 @@ type DemoContextType = {
     linkMatterFileId?: string | null
   }) => { created: boolean; client: DemoClient }
   linkDemoClientToMatterByFileId: (clientId: string, fileId: string) => void
+  fincenCertRequests: DemoFinCENCertRequest[]
+  initFinCENReport: (matterId: string) => void
+  updateFinCENReportingParty: (matterId: string, patch: Partial<FinCENReportingParty>) => void
+  updateFinCENPropertyInfo: (matterId: string, patch: Partial<FinCENPropertyInfo>) => void
+  updateFinCENData: (matterId: string, patch: Partial<DemoFinCEN>) => void
+  addFinCENBeneficialOwner: (matterId: string) => void
+  updateFinCENBeneficialOwner: (
+    matterId: string,
+    ownerId: string,
+    patch: Partial<FinCENBeneficialOwner>
+  ) => void
+  removeFinCENBeneficialOwner: (matterId: string, ownerId: string) => void
+  registerFinCENCertRequest: (input: {
+    matterId: string
+    recipientName: string
+    recipientEmail: string
+  }) => { token: string; certUrl: string }
+  submitFinCENCert: (token: string, owners: FinCENBeneficialOwner[]) => void
+  getFinCENCertByToken: (token: string) => DemoFinCENCertRequest | undefined
+  cancelPendingFinCENCert: (matterId: string) => void
 }
+
 
 type CreateDemoMatterInput = {
   file_id: string
@@ -78,6 +106,8 @@ type CreateDemoMatterInput = {
   closing_date: string // YYYY-MM-DD
   buyer_name: string
   seller_name: string
+  /** Maps to `matter.buyer.type` */
+  buyer_type: DemoPartyType
   buyer_email?: string
   buyer_phone?: string
   special_notes?: string
@@ -85,6 +115,86 @@ type CreateDemoMatterInput = {
 }
 
 const DemoContext = createContext<DemoContextType | null>(null)
+
+/** Persists FinCEN cert requests so /demo/fincen-cert/[token] works across tabs and refreshes */
+const DEMO_FINCEN_CERT_STORAGE_KEY = 'lawintake-demo-fincen-cert-requests-v1'
+
+/** Full demo matters snapshot — survives refresh and syncs across tabs (demo-only). */
+const DEMO_MATTERS_STORAGE_KEY = 'lawintake-demo-matters-v1'
+
+function persistDemoMatters(matters: DemoMatter[]) {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DEMO_MATTERS_STORAGE_KEY, JSON.stringify(matters))
+    }
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+/** Read matters from localStorage (e.g. cert page before React state hydrates). */
+export function readDemoMattersFromStorage(): DemoMatter[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(DEMO_MATTERS_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as DemoMatter[]
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+  } catch {
+    return []
+  }
+}
+
+/** Stored rows win on id collision so FinCEN updates persist; seed fills any missing ids. */
+function mergeStoredMattersWithSeed(stored: DemoMatter[], seed: DemoMatter[]): DemoMatter[] {
+  const map = new Map<string, DemoMatter>()
+  for (const m of seed) {
+    if (m != null && typeof m.id === 'string') map.set(m.id, m)
+  }
+  for (const m of stored) {
+    if (m != null && typeof m.id === 'string') map.set(m.id, m)
+  }
+  return Array.from(map.values())
+}
+
+export function normalizeFinCenMatterKey(id: unknown): string {
+  return String(id ?? '').trim()
+}
+
+function fincenRequestMatchesMatter(req: DemoFinCENCertRequest, matterId: string): boolean {
+  return normalizeFinCenMatterKey(req.matterId) === normalizeFinCenMatterKey(matterId)
+}
+
+function normalizeFinCENCertRequestsMatterIds(requests: DemoFinCENCertRequest[]): DemoFinCENCertRequest[] {
+  return requests.map((r) => ({ ...r, matterId: normalizeFinCenMatterKey(r.matterId) }))
+}
+
+function persistFinCENCertRequests(requests: DemoFinCENCertRequest[]) {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const normalized = normalizeFinCENCertRequestsMatterIds(requests)
+      localStorage.setItem(DEMO_FINCEN_CERT_STORAGE_KEY, JSON.stringify(normalized))
+    }
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+/** Synchronous read for client-only routes before DemoProvider hydration runs. */
+export function readFinCENCertRequestFromStorage(token: string): DemoFinCENCertRequest | undefined {
+  if (typeof window === 'undefined') return undefined
+  try {
+    const raw = localStorage.getItem(DEMO_FINCEN_CERT_STORAGE_KEY)
+    if (!raw) return undefined
+    const parsed = JSON.parse(raw) as DemoFinCENCertRequest[]
+    if (!Array.isArray(parsed)) return undefined
+    const normalized = normalizeFinCENCertRequestsMatterIds(parsed)
+    return normalized.find((r) => r.token === token)
+  } catch {
+    return undefined
+  }
+}
 
 /** Persists demo intake leads so /demo/intake/[token] works across tabs and refreshes */
 const DEMO_INTAKE_LEADS_STORAGE_KEY = 'lawintake-demo-intake-leads-v1'
@@ -126,8 +236,97 @@ function upsertSpecialNotesLine(notes: string, label: string, value: string): st
   return cleaned ? `${label}: ${value.trim()}.\n\n${cleaned}` : `${label}: ${value.trim()}.`
 }
 
+function deriveFinCENReportStatus(completed: number): FinCENReportStatus {
+  if (completed >= 111) return 'ready'
+  if (completed > 0) return 'in_progress'
+  return 'not_started'
+}
+
+function computeFinCENCompletedFields(fincen: DemoFinCEN): number {
+  let score = 0
+  const rp = fincen.reportingParty
+  if (rp?.firmName?.trim()) score += 20
+  if (rp?.firmAddress?.trim()) score += 20
+  if (rp?.firmEin?.trim()) score += 20
+  if (rp?.filingAttorney?.trim()) score += 20
+
+  const pi = fincen.propertyInfo
+  if (pi?.purchaserEntityName?.trim()) score += 3
+  if (pi?.purchaserEntityType?.trim()) score += 3
+  if (pi?.purchaserEin?.trim()) score += 3
+  if (pi?.stateOfFormation?.trim()) score += 3
+  if (pi?.totalCashAmount?.trim()) score += 3
+
+  if ((pi?.paymentMethods?.length ?? 0) > 0) score += 2
+
+  for (const owner of fincen.beneficialOwners ?? []) {
+    if (!owner.certifiedAt) continue
+    const fields = [
+      owner.fullName,
+      owner.dob,
+      owner.address,
+      owner.citizenship,
+      owner.tin,
+      owner.govIdType,
+      owner.govIdNumber,
+      owner.govIdIssuer,
+    ]
+    for (const f of fields) {
+      if (String(f ?? '').trim()) score += 1.4
+    }
+  }
+
+  return Math.min(111, Math.round(score))
+}
+
+function recomputeFinCEN(fincen: DemoFinCEN): DemoFinCEN {
+  const completedFields = computeFinCENCompletedFields(fincen)
+  return {
+    ...fincen,
+    completedFields,
+    reportStatus: deriveFinCENReportStatus(completedFields),
+  }
+}
+
+/** Merge stored cert requests into matters (pending certRequest + submitted beneficial owners). */
+function syncMattersWithCertRequests(matters: DemoMatter[], requests: DemoFinCENCertRequest[]): DemoMatter[] {
+  const safeMatters = matters.filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+  const reqs = normalizeFinCENCertRequestsMatterIds(requests)
+  return safeMatters.map((m) => {
+    try {
+      if (!m.fincen) return m
+      const pending = reqs.find((r) => r.status === 'pending_client' && fincenRequestMatchesMatter(r, m.id))
+      if (pending) {
+        return { ...m, fincen: { ...m.fincen, certRequest: pending } }
+      }
+      const latest = [...reqs]
+        .filter(
+          (r) =>
+            fincenRequestMatchesMatter(r, m.id) &&
+            r.status === 'submitted' &&
+            r.submittedOwners &&
+            r.submittedOwners.length > 0
+        )
+        .sort((a, b) => (b.submittedAt ?? '').localeCompare(a.submittedAt ?? ''))[0]
+      if (!latest?.submittedOwners) return m
+      const submittedIds = new Set(latest.submittedOwners.map((o) => o.id))
+      const retained = m.fincen.beneficialOwners.filter((o) => o.certifiedAt && !submittedIds.has(o.id))
+      const mergedOwners = [...retained, ...latest.submittedOwners]
+      let nextFincen: DemoFinCEN = {
+        ...m.fincen,
+        beneficialOwners: mergedOwners,
+        certRequest: latest,
+      }
+      nextFincen = recomputeFinCEN(nextFincen)
+      return { ...m, fincen: nextFincen }
+    } catch {
+      return m
+    }
+  })
+}
+
 export function DemoProvider({ children }: { children: React.ReactNode }) {
-  // Intentionally in-memory only. Full reload resets to seed state.
+  // Matters + FinCEN cert requests hydrate from localStorage; seed fills missing ids on first load.
   const [state, setState] = useState<DemoSeedData & {
     recentlyDeletedMatters: DemoMatter[]
     recentlyDeletedClients: DemoClient[]
@@ -169,22 +368,122 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
+  /** Hydrate matters + FinCEN cert requests from localStorage (same session / after refresh / new tab). */
+  useEffect(() => {
+    try {
+      const rawMatters = typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_MATTERS_STORAGE_KEY) : null
+      const rawFincen = typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_FINCEN_CERT_STORAGE_KEY) : null
+      if (!rawMatters && !rawFincen) return
+      setState((prev) => {
+        let matters = prev.matters
+        if (rawMatters) {
+          const parsed = JSON.parse(rawMatters) as DemoMatter[]
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const stored = parsed.filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+            matters = mergeStoredMattersWithSeed(stored, prev.matters)
+          }
+        }
+        let fincenCertRequests = prev.fincenCertRequests
+        if (rawFincen) {
+          const parsed = JSON.parse(rawFincen) as DemoFinCENCertRequest[]
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            fincenCertRequests = normalizeFinCENCertRequestsMatterIds(parsed)
+          }
+        }
+        matters = syncMattersWithCertRequests(matters, fincenCertRequests)
+        return { ...prev, matters, fincenCertRequests }
+      })
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        persistDemoMatters(state.matters)
+      } catch {
+        /* ignore */
+      }
+    }, 250)
+    return () => window.clearTimeout(t)
+  }, [state.matters])
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== DEMO_FINCEN_CERT_STORAGE_KEY || !e.newValue) return
+      try {
+        const parsed = JSON.parse(e.newValue) as DemoFinCENCertRequest[]
+        if (!Array.isArray(parsed)) return
+        const normalized = normalizeFinCENCertRequestsMatterIds(parsed)
+        setState((prev) => ({
+          ...prev,
+          fincenCertRequests: normalized,
+          matters: syncMattersWithCertRequests(prev.matters, normalized),
+        }))
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== DEMO_MATTERS_STORAGE_KEY || !e.newValue) return
+      try {
+        const parsed = JSON.parse(e.newValue) as DemoMatter[]
+        if (!Array.isArray(parsed)) return
+        const sanitized = parsed.filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+        setState((prev) => {
+          let fincenCertRequests = prev.fincenCertRequests
+          try {
+            const rawF = typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_FINCEN_CERT_STORAGE_KEY) : null
+            if (rawF) {
+              const fp = JSON.parse(rawF) as DemoFinCENCertRequest[]
+              if (Array.isArray(fp) && fp.length > 0) fincenCertRequests = normalizeFinCENCertRequestsMatterIds(fp)
+            }
+          } catch {
+            /* keep prev */
+          }
+          const matters = syncMattersWithCertRequests(mergeStoredMattersWithSeed(sanitized, prev.matters), fincenCertRequests)
+          return { ...prev, matters, fincenCertRequests }
+        })
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   const value = useMemo<DemoContextType>(() => {
     return {
       demoFirm: state.demoFirm,
       staff: state.staff,
-      matters: state.matters.filter((m) => !m.deletedAt),
+      matters: state.matters
+        .filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+        .filter((m) => !m.deletedAt),
       clients: state.clients.filter((c) => !c.deletedAt),
       calendarEvents: state.calendarEvents.filter((e) => !e.deletedAt),
       documents: state.documents.filter((d) => !d.deletedAt),
       intakeLeads: state.intakeLeads,
-      archivedMatters: state.matters.filter((m) => Boolean(m.deletedAt)),
+      fincenCertRequests: state.fincenCertRequests,
+      archivedMatters: state.matters
+        .filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+        .filter((m) => Boolean(m.deletedAt)),
       archivedClients: state.clients.filter((c) => Boolean(c.deletedAt)),
       recentlyDeletedMatters: state.recentlyDeletedMatters,
       recentlyDeletedClients: state.recentlyDeletedClients,
-      getMatterById: (matterId) => state.matters.find((m) => m.id === matterId && !m.deletedAt),
+      getMatterById: (matterId) =>
+        state.matters
+          .filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+          .find((m) => m.id === matterId && !m.deletedAt),
       getArchivedMatterById: (matterId) =>
-        state.matters.find((m) => m.id === matterId && Boolean(m.deletedAt)),
+        state.matters
+          .filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+          .find((m) => m.id === matterId && Boolean(m.deletedAt)),
       updateMatterStatus: (matterId, status) => {
         setState((prev) => ({
           ...prev,
@@ -376,6 +675,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             transactionRole: intake.transactionRole ?? 'buyer',
             transactionRoleOther: intake.transactionRole === 'other' ? intake.transactionRoleOther ?? '' : '',
           }
+          const buyerSide = normalizedIntake.transactionRole === 'buyer' || normalizedIntake.transactionRole === 'both'
 
           const intakeLeads = prev.intakeLeads.map((l) =>
             l.token === token
@@ -450,6 +750,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
                     name: buyerName,
                     email: buyerEmail,
                     phone: buyerPhone,
+                    ...(buyerSide && normalizedIntake.buyerType ? { type: normalizedIntake.buyerType } : {}),
                   },
                   seller: {
                     ...matter.seller,
@@ -538,6 +839,284 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           }
         })
       },
+      initFinCENReport: (matterId) => {
+        setState((prev) => {
+          const matter = prev.matters.find((m) => m.id === matterId && !m.deletedAt)
+          if (!matter || matter.fincen) return prev
+
+          const closing = matter.key_dates?.closing_date ?? ''
+          let retentionDeadline: string | null = null
+          if (closing) {
+            const d = new Date(`${closing}T00:00:00`)
+            if (!Number.isNaN(d.getTime())) {
+              d.setFullYear(d.getFullYear() + 5)
+              retentionDeadline = d.toISOString().slice(0, 10)
+            }
+          }
+
+          let fincen: DemoFinCEN = {
+            reportStatus: 'not_started',
+            completedFields: 0,
+            reportingParty: {
+              firmName: prev.demoFirm.name,
+              firmAddress: prev.demoFirm.office_location,
+              firmEin: '',
+              filingAttorney: matter.assignedAttorney,
+            },
+            propertyInfo: {
+              purchaserEntityName: matter.buyer.name,
+              purchaserEntityType: '',
+              purchaserEin: '',
+              stateOfFormation: '',
+              paymentMethods: [],
+              totalCashAmount: String(matter.purchasePrice ?? ''),
+            },
+            beneficialOwners: [],
+            certRequest: null,
+            retentionDeadline,
+          }
+          fincen = recomputeFinCEN(fincen)
+
+          return {
+            ...prev,
+            matters: prev.matters.map((m) => (m.id === matterId ? { ...m, fincen } : m)),
+          }
+        })
+      },
+      updateFinCENReportingParty: (matterId, patch) => {
+        setState((prev) => ({
+          ...prev,
+          matters: prev.matters.map((matter) => {
+            if (matter.id !== matterId || matter.deletedAt || !matter.fincen) return matter
+            const nextFincen = recomputeFinCEN({
+              ...matter.fincen,
+              reportingParty: { ...matter.fincen.reportingParty, ...patch },
+            })
+            return { ...matter, fincen: nextFincen }
+          }),
+        }))
+      },
+      updateFinCENPropertyInfo: (matterId, patch) => {
+        setState((prev) => ({
+          ...prev,
+          matters: prev.matters.map((matter) => {
+            if (matter.id !== matterId || matter.deletedAt || !matter.fincen) return matter
+            const nextFincen = recomputeFinCEN({
+              ...matter.fincen,
+              propertyInfo: { ...matter.fincen.propertyInfo, ...patch },
+            })
+            return { ...matter, fincen: nextFincen }
+          }),
+        }))
+      },
+      updateFinCENData: (matterId, patch) => {
+        setState((prev) => ({
+          ...prev,
+          matters: prev.matters.map((matter) => {
+            if (matter.id !== matterId || matter.deletedAt || !matter.fincen) return matter
+            const rp = patch.reportingParty
+              ? { ...matter.fincen.reportingParty, ...patch.reportingParty }
+              : matter.fincen.reportingParty
+            const pi = patch.propertyInfo
+              ? { ...matter.fincen.propertyInfo, ...patch.propertyInfo }
+              : matter.fincen.propertyInfo
+            let nextFincen: DemoFinCEN = {
+              ...matter.fincen,
+              ...patch,
+              reportingParty: rp,
+              propertyInfo: pi,
+              beneficialOwners: patch.beneficialOwners ?? matter.fincen.beneficialOwners,
+            }
+            nextFincen = recomputeFinCEN(nextFincen)
+            return { ...matter, fincen: nextFincen }
+          }),
+        }))
+      },
+      addFinCENBeneficialOwner: (matterId) => {
+        const owner: FinCENBeneficialOwner = {
+          id: `bo-${Date.now()}`,
+          fullName: '',
+          dob: '',
+          address: '',
+          citizenship: '',
+          tin: '',
+          govIdType: '',
+          govIdNumber: '',
+          govIdIssuer: '',
+          certifiedAt: null,
+        }
+        setState((prev) => ({
+          ...prev,
+          matters: prev.matters.map((matter) => {
+            if (matter.id !== matterId || matter.deletedAt || !matter.fincen) return matter
+            const nextFincen = recomputeFinCEN({
+              ...matter.fincen,
+              beneficialOwners: [...matter.fincen.beneficialOwners, owner],
+            })
+            return { ...matter, fincen: nextFincen }
+          }),
+        }))
+      },
+      updateFinCENBeneficialOwner: (matterId, ownerId, patch) => {
+        setState((prev) => ({
+          ...prev,
+          matters: prev.matters.map((matter) => {
+            if (matter.id !== matterId || matter.deletedAt || !matter.fincen) return matter
+            const nextFincen = recomputeFinCEN({
+              ...matter.fincen,
+              beneficialOwners: matter.fincen.beneficialOwners.map((owner) =>
+                owner.id === ownerId ? { ...owner, ...patch } : owner
+              ),
+            })
+            return { ...matter, fincen: nextFincen }
+          }),
+        }))
+      },
+      removeFinCENBeneficialOwner: (matterId, ownerId) => {
+        setState((prev) => ({
+          ...prev,
+          matters: prev.matters.map((matter) => {
+            if (matter.id !== matterId || matter.deletedAt || !matter.fincen) return matter
+            const nextFincen = recomputeFinCEN({
+              ...matter.fincen,
+              beneficialOwners: matter.fincen.beneficialOwners.filter((owner) => owner.id !== ownerId),
+            })
+            return { ...matter, fincen: nextFincen }
+          }),
+        }))
+      },
+      registerFinCENCertRequest: ({ matterId, recipientName, recipientEmail }) => {
+        const token = `fincen-cert-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        const certUrl = `/demo/fincen-cert/${token}`
+        const reqId = `fincen-cert-req-${Date.now()}`
+        const idKey = normalizeFinCenMatterKey(matterId)
+        const req: DemoFinCENCertRequest = {
+          id: reqId,
+          token,
+          matterId: idKey,
+          createdAt: new Date().toISOString(),
+          recipientName,
+          recipientEmail,
+          certUrl,
+          status: 'pending_client',
+          submittedAt: null,
+          submittedOwners: null,
+        }
+        setState((prev) => {
+          const nextRequests = [
+            ...prev.fincenCertRequests.filter(
+              (r) => !(fincenRequestMatchesMatter(r, idKey) && r.status === 'pending_client')
+            ),
+            req,
+          ]
+          persistFinCENCertRequests(nextRequests)
+          const nextMatters = prev.matters
+            .filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+            .map((m) => {
+              if (normalizeFinCenMatterKey(m.id) !== idKey || !m.fincen) return m
+              return { ...m, fincen: { ...m.fincen, certRequest: req } }
+            })
+          queueMicrotask(() => persistDemoMatters(nextMatters))
+          return {
+            ...prev,
+            fincenCertRequests: nextRequests,
+            matters: nextMatters,
+          }
+        })
+        return { token, certUrl }
+      },
+      submitFinCENCert: (token, owners) => {
+        const submittedAt = new Date().toISOString()
+        const ownersWithTimestamp: FinCENBeneficialOwner[] = owners.map((owner) => ({
+          ...owner,
+          id:
+            owner.id?.trim() && owner.id.trim().length > 0
+              ? owner.id
+              : `bo-cert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          certifiedAt: submittedAt,
+        }))
+        const submittedIds = new Set(ownersWithTimestamp.map((o) => o.id))
+
+        setState((prev) => {
+          let requests = prev.fincenCertRequests
+          let certRequest = requests.find((r) => r.token === token)
+          if (!certRequest) {
+            const fromStorage = readFinCENCertRequestFromStorage(token)
+            if (!fromStorage) return prev
+            requests = [...requests, fromStorage]
+            certRequest = requests.find((r) => r.token === token)
+            if (!certRequest) return prev
+          }
+
+          const matterIdKey = normalizeFinCenMatterKey(certRequest.matterId)
+          const updatedReq: DemoFinCENCertRequest = {
+            ...certRequest,
+            matterId: matterIdKey,
+            status: 'submitted',
+            submittedAt,
+            submittedOwners: ownersWithTimestamp,
+          }
+          const nextRequests = normalizeFinCENCertRequestsMatterIds(
+            requests.map((req) => (req.token === token ? updatedReq : req))
+          )
+          persistFinCENCertRequests(nextRequests)
+
+          const nextMatters = prev.matters
+            .filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+            .map((matter) => {
+              if (normalizeFinCenMatterKey(matter.id) !== matterIdKey || matter.deletedAt || !matter.fincen)
+                return matter
+              try {
+                const existingOwners = matter.fincen.beneficialOwners ?? []
+                const retained = existingOwners.filter((o) => o.certifiedAt && !submittedIds.has(o.id))
+                const mergedOwners = [...retained, ...ownersWithTimestamp]
+                let nextFincen: DemoFinCEN = {
+                  ...matter.fincen,
+                  beneficialOwners: mergedOwners,
+                  certRequest: matter.fincen.certRequest
+                    ? { ...matter.fincen.certRequest, ...updatedReq }
+                    : updatedReq,
+                }
+                nextFincen = recomputeFinCEN(nextFincen)
+                return { ...matter, fincen: nextFincen }
+              } catch {
+                return matter
+              }
+            })
+          queueMicrotask(() => persistDemoMatters(nextMatters))
+          return {
+            ...prev,
+            fincenCertRequests: nextRequests,
+            matters: nextMatters,
+          }
+        })
+      },
+      getFinCENCertByToken: (token) => state.fincenCertRequests.find((r) => r.token === token),
+      cancelPendingFinCENCert: (matterId) => {
+        setState((prev) => {
+          const idKey = normalizeFinCenMatterKey(matterId)
+          const matter = prev.matters
+            .filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+            .find((m) => normalizeFinCenMatterKey(m.id) === idKey && !m.deletedAt)
+          const tok = matter?.fincen?.certRequest?.token
+          if (!tok || matter?.fincen?.certRequest?.status !== 'pending_client') return prev
+          const nextRequests = prev.fincenCertRequests.filter((r) => r.token !== tok)
+          persistFinCENCertRequests(nextRequests)
+          const nextMatters = prev.matters
+            .filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+            .map((m) => {
+              if (normalizeFinCenMatterKey(m.id) !== idKey || !m.fincen || m.fincen.certRequest?.token !== tok)
+                return m
+              return { ...m, fincen: { ...m.fincen, certRequest: null } }
+            })
+          queueMicrotask(() => persistDemoMatters(nextMatters))
+          return {
+            ...prev,
+            fincenCertRequests: nextRequests,
+            matters: nextMatters,
+          }
+        })
+      },
       createDemoMatter: (input) => {
         const ymd = (dt: Date) => dt.toISOString().slice(0, 10)
         const addDays = (date: Date, days: number) => new Date(date.getTime() + days * 24 * 60 * 60 * 1000)
@@ -612,7 +1191,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             buyer: {
               id: buyerId,
               name: buyerName,
-              type: 'individual',
+              type: input.buyer_type ?? 'individual',
               email: buyerEmail,
               phone: buyerPhone,
             },

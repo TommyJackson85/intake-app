@@ -17,6 +17,7 @@ type LeadData = {
   submitted_at: string | null
 }
 
+
 type FirmData = { id: string; name: string; state: string } | null
 
 export function ClientIntakePreview({
@@ -88,6 +89,14 @@ export function ClientIntakePreview({
                   <>
                     <div style={{ fontSize: '12px', color: '#627c71', marginBottom: '4px', marginTop: '12px' }}>Target closing date</div>
                     <div style={{ padding: '12px', borderRadius: '6px', background: '#f8f8f8', color: '#134252' }}>{(d.targetClosingDate as string) || '—'}</div>
+                  </>
+                )}
+                {(d.buyerType === 'individual' || d.buyerType === 'entity') && (
+                  <>
+                    <div style={{ fontSize: '12px', color: '#627c71', marginBottom: '4px', marginTop: '12px' }}>Buyer type</div>
+                    <div style={{ padding: '12px', borderRadius: '6px', background: '#f8f8f8', color: '#134252' }}>
+                      {d.buyerType === 'entity' ? 'Legal entity / trust' : 'Individual'}
+                    </div>
                   </>
                 )}
               </div>

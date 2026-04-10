@@ -1,4 +1,10 @@
-import type { DemoClient, DemoIntakeLead, DemoIntakeSnapshot, DemoTransactionRole } from '@/lib/demo/types'
+import type {
+  DemoClient,
+  DemoIntakeLead,
+  DemoIntakeSnapshot,
+  DemoPartyType,
+  DemoTransactionRole,
+} from '@/lib/demo/types'
 
 /** Labels for client + lawyer intake UIs */
 export const DEMO_TRANSACTION_ROLE_OPTIONS: { value: DemoTransactionRole; label: string }[] = [
@@ -6,6 +12,11 @@ export const DEMO_TRANSACTION_ROLE_OPTIONS: { value: DemoTransactionRole; label:
   { value: 'seller', label: 'Seller' },
   { value: 'both', label: 'Both buyer and seller' },
   { value: 'other', label: 'Other' },
+]
+
+export const DEMO_BUYER_TYPE_OPTIONS: { value: DemoPartyType; label: string }[] = [
+  { value: 'individual', label: 'Individual' },
+  { value: 'entity', label: 'Legal entity / trust' },
 ]
 
 /** Prefer submitted intake when present */
@@ -34,6 +45,8 @@ export type DemoNewMatterInitialValues = {
   partyRoleOther?: string
   /** Intake client name when role is Other (maps to contact, not buyer/seller by default) */
   contactName?: string
+  /** Intake purchaser type — maps to `matter.buyer.type` */
+  buyerType?: DemoPartyType
 }
 
 const DEFAULT_MATTER: Omit<DemoNewMatterInitialValues, never> = {
@@ -74,6 +87,8 @@ export function mapIntakeLeadToNewMatterInitialValues(lead: DemoIntakeLead): Dem
 
   const notes = [s.notes?.trim(), lead.fileReference ? `Intake file ref: ${lead.fileReference}` : ''].filter(Boolean).join('\n')
 
+  const buyerSide = role === 'buyer' || role === 'both'
+
   return {
     matterType: s.matterType || DEFAULT_MATTER.matterType,
     propertyAddress: s.propertyAddress,
@@ -90,6 +105,7 @@ export function mapIntakeLeadToNewMatterInitialValues(lead: DemoIntakeLead): Dem
     transactionRole: role,
     partyRoleOther: role === 'other' ? (s.transactionRoleOther ?? '') : '',
     contactName: role === 'other' ? clientName : '',
+    buyerType: buyerSide ? s.buyerType : undefined,
   }
 }
 

@@ -21,6 +21,13 @@ type IntakeApiResponse = {
 
 type StepKey = 'contact' | 'property' | 'matter' | 'kyc'
 
+/** Lawyer-set matter types that imply the client is on the buyer/borrower side for AML intake. */
+function leadMatterTypeImpliesBuyerSide(matterType: string | null | undefined): boolean {
+  if (!matterType) return false
+  const m = matterType.toLowerCase()
+  return m.includes('purchase') || m.includes('refinance') || m.includes('commercial')
+}
+
 export default function IntakeTokenPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params)
   const [loading, setLoading] = useState(true)
@@ -42,6 +49,7 @@ export default function IntakeTokenPage({ params }: { params: Promise<{ token: s
   const [citizenshipCountry, setCitizenshipCountry] = useState('')
   const [isUsPerson, setIsUsPerson] = useState<'yes' | 'no' | ''>('')
   const [sourceOfFunds, setSourceOfFunds] = useState('')
+  const [buyerType, setBuyerType] = useState<'' | 'individual' | 'entity'>('')
 
   const firmName = data?.firm?.name || 'Client intake'
 
@@ -80,6 +88,8 @@ export default function IntakeTokenPage({ params }: { params: Promise<{ token: s
         setCitizenshipCountry(d.citizenshipCountry || '')
         setIsUsPerson(d.isUsPerson || '')
         setSourceOfFunds(d.sourceOfFunds || '')
+        const bt = d.buyerType
+        setBuyerType(bt === 'individual' || bt === 'entity' ? bt : '')
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Failed to load intake'
         setError(msg === 'Not found' || msg.includes('invalid') || msg.includes('expired')
@@ -120,14 +130,30 @@ export default function IntakeTokenPage({ params }: { params: Promise<{ token: s
   }
 
   const next = async () => {
+    if (!data) return
+    if (
+      step === 'matter' &&
+      leadMatterTypeImpliesBuyerSide(data.lead.matter_type) &&
+      buyerType !== 'individual' &&
+      buyerType !== 'entity'
+    ) {
+      setError('Please select Buyer type (Individual or Legal entity / trust).')
+      return
+    }
+    setError('')
     // Save minimal data for the current step before advancing
     if (step === 'contact') await save({})
     if (step === 'property') await save({})
-    if (step === 'matter')
-      await save({
+    if (step === 'matter') {
+      const patch: Record<string, unknown> = {
         matterDescription,
         targetClosingDate,
-      })
+      }
+      if (data?.lead?.matter_type && leadMatterTypeImpliesBuyerSide(data.lead.matter_type)) {
+        patch.buyerType = buyerType === '' ? undefined : buyerType
+      }
+      await save(patch)
+    }
     if (step === 'kyc')
       await save({
         citizenshipCountry,
@@ -145,6 +171,15 @@ export default function IntakeTokenPage({ params }: { params: Promise<{ token: s
   }
 
   const submit = async () => {
+    if (!data) return
+    if (
+      leadMatterTypeImpliesBuyerSide(data.lead.matter_type) &&
+      buyerType !== 'individual' &&
+      buyerType !== 'entity'
+    ) {
+      setError('Please select Buyer type (Individual or Legal entity / trust).')
+      return
+    }
     setSubmitting(true)
     setError('')
     try {
@@ -158,6 +193,9 @@ export default function IntakeTokenPage({ params }: { params: Promise<{ token: s
             citizenshipCountry,
             isUsPerson,
             sourceOfFunds,
+            ...(leadMatterTypeImpliesBuyerSide(data.lead.matter_type)
+              ? { buyerType: buyerType === '' ? undefined : buyerType }
+              : {}),
             submittedFrom: 'intake_token_flow',
           },
         }),
@@ -335,6 +373,28 @@ export default function IntakeTokenPage({ params }: { params: Promise<{ token: s
                         style={{ padding: '12px', borderRadius: '6px', border: '1px solid rgba(94, 82, 64, 0.2)' }}
                       />
                     </div>
+
+                    {data?.lead?.matter_type && leadMatterTypeImpliesBuyerSide(data.lead.matter_type) && (
+                      <div style={{ marginTop: '12px' }}>
+                        <label style={{ display: 'block', fontWeight: 800, marginBottom: '6px' }}>Buyer type *</label>
+                        <select
+                          value={buyerType}
+                          onChange={(e) => setBuyerType(e.target.value as '' | 'individual' | 'entity')}
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(94, 82, 64, 0.2)',
+                            background: 'white',
+                            color: '#134252',
+                          }}
+                        >
+                          <option value="">Select…</option>
+                          <option value="individual">Individual</option>
+                          <option value="entity">Legal entity / trust</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
                 )}
 

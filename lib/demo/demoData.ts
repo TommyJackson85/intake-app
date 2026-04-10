@@ -1,7 +1,9 @@
 import type { DemoSeedData } from '@/lib/demo/types'
 
+
 export const demoSeedData: DemoSeedData = {
   intakeLeads: [],
+  fincenCertRequests: [],
   demoFirm: {
     id: 'demo-firm-sunshine-title',
     name: 'Sunshine Title & Closings, P.A.',
@@ -143,6 +145,40 @@ export const demoSeedData: DemoSeedData = {
       hoaFlag: true,
       referralSource: 'Repeat client',
       specialNotes: 'HOA estoppel requested 3/2 — pending receipt',
+      fincen: {
+        reportStatus: 'in_progress',
+        completedFields: 108,
+        reportingParty: {
+          firmName: 'Sunshine Title & Closings, P.A.',
+          firmAddress: '1800 S Orange Ave, Suite 200, Orlando, FL 32806',
+          firmEin: '59-3847201',
+          filingAttorney: 'Katherine Ruiz, Esq.',
+        },
+        propertyInfo: {
+          purchaserEntityName: 'Palm Harbor Ventures LLC',
+          purchaserEntityType: 'LLC',
+          purchaserEin: '83-4471029',
+          stateOfFormation: 'Florida',
+          paymentMethods: ['Wire Transfer'],
+          totalCashAmount: '520000',
+        },
+        beneficialOwners: [
+          {
+            id: 'bo-001',
+            fullName: 'Marcus T. Delgado',
+            dob: '1978-06-14',
+            address: '4201 Bayshore Blvd, Tampa, FL 33611',
+            citizenship: 'US Citizen',
+            tin: '***-**-4421',
+            govIdType: "Driver's Licence",
+            govIdNumber: 'D123-456-78-910-0',
+            govIdIssuer: 'Florida',
+            certifiedAt: '2026-03-18T14:22:00.000Z',
+          },
+        ],
+        certRequest: null,
+        retentionDeadline: '2031-03-26',
+      },
       key_dates: {
         effective_date: '2026-03-12',
         inspection_deadline: '2026-03-16',
@@ -168,7 +204,7 @@ export const demoSeedData: DemoSeedData = {
       file_id: 'FL-2026-003',
       status: 'Title Search',
       deletedAt: null,
-      matter_type: 'Residential Purchase - New File',
+      matter_type: 'Cash Residential Purchase',
       property: {
         address: '3109 Cypress Hammock Ln, Tampa, FL 33618',
         county: 'Hillsborough County',
@@ -190,10 +226,10 @@ export const demoSeedData: DemoSeedData = {
       },
       transactionType: 'Purchase',
       purchasePrice: 299000,
-      financingType: 'FHA',
-      loanNumber: 'LN-2026-44187',
-      lenderName: 'Regions Bank',
-      lenderEmail: 'reclose@regionsbank.com',
+      financingType: 'Cash',
+      loanNumber: '',
+      lenderName: '',
+      lenderEmail: '',
       buyerEmail: 'mia.delgado+demo@example.com',
       buyerPhone: '(813) 555-0125',
       sellerEmail: 'trustee@riversideliving.com',
@@ -204,13 +240,13 @@ export const demoSeedData: DemoSeedData = {
       assignedParalegal: 'Emma Kline',
       contractDate: '2026-03-10',
       inspectionDeadline: '2026-03-25',
-      financingDeadline: '2026-04-05',
+      financingDeadline: '',
       titleCommitmentDeadline: '2026-04-08',
       possessionDate: '2026-04-15',
       fileOpenedDate: '2026-03-12',
       hoaFlag: false,
       referralSource: 'Agent referral — Carla Nguyen',
-      specialNotes: 'Seller is a trust — require trustee certification and trust agreement',
+      specialNotes: 'Cash purchase by individual buyer — FinCEN threshold not met. Seller is a trust — require trustee certification and trust agreement',
       key_dates: {
         effective_date: '2026-03-21',
         inspection_deadline: '2026-03-28',

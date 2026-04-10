@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { DEMO_TRANSACTION_ROLE_OPTIONS } from '@/lib/demo/demoIntakeFlow'
-import type { DemoIntakeSnapshot, DemoTransactionRole } from '@/lib/demo/types'
+import { DEMO_BUYER_TYPE_OPTIONS, DEMO_TRANSACTION_ROLE_OPTIONS } from '@/lib/demo/demoIntakeFlow'
+import type { DemoIntakeSnapshot, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
 import { useDemoStore } from '@/lib/demo/store'
 
 function normalizeSnapshot(s: DemoIntakeSnapshot): DemoIntakeSnapshot {
@@ -54,6 +54,7 @@ export default function DemoClientIntakePage() {
   const lead = useMemo(() => intakeLeads.find((l) => l.token === token), [intakeLeads, token])
 
   const [form, setForm] = useState<DemoIntakeSnapshot | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!lead) return
@@ -276,13 +277,59 @@ export default function DemoClientIntakePage() {
             )}
           </div>
 
+          {(form.transactionRole === 'buyer' || form.transactionRole === 'both') && (
+            <div>
+              <div style={{ fontSize: 12, color: '#627c71', fontWeight: 800, marginBottom: 6 }}>Buyer type</div>
+              <select
+                value={form.buyerType ?? ''}
+                disabled={submitted}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setField('buyerType', v === '' ? undefined : (v as DemoPartyType))
+                }}
+                style={{
+                  width: '100%',
+                  marginTop: 4,
+                  padding: '10px 12px',
+                  borderRadius: 6,
+                  border: '1px solid rgba(94,82,64,0.22)',
+                  background: submitted ? '#f4f4f0' : 'white',
+                  color: '#134252',
+                  cursor: submitted ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <option value="">Select…</option>
+                {DEMO_BUYER_TYPE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {renderFields(tailFieldDefs)}
         </div>
+
+        {submitError && (
+          <div role="alert" style={{ marginTop: 12, padding: 10, borderRadius: 8, background: '#fee', color: '#842029', fontWeight: 700, fontSize: 13 }}>
+            {submitError}
+          </div>
+        )}
 
         <button
           type="button"
           disabled={submitted}
-          onClick={() => submitDemoIntakeLead(token, form)}
+          onClick={() => {
+            setSubmitError(null)
+            const needsBuyer =
+              form.transactionRole === 'buyer' || form.transactionRole === 'both'
+            if (needsBuyer && form.buyerType !== 'individual' && form.buyerType !== 'entity') {
+              setSubmitError('Please select buyer type (Individual or Legal entity / trust).')
+              return
+            }
+            submitDemoIntakeLead(token, form)
+          }}
           style={{
             width: '100%',
             marginTop: 18,
