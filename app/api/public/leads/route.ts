@@ -6,11 +6,6 @@ import { validateRequest, PublicMarketingLeadSchema } from '@/lib/validation-sch
 import { rateLimit } from '@/lib/rate-limit';
 import { logAuditEvent } from '@/lib/auditLog';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 /**
  * POST /api/public/leads
  * Public endpoint for lead capture (e.g., from website forms)
@@ -21,6 +16,11 @@ const supabase = createClient(
  */
 export async function POST(request: Request) {
   try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
     // ✅ 1. RATE LIMITING - prevent spam
     const limitResult = await rateLimit(request, 'public-leads');
 

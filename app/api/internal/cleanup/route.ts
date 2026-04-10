@@ -5,11 +5,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { validateAPIKey, hasScope } from '@/lib/api-key-security';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 /**
  * POST /api/internal/cleanup
  * ✅ Internal cleanup job - remove old data
@@ -18,6 +13,11 @@ const supabaseAdmin = createClient(
  */
 export async function POST(request: NextRequest) {
   try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // ✅ Get API key from Authorization header
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -57,6 +57,15 @@ export async function POST(request: NextRequest) {
     }
 
     // ============================================
+    // EXCLUDE DEMO FIRMS FROM RETENTION
+    // ============================================
+    const { data: demoFirms } = await supabaseAdmin
+      .from('firms')
+      .select('id')
+      .eq('is_demo_firm', true);
+    const demoFirmIds = (demoFirms || []).map((f) => f.id);
+
+    // ============================================
     // CLEANUP TASKS
     // ============================================
 
@@ -73,15 +82,18 @@ export async function POST(request: NextRequest) {
       // ============================================
       const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
-      const { data: archivedLeads, error: archiveError } = await supabaseAdmin
+      let archiveQuery = supabaseAdmin
         .from('leads')
         .update({
           status: 'archived',
           archived_at: new Date().toISOString(),
         })
         .eq('status', 'rejected')
-        .lt('created_at', ninetyDaysAgo.toISOString())
-        .select('id');
+        .lt('created_at', ninetyDaysAgo.toISOString());
+      if (demoFirmIds.length > 0) {
+        archiveQuery = archiveQuery.not('firm_id', 'in', `(${demoFirmIds.join(',')})`);
+      }
+      const { data: archivedLeads, error: archiveError } = await archiveQuery.select('id');
 
       if (archiveError) {
         results.errors.push(`Archive leads error: ${archiveError.message}`);
@@ -99,12 +111,15 @@ export async function POST(request: NextRequest) {
       // ============================================
       const oneEightyDaysAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
 
-      const { data: deletedLeads, error: deleteError } = await supabaseAdmin
+      let deleteLeadsQuery = supabaseAdmin
         .from('leads')
         .delete()
         .eq('status', 'archived')
-        .lt('archived_at', oneEightyDaysAgo.toISOString())
-        .select('id');
+        .lt('archived_at', oneEightyDaysAgo.toISOString());
+      if (demoFirmIds.length > 0) {
+        deleteLeadsQuery = deleteLeadsQuery.not('firm_id', 'in', `(${demoFirmIds.join(',')})`);
+      }
+      const { data: deletedLeads, error: deleteError } = await deleteLeadsQuery.select('id');
 
       if (deleteError) {
         results.errors.push(`Delete leads error: ${deleteError.message}`);
@@ -122,11 +137,14 @@ export async function POST(request: NextRequest) {
       // ============================================
       const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
 
-      const { data: deletedLogs, error: logsError } = await supabaseAdmin
+      let deleteLogsQuery = supabaseAdmin
         .from('audit_logs')
         .delete()
-        .lt('created_at', oneYearAgo.toISOString())
-        .select('id');
+        .lt('created_at', oneYearAgo.toISOString());
+      if (demoFirmIds.length > 0) {
+        deleteLogsQuery = deleteLogsQuery.or(`firm_id.is.null,firm_id.not.in.(${demoFirmIds.join(',')})`);
+      }
+      const { data: deletedLogs, error: logsError } = await deleteLogsQuery.select('id');
 
       if (logsError) {
         results.errors.push(`Delete audit logs error: ${logsError.message}`);
@@ -226,6 +244,11 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     // Get last cleanup run
     const { data: lastCleanup } = await supabaseAdmin

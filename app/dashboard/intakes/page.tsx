@@ -2,6 +2,46 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { useAuth } from '@/lib/auth-context'
+
+function SendLinkButton({ intakeId, clientEmail, isDemoFirm }: { intakeId: string; clientEmail: string | null; isDemoFirm: boolean }) {
+  const [loading, setLoading] = useState(false)
+  const [sent, setSent] = useState(false)
+  if (!clientEmail) return null
+  if (isDemoFirm) return <span style={{ fontSize: '12px', color: '#999' }}>Demo – send disabled</span>
+  const handleSend = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/dashboard/intakes/${intakeId}/send-link`, { method: 'POST' })
+      const body = await res.json().catch(() => null)
+      if (res.ok) setSent(true)
+      else alert(body?.error || 'Failed to send')
+    } catch {
+      alert('Failed to send')
+    } finally {
+      setLoading(false)
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={handleSend}
+      disabled={loading || sent}
+      style={{
+        background: 'none',
+        border: 'none',
+        color: '#208096',
+        cursor: loading || sent ? 'default' : 'pointer',
+        fontSize: '13px',
+        fontWeight: 600,
+        padding: 0,
+      }}
+    >
+      {sent ? 'Sent' : loading ? 'Sending…' : 'Send link'}
+    </button>
+  )
+}
 
 type IntakeRow = {
   id: string
@@ -17,6 +57,8 @@ type IntakeRow = {
 }
 
 export default function IntakesPage() {
+  const { firm } = useAuth()
+  const isDemoFirm = Boolean((firm as { is_demo_firm?: boolean } | null)?.is_demo_firm)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [intakes, setIntakes] = useState<IntakeRow[]>([])
@@ -84,6 +126,7 @@ export default function IntakesPage() {
                 <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Matter</th>
                 <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Status</th>
                 <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Created</th>
+                <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -102,6 +145,17 @@ export default function IntakesPage() {
                   <td style={{ padding: '14px', color: '#627c71', fontWeight: 800 }}>{i.status || 'new'}</td>
                   <td style={{ padding: '14px', color: '#627c71' }}>
                     {i.created_at ? new Date(i.created_at).toLocaleDateString() : '—'}
+                  </td>
+                  <td style={{ padding: '14px' }}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <SendLinkButton intakeId={i.id} clientEmail={i.client_email} isDemoFirm={isDemoFirm} />
+                      <Link
+                        href={`/dashboard/intakes/${i.id}/client-preview`}
+                        style={{ color: '#208096', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}
+                      >
+                        Preview
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

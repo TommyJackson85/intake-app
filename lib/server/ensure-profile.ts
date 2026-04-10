@@ -1,16 +1,25 @@
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 import type { User } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/database.types'
 
 /**
  * Ensure there is a row in public.profiles for the given auth user.
  * This is a defensive fallback in case the Supabase trigger that normally
  * creates profiles is missing or misconfigured in a given environment.
+ *
+ * When client is provided (session-bound anon client), uses RLS: only the
+ * authenticated user can insert their own profile (id = auth.uid()).
+ * When client is omitted, uses service-role (admin) for admin/script contexts.
  */
-export async function ensureProfileForUser(user: Pick<User, 'id' | 'email'>) {
-  const admin = createSupabaseServerClientStrict()
+export async function ensureProfileForUser(
+  user: Pick<User, 'id' | 'email'>,
+  client?: SupabaseClient<Database>
+) {
+  const supabase = client ?? createSupabaseServerClientStrict()
 
   // 1) Try to read an existing profile
-  const { data: existing, error: readError } = await admin
+  const { data: existing, error: readError } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
@@ -25,8 +34,8 @@ export async function ensureProfileForUser(user: Pick<User, 'id' | 'email'>) {
     console.error('[ensureProfileForUser] profile read error', { userId: user.id, readError })
   }
 
-  // 3) Create a minimal profile row
-  const { data: created, error: createError } = await admin
+  // 3) Create a minimal profile row (RLS allows INSERT where id = auth.uid() when using anon client)
+  const { data: created, error: createError } = await supabase
     .from('profiles')
     .insert({
       id: user.id,

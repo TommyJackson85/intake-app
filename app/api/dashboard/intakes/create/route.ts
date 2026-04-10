@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
+import { getServerSupabase } from '@/lib/serverSupabase'
 import { getCurrentUserServer } from '@/lib/server/current-user'
 
 function sha256Hex(input: string) {
@@ -29,9 +29,9 @@ export async function POST(request: Request) {
     const portalToken = crypto.randomUUID()
     const portalTokenHash = sha256Hex(portalToken)
 
-    const admin = createSupabaseServerClientStrict()
+    const supabase = await getServerSupabase()
 
-    const { data: lead, error } = await admin
+    const { data: lead, error } = await supabase
       .from('leads')
       .insert({
         firm_id: current.profile.firm_id,

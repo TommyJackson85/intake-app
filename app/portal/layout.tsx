@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/lib/auth-context'
+import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -27,6 +28,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   return (
     <div style={{ minHeight: '100vh', background: '#fcfcf9' }}>
+      <ImpersonationBanner />
       <header
         style={{
           background: 'white',

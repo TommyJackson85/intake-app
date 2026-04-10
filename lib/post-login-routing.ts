@@ -1,7 +1,8 @@
 // lib/post-login-routing.ts
-// Post-login routing logic: redirects users to firm-setup if they don't have a firm
+// Post-login routing logic: redirects users to register-firm if they don't have a firm.
+// Uses session-bound anon client so profile read is RLS-scoped to the logged-in user.
 
-import { createSupabaseServerClientStrict } from './serverClientStrict'
+import { getServerSupabase } from './serverSupabase'
 import { CURRENT_TERMS_VERSION, needsTermsAcceptance } from './terms-config'
 
 export interface PostLoginRouteResult {
@@ -13,14 +14,14 @@ export interface PostLoginRouteResult {
 /**
  * Determines where a user should be redirected after login
  * - If user needs to accept updated terms: redirect to /auth/accept-terms (highest priority)
- * - If user has no firm: redirect to /dashboard/firm-setup
+ * - If user has no firm: redirect to /dashboard/register-firm
  * - If user has firm: redirect to /dashboard
  */
 export async function getPostLoginRoute(userId: string): Promise<PostLoginRouteResult> {
   try {
-    const supabase = await createSupabaseServerClientStrict()
+    const supabase = await getServerSupabase()
 
-    // Fetch user profile
+    // RLS: user can read own profile only
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('firm_id, terms_accepted_at, terms_version')
@@ -46,7 +47,7 @@ export async function getPostLoginRoute(userId: string): Promise<PostLoginRouteR
     if (!profile.firm_id) {
       return {
         shouldRedirect: true,
-        redirectTo: '/dashboard/firm-setup',
+        redirectTo: '/dashboard/register-firm',
         reason: 'no_firm',
       }
     }

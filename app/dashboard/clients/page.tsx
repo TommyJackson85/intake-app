@@ -19,7 +19,9 @@ export default function ClientsPage() {
   const router = useRouter()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createSupabaseBrowserClient()
+  const [supabase] = useState(() => {
+    try { return createSupabaseBrowserClient() } catch { return null }
+  })
 
   useEffect(() => {
     if (!authLoading && !profile?.firm_id) {
@@ -30,7 +32,7 @@ export default function ClientsPage() {
 
   useEffect(() => {
     const loadClients = async () => {
-      if (!profile?.firm_id) return
+      if (!profile?.firm_id || !supabase) return
 
       try {
       const { data, error } = await supabase

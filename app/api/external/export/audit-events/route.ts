@@ -5,13 +5,11 @@ import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
 // app/api/external/export/audit-events/route.ts - FIXED VERSION
 // TypeScript error fixed: proper null checking on authorization header
 
-import { createClient } from '@supabase/supabase-js';
 import { getFirmFromApiKey } from '@/lib/get-firm-from-api-key';
-
-const supabase = await createSupabaseServerClientStrict()
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createSupabaseServerClientStrict();
     // ✅ FIXED: Properly extract and validate API key from Authorization header
     const authHeader = request.headers.get('authorization');
     

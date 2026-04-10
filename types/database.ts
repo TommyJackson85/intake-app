@@ -151,14 +151,14 @@ export interface AuditLogInput {
 // ============================================================================
 
 export interface CreateClientInput {
-  name: string
+  full_name: string
   email?: string
   phone?: string
   address?: string
 }
 
 export interface UpdateClientInput {
-  name?: string
+  full_name?: string
   email?: string
   phone?: string
   address?: string

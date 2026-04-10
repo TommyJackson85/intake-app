@@ -9,8 +9,6 @@ import { validateAPIKey, hasScope } from '@/lib/api-key-security';
 import { rateLimit } from '@/lib/rate-limit';
 import { logAuditEvent } from '@/lib/auditLog';
 
-const supabase = await createSupabaseServerClientStrict();
-
 const AML_API_URL = process.env.AML_API_URL || 'https://api.aml-provider.com';
 const AML_API_KEY = process.env.AML_API_KEY;
 const AML_TIMEOUT = parseInt(process.env.AML_API_TIMEOUT || '5000', 10);
@@ -46,6 +44,8 @@ export async function POST(request: Request) {
   const requestStartedAt = new Date().toISOString();
 
   try {
+    const supabase = createSupabaseServerClientStrict();
+
     // ✅ 1. Validate API key from header only
     const keyValidation = await validateAPIKey(request);
     if (!keyValidation.valid || !keyValidation.firmId) {
@@ -409,6 +409,8 @@ export async function GET(request: Request) {
   const requestStartedAt = new Date().toISOString();
 
   try {
+    const supabase = createSupabaseServerClientStrict();
+
     const url = new URL(request.url);
     const checkId = url.searchParams.get('checkId');
 

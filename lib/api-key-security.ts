@@ -2,10 +2,11 @@
 // Copy-paste ready - prevents timing attacks & unauthorized access
 
 import crypto from 'crypto';
-import { createClient } from '@supabase/supabase-js';
 import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict';
 
-const supabase = await createSupabaseServerClientStrict();
+function getSupabase() {
+  return createSupabaseServerClientStrict();
+}
 
 export interface APIKeyValidation {
   valid: boolean;
@@ -96,7 +97,7 @@ export async function validateAPIKey(
     const providedHash = hashAPIKey(apiKey);
 
     // Query database for matching key
-    const { data: keyRecord, error } = await supabase
+    const { data: keyRecord, error } = await getSupabase()
       .from('api_keys')
       .select(
         `
@@ -142,7 +143,7 @@ export async function validateAPIKey(
     }
 
     // ✅ Update last used timestamp
-    await supabase
+    await getSupabase()
       .from('api_keys')
       .update({ last_used_at: new Date().toISOString() })
       .eq('id', keyRecord.id as string);
@@ -180,7 +181,7 @@ export async function rotateAPIKey(
 ): Promise<{ newKey: string; oldKeyInvalidated: boolean } | null> {
   try {
     // Verify old key belongs to this firm
-    const { data: oldKey } = await supabase
+    const { data: oldKey } = await getSupabase()
       .from('api_keys')
       .select('id, scopes, rotation_count')
       .eq('firm_id', firmId)
@@ -200,7 +201,7 @@ export async function rotateAPIKey(
     expiresAt.setDate(expiresAt.getDate() + 90);
 
     // Create new key record
-    const { error: createError } = await supabase
+    const { error: createError } = await getSupabase()
       .from('api_keys')
       .insert({
         firm_id: firmId,
@@ -218,7 +219,7 @@ export async function rotateAPIKey(
     }
 
     // Invalidate old key
-    const { error: invalidateError } = await supabase
+    const { error: invalidateError } = await getSupabase()
       .from('api_keys')
       .update({ is_active: false })
       .eq('firm_id', firmId)
@@ -250,7 +251,7 @@ export async function revokeAPIKey(
   keyPrefix: string
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('api_keys')
       .update({ is_active: false })
       .eq('firm_id', firmId)
@@ -280,7 +281,7 @@ async function logFailedKeyAuth(
 ): Promise<void> {
   try {
     const ip = getClientIp(request);
-    await supabase
+    await getSupabase()
       .from('audit_logs')
       .insert({
         event_type: 'API_KEY_AUTH_FAILED',
@@ -305,7 +306,7 @@ async function logKeyRotation(
   newPrefix: string
 ): Promise<void> {
   try {
-    await supabase
+    await getSupabase()
       .from('audit_logs')
       .insert({
         firm_id: firmId,
@@ -330,7 +331,7 @@ async function logKeyRevocation(
   keyPrefix: string
 ): Promise<void> {
   try {
-    await supabase
+    await getSupabase()
       .from('audit_logs')
       .insert({
         firm_id: firmId,

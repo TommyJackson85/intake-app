@@ -8,11 +8,13 @@ export default function ConfirmEmailPage() {
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const supabase = createSupabaseBrowserClient()
+  const [supabase] = useState(() => {
+    try { return createSupabaseBrowserClient() } catch { return null }
+  })
 
   const handleResend = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (loading) return
+    if (loading || !supabase) return
     setError('')
     setLoading(true)
     try {

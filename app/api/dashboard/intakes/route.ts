@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClientStrict } from '@/lib/serverClientStrict'
+import { getServerSupabase } from '@/lib/serverSupabase'
 import { getCurrentUserServer } from '@/lib/server/current-user'
 
 export async function GET(request: Request) {
@@ -15,8 +15,8 @@ export async function GET(request: Request) {
     const scope = url.searchParams.get('scope') === 'firm' ? 'firm' : 'my'
     const status = url.searchParams.get('status')
 
-    const admin = createSupabaseServerClientStrict()
-    let query = admin
+    const supabase = await getServerSupabase()
+    let query = supabase
       .from('leads')
       .select(
         'id, created_at, updated_at, status, client_full_name, client_email, client_phone, matter_type, property_address, assigned_to_user_id, submitted_at, last_client_activity_at'

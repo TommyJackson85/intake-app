@@ -14,10 +14,6 @@ import { CreateLeadSchema } from '@/lib/validation-schemas';
 // app/api/external/leads/route.ts - Fixed version
 // Fixed: audit log event types to match your database schema
 
-import { createClient } from '@supabase/supabase-js';
-
-
-const supabase = await createSupabaseServerClientStrict()
 
 /**
  * POST /api/external/leads
@@ -31,6 +27,8 @@ const supabase = await createSupabaseServerClientStrict()
  */
 export async function POST(request: Request) {
   try {
+    const supabase = createSupabaseServerClientStrict();
+
     // Get client IP for rate limiting and audit
     const clientIp =
       request.headers.get('x-forwarded-for')?.split(',')[0] ||
@@ -185,6 +183,8 @@ export async function POST(request: Request) {
  */
 export async function GET(request: Request) {
   try {
+    const supabase = createSupabaseServerClientStrict();
+
     // Rate limiting
     const limitResult = await rateLimit(request, 'public-leads');
     if (limitResult.isLimited) {
@@ -264,6 +264,7 @@ async function logLeadEvent(
   clientIp: string
 ): Promise<void> {
   try {
+    const supabase = createSupabaseServerClientStrict();
     await supabase.from('audit_logs').insert({
       firm_id: firmId,
       user_id: null, // API key authentication, no specific user

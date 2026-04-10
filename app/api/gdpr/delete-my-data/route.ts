@@ -6,11 +6,6 @@ import { validateRequest } from '@/lib/validation-schemas';
 import { GDPRDeleteSchema } from '@/lib/validation-schemas';
 import { logAuditEvent } from '@/lib/auditLog';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 interface DeletionResult {
   success: boolean;
   deletedRecords: {
@@ -31,6 +26,11 @@ interface DeletionResult {
  */
 async function getAuthenticatedUser(request: Request) {
   try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return null;
@@ -38,7 +38,7 @@ async function getAuthenticatedUser(request: Request) {
 
     // Decode JWT token (assuming your auth is set up)
     const token = authHeader.slice(7);
-    
+
     // For Supabase, verify the token
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
     
@@ -81,6 +81,11 @@ function getClientIp(request: Request): string {
  */
 export async function POST(request: Request) {
   try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // Authenticate user
     const user = await getAuthenticatedUser(request);
     if (!user) {
@@ -338,6 +343,10 @@ async function logGDPREvent(
   metadata: Record<string, any>
 ): Promise<void> {
   try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     // Use admin client to ensure log creation succeeds even if user is deleted
     await supabaseAdmin.from('audit_logs').insert({
       event_type: eventType,
