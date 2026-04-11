@@ -183,6 +183,8 @@ export type DemoIntakeSnapshot = {
   buyerType?: DemoPartyType
 }
 
+export type DemoConflictCheckStatus = 'pending' | 'clear' | 'flagged' | 'confirmed_no_conflict'
+
 export type DemoIntakeLeadStatus = 'pending_client' | 'submitted'
 
 export type DemoIntakeDemoDelivery = 'link_saved' | 'email_sent'
@@ -210,6 +212,10 @@ export type DemoIntakeLead = {
   linkedMatterFileId?: string | null
   /** Set when a demo client record is created from this intake */
   linkedClientId?: string | null
+  /** Conflict check gate — must be resolved before opening as matter */
+  conflict_check_status?: DemoConflictCheckStatus
+  conflict_check_completed_at?: string | null
+  conflict_check_note?: string | null
 }
 
 export type DemoSeedData = {
