@@ -1,3 +1,17 @@
+export type MatterMilestoneStatus =
+  | 'instruction_received' | 'aml_checks_started' | 'aml_checks_complete'
+  | 'title_search_started' | 'title_search_complete' | 'contracts_received'
+  | 'contracts_signed' | 'closing_date_set' | 'closed'
+
+export type DemoMilestoneLog = {
+  id: string
+  matter_id: string
+  status: MatterMilestoneStatus
+  label: string
+  logged_at: string
+  note?: string
+}
+
 export type DemoTaskStatus = 'not_started' | 'in_progress' | 'completed'
 
 
@@ -108,6 +122,7 @@ export type DemoMatter = {
   status: DemoMatterStatus
   deletedAt: string | null
   matter_type: string
+  portal_token: string
   property: {
     address: string
     county: string

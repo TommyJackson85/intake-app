@@ -1,5 +1,42 @@
-import type { DemoSeedData } from '@/lib/demo/types'
+import type { DemoSeedData, MatterMilestoneStatus, DemoMilestoneLog } from '@/lib/demo/types'
 
+export const MILESTONE_LABELS: Record<MatterMilestoneStatus, string> = {
+  instruction_received: 'Instruction received',
+  aml_checks_started: 'AML checks started',
+  aml_checks_complete: 'AML checks complete',
+  title_search_started: 'Title search started',
+  title_search_complete: 'Title search complete',
+  contracts_received: 'Contracts received',
+  contracts_signed: 'Contracts signed',
+  closing_date_set: 'Closing date confirmed',
+  closed: 'Transaction closed',
+}
+
+export const MILESTONE_ORDER: MatterMilestoneStatus[] = [
+  'instruction_received', 'aml_checks_started', 'aml_checks_complete',
+  'title_search_started', 'title_search_complete', 'contracts_received',
+  'contracts_signed', 'closing_date_set', 'closed',
+]
+
+export const DEMO_MILESTONE_LOGS: DemoMilestoneLog[] = [
+  // matter-001 — Cleared to Close (financed residential purchase)
+  { id: 'ml-001-1', matter_id: 'matter-001', status: 'instruction_received', label: 'Instruction received', logged_at: '2026-03-04T09:22:00.000Z', note: 'Fully executed FAR/BAR contract received.' },
+  { id: 'ml-001-2', matter_id: 'matter-001', status: 'aml_checks_started', label: 'AML checks started', logged_at: '2026-03-04T11:00:00.000Z', note: 'ID verification initiated for buyer and seller.' },
+  { id: 'ml-001-3', matter_id: 'matter-001', status: 'aml_checks_complete', label: 'AML checks complete', logged_at: '2026-03-06T14:30:00.000Z', note: 'All parties cleared.' },
+  { id: 'ml-001-4', matter_id: 'matter-001', status: 'title_search_started', label: 'Title search started', logged_at: '2026-03-07T09:00:00.000Z', note: 'Title search ordered with Orange County.' },
+  { id: 'ml-001-5', matter_id: 'matter-001', status: 'title_search_complete', label: 'Title search complete', logged_at: '2026-03-12T16:45:00.000Z', note: 'Clear title confirmed — no liens or encumbrances.' },
+  { id: 'ml-001-6', matter_id: 'matter-001', status: 'contracts_received', label: 'Contracts received', logged_at: '2026-03-15T10:20:00.000Z', note: 'Closing disclosure and ALTA prepared.' },
+  { id: 'ml-001-7', matter_id: 'matter-001', status: 'contracts_signed', label: 'Contracts signed', logged_at: '2026-03-20T15:00:00.000Z', note: 'Buyer and seller signed closing documents.' },
+  // matter-002 — Scheduled for Closing (cash purchase, entity buyer)
+  { id: 'ml-002-1', matter_id: 'matter-002', status: 'instruction_received', label: 'Instruction received', logged_at: '2026-03-01T10:00:00.000Z', note: 'Contract received from buyer agent.' },
+  { id: 'ml-002-2', matter_id: 'matter-002', status: 'aml_checks_started', label: 'AML checks started', logged_at: '2026-03-01T14:00:00.000Z', note: 'Entity verification started for Palm Harbor Ventures LLC.' },
+  { id: 'ml-002-3', matter_id: 'matter-002', status: 'aml_checks_complete', label: 'AML checks complete', logged_at: '2026-03-05T11:30:00.000Z', note: 'Entity and beneficial owners verified.' },
+  { id: 'ml-002-4', matter_id: 'matter-002', status: 'title_search_started', label: 'Title search started', logged_at: '2026-03-06T09:15:00.000Z', note: 'Title search ordered with Sarasota County.' },
+  { id: 'ml-002-5', matter_id: 'matter-002', status: 'title_search_complete', label: 'Title search complete', logged_at: '2026-03-13T11:08:00.000Z', note: 'Title commitment issued — clear.' },
+  { id: 'ml-002-6', matter_id: 'matter-002', status: 'contracts_received', label: 'Contracts received', logged_at: '2026-03-18T10:00:00.000Z', note: 'Closing package prepared and sent to parties.' },
+  { id: 'ml-002-7', matter_id: 'matter-002', status: 'contracts_signed', label: 'Contracts signed', logged_at: '2026-03-22T14:30:00.000Z', note: 'All parties signed — wire transfer pending.' },
+  { id: 'ml-002-8', matter_id: 'matter-002', status: 'closing_date_set', label: 'Closing date confirmed', logged_at: '2026-03-23T09:00:00.000Z', note: 'Closing confirmed for March 26 at Sarasota office.' },
+]
 
 export const demoSeedData: DemoSeedData = {
   intakeLeads: [
@@ -104,6 +141,7 @@ export const demoSeedData: DemoSeedData = {
       status: 'Cleared to Close',
       deletedAt: null,
       matter_type: 'Financed Residential Purchase',
+      portal_token: 'demo-portal-matter-001',
       property: {
         address: '1427 Orange Blossom Dr, Winter Garden, FL 34787',
         county: 'Orange County',
@@ -173,6 +211,7 @@ export const demoSeedData: DemoSeedData = {
       status: 'Scheduled for Closing',
       deletedAt: null,
       matter_type: 'Cash Residential Purchase',
+      portal_token: 'demo-portal-matter-002',
       property: {
         address: '88 Gulf View Ct Unit 5B, Sarasota, FL 34236',
         county: 'Sarasota County',
@@ -275,6 +314,7 @@ export const demoSeedData: DemoSeedData = {
       status: 'Title Search',
       deletedAt: null,
       matter_type: 'Cash Residential Purchase',
+      portal_token: 'demo-portal-matter-003',
       property: {
         address: '3109 Cypress Hammock Ln, Tampa, FL 33618',
         county: 'Hillsborough County',
@@ -341,6 +381,7 @@ export const demoSeedData: DemoSeedData = {
       status: 'Closed/Post-Closing',
       deletedAt: null,
       matter_type: 'Financed Purchase - Post-Closing',
+      portal_token: 'demo-portal-matter-004',
       property: {
         address: '590 Harbor Lights Blvd, Fort Lauderdale, FL 33301',
         county: 'Broward County',

@@ -33,6 +33,7 @@ function DemoMattersContent() {
   const didOpenFromQueryRef = useRef(false)
   const [isNewMatterOpen, setIsNewMatterOpen] = useState(false)
   const [showDemoCreationDisabledBanner, setShowDemoCreationDisabledBanner] = useState(false)
+  const [copiedMatterId, setCopiedMatterId] = useState<string | null>(null)
 
   const searchParams = useSearchParams()
   const selectedMatterFromQuery = searchParams.get('matter')
@@ -163,7 +164,28 @@ function DemoMattersContent() {
                   {new Date(m.key_dates.closing_date).toLocaleDateString()}
                 </td>
                 <td style={{ padding: '14px', color: statusColor(m.status), fontWeight: 800 }}>{m.status}</td>
-                <td style={{ padding: '14px' }}>
+                <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigator.clipboard.writeText(`${window.location.origin}/demo/portal/${m.portal_token}`)
+                      setCopiedMatterId(m.id)
+                      setTimeout(() => setCopiedMatterId((prev) => (prev === m.id ? null : prev)), 2000)
+                    }}
+                    style={{
+                      background: copiedMatterId === m.id ? '#0f766e' : 'none',
+                      border: '1px solid #0f766e',
+                      color: copiedMatterId === m.id ? 'white' : '#0f766e',
+                      borderRadius: '6px',
+                      padding: '6px 10px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      marginRight: '6px',
+                    }}
+                  >
+                    {copiedMatterId === m.id ? 'Copied!' : 'Copy Portal Link'}
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => {
