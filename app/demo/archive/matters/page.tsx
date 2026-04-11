@@ -26,7 +26,7 @@ export default function DemoArchivedMattersPage() {
         </div>
       </div>
 
-      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid rgba(94,82,64,0.2)', overflow: 'hidden' }}>
+      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid rgba(94,82,64,0.2)', overflowX: 'auto' }}>
         {rows.length === 0 ? (
           <div style={{ padding: '20px', color: '#627c71' }}>No archived matters in this demo session.</div>
         ) : (

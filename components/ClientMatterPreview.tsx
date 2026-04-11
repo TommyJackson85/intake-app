@@ -44,7 +44,7 @@ export function ClientMatterPreview({
         View the basic status of your matter(s). (Preview — you are still logged in as the firm.)
       </p>
 
-      <div style={{ background: 'white', border: '1px solid rgba(94, 82, 64, 0.2)', borderRadius: '8px', overflow: 'hidden' }}>
+      <div style={{ background: 'white', border: '1px solid rgba(94, 82, 64, 0.2)', borderRadius: '8px', overflowX: 'auto' }}>
         {matters.length === 0 ? (
           <div style={{ padding: '20px', color: '#627c71' }}>
             No matters found yet.
