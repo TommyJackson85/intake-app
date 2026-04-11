@@ -2,8 +2,9 @@
 
 import { useAuth } from '@/lib/auth-context'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
+import { MobileTopBar, MobileBottomNav } from '@/components/MobileNav'
 import { useRouter, usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { needsTermsAcceptance } from '@/lib/terms-config'
 
 export default function DashboardLayout({
@@ -19,13 +20,6 @@ export default function DashboardLayout({
   const isDemoFirm = Boolean((firm as { is_demo_firm?: boolean } | null)?.is_demo_firm)
   const isDemoGuest = Boolean((profile as { is_demo_guest?: boolean } | null)?.is_demo_guest)
   const isRegisterFirmPage = pathname === '/dashboard/register-firm'
-
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  // Close sidebar on route change (mobile)
-  useEffect(() => {
-    setSidebarOpen(false)
-  }, [pathname])
 
   useEffect(() => {
     if (!loading && !session) {
@@ -70,37 +64,18 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Mobile backdrop */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile top bar */}
+      <MobileTopBar firmName={firm?.name} />
 
-      {/* Sidebar */}
+      {/* Sidebar — hidden on mobile, visible on desktop */}
       <aside
-        className={`
-          fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:relative md:translate-x-0 md:flex md:flex-col md:flex-shrink-0
-        `}
+        className="hidden md:flex md:flex-col md:flex-shrink-0 w-64"
         style={{
           background: '#134252',
           color: 'white',
           overflowY: 'auto',
         }}
       >
-        {/* Mobile close button */}
-        <button
-          className="md:hidden absolute top-4 right-4"
-          onClick={() => setSidebarOpen(false)}
-          aria-label="Close sidebar"
-          style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px' }}
-        >
-          ✕
-        </button>
-
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ marginBottom: '40px', fontSize: '20px', fontWeight: 600 }}>
             <a href="/" style={{ color: 'inherit', textDecoration: 'none' }}>⚖️ LawIntake</a>
@@ -207,19 +182,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto">
-        {/* Mobile header with hamburger */}
-        <div className="md:hidden sticky top-0 z-30 flex items-center px-4 py-3" style={{ background: '#134252' }}>
-          <button
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open sidebar"
-            style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', lineHeight: 1 }}
-          >
-            ☰
-          </button>
-          <span style={{ color: 'white', fontWeight: 600, fontSize: '18px', marginLeft: '12px' }}>⚖️ LawIntake</span>
-        </div>
-
+      <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
         <div className="px-4 py-6 md:px-10 md:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
           <ImpersonationBanner />
           {/* Demo firm banner */}
@@ -294,6 +257,9 @@ export default function DashboardLayout({
           {children}
         </div>
       </main>
+
+      {/* Mobile bottom nav */}
+      <MobileBottomNav />
     </div>
   )
 }

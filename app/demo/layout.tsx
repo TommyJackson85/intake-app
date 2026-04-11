@@ -4,16 +4,10 @@ import Link from 'next/link'
 import { DemoProvider } from '@/lib/demo/store'
 import { usePathname } from 'next/navigation'
 import { DemoDataProvider } from '@/context/DemoDataContext'
-import { useState, useEffect } from 'react'
+import { MobileTopBar, MobileBottomNav } from '@/components/MobileNav'
 
 export default function DemoLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  // Close sidebar on route change (mobile)
-  useEffect(() => {
-    setSidebarOpen(false)
-  }, [pathname])
 
   const navItems = [
     { href: '/demo', label: 'Dashboard' },
@@ -29,37 +23,18 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
     <DemoProvider>
       <DemoDataProvider>
         <div className="flex h-screen overflow-hidden" style={{ background: '#fcfcf9' }}>
-          {/* Mobile backdrop */}
-          {sidebarOpen && (
-            <div
-              className="fixed inset-0 bg-black/50 z-40 md:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
+          {/* Mobile top bar */}
+          <MobileTopBar />
 
-          {/* Sidebar */}
+          {/* Sidebar — hidden on mobile, visible on desktop */}
           <aside
-            className={`
-              fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300
-              ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-              md:relative md:translate-x-0 md:flex md:flex-col md:flex-shrink-0
-            `}
+            className="hidden md:flex md:flex-col md:flex-shrink-0 w-64"
             style={{
               background: '#134252',
               color: 'white',
               overflowY: 'auto',
             }}
           >
-            {/* Mobile close button */}
-            <button
-              className="md:hidden absolute top-4 right-4"
-              onClick={() => setSidebarOpen(false)}
-              aria-label="Close sidebar"
-              style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px' }}
-            >
-              ✕
-            </button>
-
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', height: '100%' }}>
               <div style={{ marginBottom: '40px', fontSize: '20px', fontWeight: 600 }}>
                 <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>
@@ -114,19 +89,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
           </aside>
 
           {/* Main content */}
-          <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto">
-            {/* Mobile header with hamburger */}
-            <div className="md:hidden sticky top-0 z-30 flex items-center px-4 py-3" style={{ background: '#134252' }}>
-              <button
-                onClick={() => setSidebarOpen(true)}
-                aria-label="Open sidebar"
-                style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', lineHeight: 1 }}
-              >
-                ☰
-              </button>
-              <span style={{ color: 'white', fontWeight: 600, fontSize: '18px', marginLeft: '12px' }}>⚖️ LawIntake</span>
-            </div>
-
+          <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
             <div className="px-4 py-6 md:px-10 md:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
               <div
                 role="alert"
@@ -145,6 +108,9 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
               {children}
             </div>
           </main>
+
+          {/* Mobile bottom nav */}
+          <MobileBottomNav isDemo={true} />
         </div>
       </DemoDataProvider>
     </DemoProvider>
