@@ -64,9 +64,6 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Mobile top bar */}
-      <MobileTopBar firmName={firm?.name} />
-
       {/* Sidebar — hidden on mobile, visible on desktop */}
       <aside
         className="hidden md:flex md:flex-col md:flex-shrink-0 w-64"
@@ -181,85 +178,91 @@ export default function DashboardLayout({
         </div>
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
-        <div className="px-4 py-6 md:px-10 md:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
-          <ImpersonationBanner />
-          {/* Demo firm banner */}
-          {isDemoFirm && (
-            <div
-              role="alert"
-              aria-live="polite"
-              style={{
-                marginBottom: '24px',
-                padding: '16px 20px',
-                background: 'linear-gradient(135deg, #fff8e6 0%, #fff4d6 100%)',
-                border: '2px solid #f0b429',
-                borderRadius: '8px',
-                fontSize: '15px',
-                color: '#134252',
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '16px',
-                boxShadow: '0 2px 8px rgba(240, 180, 41, 0.15)',
-              }}
-            >
-              <div>
-                <strong style={{ fontSize: '16px' }}>You are using a demo firm</strong>
-                <p style={{ margin: '6px 0 0', fontSize: '14px', opacity: 0.9 }}>
-                  This is dummy data. Do not enter real client information. Data may be reset regularly.
-                </p>
-              </div>
-              {isDemoGuest ? (
-                <a
-                  href="/auth/signup"
-                  style={{
-                    display: 'inline-block',
-                    padding: '12px 24px',
-                    background: '#208096',
-                    color: 'white',
-                    borderRadius: '8px',
-                    textDecoration: 'none',
-                    fontWeight: 700,
-                    fontSize: '15px',
-                    whiteSpace: 'nowrap',
-                    boxShadow: '0 2px 4px rgba(32, 128, 150, 0.3)',
-                  }}
-                >
-                  Create your account
-                </a>
-              ) : (
-                <form action="/api/auth/leave-demo-firm" method="POST" style={{ display: 'inline' }}>
-                  <button
-                    type="submit"
+      {/* Column wrapper for mobile top bar, content, and bottom nav */}
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Mobile top bar */}
+        <MobileTopBar firmName={firm?.name} />
+
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
+          <div className="px-4 py-6 md:px-10 md:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
+            <ImpersonationBanner />
+            {/* Demo firm banner */}
+            {isDemoFirm && (
+              <div
+                role="alert"
+                aria-live="polite"
+                style={{
+                  marginBottom: '24px',
+                  padding: '16px 20px',
+                  background: 'linear-gradient(135deg, #fff8e6 0%, #fff4d6 100%)',
+                  border: '2px solid #f0b429',
+                  borderRadius: '8px',
+                  fontSize: '15px',
+                  color: '#134252',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  boxShadow: '0 2px 8px rgba(240, 180, 41, 0.15)',
+                }}
+              >
+                <div>
+                  <strong style={{ fontSize: '16px' }}>You are using a demo firm</strong>
+                  <p style={{ margin: '6px 0 0', fontSize: '14px', opacity: 0.9 }}>
+                    This is dummy data. Do not enter real client information. Data may be reset regularly.
+                  </p>
+                </div>
+                {isDemoGuest ? (
+                  <a
+                    href="/auth/signup"
                     style={{
                       display: 'inline-block',
                       padding: '12px 24px',
                       background: '#208096',
                       color: 'white',
-                      border: 'none',
                       borderRadius: '8px',
+                      textDecoration: 'none',
                       fontWeight: 700,
                       fontSize: '15px',
                       whiteSpace: 'nowrap',
-                      cursor: 'pointer',
                       boxShadow: '0 2px 4px rgba(32, 128, 150, 0.3)',
                     }}
                   >
-                    Register your law firm
-                  </button>
-                </form>
-              )}
-            </div>
-          )}
-          {children}
-        </div>
-      </main>
+                    Create your account
+                  </a>
+                ) : (
+                  <form action="/api/auth/leave-demo-firm" method="POST" style={{ display: 'inline' }}>
+                    <button
+                      type="submit"
+                      style={{
+                        display: 'inline-block',
+                        padding: '12px 24px',
+                        background: '#208096',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        fontSize: '15px',
+                        whiteSpace: 'nowrap',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 4px rgba(32, 128, 150, 0.3)',
+                      }}
+                    >
+                      Register your law firm
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
+            {children}
+          </div>
+        </main>
 
-      {/* Mobile bottom nav */}
-      <MobileBottomNav />
+        {/* Mobile bottom nav */}
+        <MobileBottomNav />
+      </div>
     </div>
   )
 }

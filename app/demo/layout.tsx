@@ -23,9 +23,6 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
     <DemoProvider>
       <DemoDataProvider>
         <div className="flex h-screen overflow-hidden" style={{ background: '#fcfcf9' }}>
-          {/* Mobile top bar */}
-          <MobileTopBar />
-
           {/* Sidebar — hidden on mobile, visible on desktop */}
           <aside
             className="hidden md:flex md:flex-col md:flex-shrink-0 w-64"
@@ -88,29 +85,35 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
             </div>
           </aside>
 
-          {/* Main content */}
-          <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
-            <div className="px-4 py-6 md:px-10 md:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
-              <div
-                role="alert"
-                style={{
-                  marginBottom: '20px',
-                  padding: '14px 16px',
-                  border: '1px solid #f0b429',
-                  borderRadius: '8px',
-                  background: '#fff8e6',
-                  color: '#134252',
-                }}
-              >
-                <strong>You are in demo mode.</strong> Data is fake. Matters and FinCEN certification state persist in
-                your browser (localStorage) until you clear site data. No real client data is sent to a server.
-              </div>
-              {children}
-            </div>
-          </main>
+          {/* Column wrapper for mobile top bar, content, and bottom nav */}
+          <div className="flex flex-col flex-1 min-w-0">
+            {/* Mobile top bar */}
+            <MobileTopBar />
 
-          {/* Mobile bottom nav */}
-          <MobileBottomNav isDemo={true} />
+            {/* Main content */}
+            <main className="flex-1 overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
+              <div className="px-4 py-6 md:px-10 md:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
+                <div
+                  role="alert"
+                  style={{
+                    marginBottom: '20px',
+                    padding: '14px 16px',
+                    border: '1px solid #f0b429',
+                    borderRadius: '8px',
+                    background: '#fff8e6',
+                    color: '#134252',
+                  }}
+                >
+                  <strong>You are in demo mode.</strong> Data is fake. Matters and FinCEN certification state persist in
+                  your browser (localStorage) until you clear site data. No real client data is sent to a server.
+                </div>
+                {children}
+              </div>
+            </main>
+
+            {/* Mobile bottom nav */}
+            <MobileBottomNav isDemo={true} />
+          </div>
         </div>
       </DemoDataProvider>
     </DemoProvider>
