@@ -1183,6 +1183,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             status,
             deletedAt: null,
             matter_type: input.matter_type,
+            portal_token: `demo-portal-${matterId}`,
             property: {
               address: input.property_address,
               county: input.county,
