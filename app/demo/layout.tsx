@@ -22,7 +22,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
   return (
     <DemoProvider>
       <DemoDataProvider>
-        <div className="flex h-screen overflow-hidden" style={{ background: '#fcfcf9' }}>
+        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#fcfcf9' }}>
           {/* Sidebar — hidden on mobile, visible on desktop */}
           <aside
             className="hidden md:flex md:flex-col md:flex-shrink-0 w-64"
@@ -85,13 +85,13 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
             </div>
           </aside>
 
-          {/* Column wrapper for mobile top bar, content, and bottom nav */}
-          <div className="flex flex-col flex-1 min-w-0">
+          {/* Right side column */}
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
             {/* Mobile top bar */}
-            <MobileTopBar />
+            <MobileTopBar isDemo={true} />
 
-            {/* Main content */}
-            <main className="flex-1 overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
+            {/* Scrollable content */}
+            <main style={{ flex: 1, overflowY: 'auto', paddingTop: '56px', paddingBottom: '64px' }} className="md:pt-0 md:pb-0">
               <div className="px-4 py-6 md:px-10 md:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
                 <div
                   role="alert"
@@ -111,7 +111,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
               </div>
             </main>
 
-            {/* Mobile bottom nav */}
+            {/* Mobile bottom nav — OUTSIDE scrollable main, position fixed to viewport */}
             <MobileBottomNav isDemo={true} />
           </div>
         </div>

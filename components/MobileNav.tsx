@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -52,18 +53,113 @@ function UsersIcon() {
   )
 }
 
-/* ─── Top bar ───────────────────────────────────────────────────── */
-export function MobileTopBar({ firmName }: { firmName?: string }) {
+/* ─── Top bar with burger menu ─────────────────────────────────── */
+export function MobileTopBar({ firmName, isDemo = false }: { firmName?: string; isDemo?: boolean }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const base = isDemo ? '/demo' : '/dashboard'
+
+  const secondaryLinks = isDemo
+    ? [{ href: `${base}/archive/matters`, label: 'Archive' }]
+    : [
+        { href: `${base}/aml`, label: 'AML Compliance' },
+        { href: `${base}/billing`, label: 'Billing' },
+        { href: `${base}/settings`, label: 'Settings' },
+      ]
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 md:hidden flex items-center justify-between px-4 py-3 bg-teal-800 text-white shadow-md">
-      <span className="font-bold text-lg tracking-tight">⚖️ LawIntake</span>
-      {firmName && (
-        <span className="text-xs text-teal-200 truncate max-w-[150px]">{firmName}</span>
+    <>
+      <header
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          backgroundColor: '#0f766e',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          color: 'white',
+        }}
+        className="md:hidden shadow-md"
+      >
+        {/* Burger button — left */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px', background: 'none', border: 'none', cursor: 'pointer' }}
+          aria-label="Open menu"
+        >
+          <span style={{ display: 'block', width: '20px', height: '2px', backgroundColor: 'white', borderRadius: '2px' }} />
+          <span style={{ display: 'block', width: '20px', height: '2px', backgroundColor: 'white', borderRadius: '2px' }} />
+          <span style={{ display: 'block', width: '20px', height: '2px', backgroundColor: 'white', borderRadius: '2px' }} />
+        </button>
+
+        {/* Logo — centre */}
+        <span style={{ fontWeight: 700, fontSize: '18px', letterSpacing: '-0.5px' }}>LawIntake</span>
+
+        {/* Profile avatar — right */}
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px',
+            fontWeight: 600,
+          }}
+        >
+          L
+        </div>
+      </header>
+
+      {/* Dropdown menu */}
+      {menuOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setMenuOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 48, backgroundColor: 'rgba(0,0,0,0.3)' }}
+            className="md:hidden"
+          />
+          {/* Menu panel — slides down from top bar */}
+          <div
+            style={{
+              position: 'fixed',
+              top: '56px',
+              left: 0,
+              right: 0,
+              zIndex: 49,
+              backgroundColor: '#0f766e',
+              borderBottom: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            }}
+            className="md:hidden"
+          >
+            {secondaryLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  display: 'block',
+                  padding: '14px 20px',
+                  color: 'rgba(255,255,255,0.9)',
+                  fontSize: '15px',
+                  borderBottom: '1px solid rgba(255,255,255,0.08)',
+                  textDecoration: 'none',
+                }}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </>
       )}
-      <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-sm font-semibold">
-        L
-      </div>
-    </header>
+    </>
   )
 }
 
@@ -82,8 +178,19 @@ export function MobileBottomNav({ isDemo = false }: { isDemo?: boolean }) {
   ]
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-gray-200 shadow-lg">
-      <div className="flex justify-around items-center py-1">
+    <nav
+      className="md:hidden"
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        backgroundColor: '#0f766e',
+        boxShadow: '0 -2px 10px rgba(0,0,0,0.2)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '4px 0' }}>
         {links.map((link) => {
           const isActive =
             link.href === base
@@ -93,17 +200,28 @@ export function MobileBottomNav({ isDemo = false }: { isDemo?: boolean }) {
             <Link
               key={link.href}
               href={link.href}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors ${
-                isActive ? 'text-teal-700' : 'text-gray-500 hover:text-teal-600'
-              }`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px',
+                padding: '4px 8px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                color: isActive ? 'white' : '#99f6e4',
+                backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
+                transition: 'color 0.15s, background-color 0.15s',
+              }}
             >
-              <span className={`w-5 h-5 ${isActive ? 'text-teal-700' : 'text-gray-400'}`}>
+              <span style={{ width: '20px', height: '20px', color: isActive ? 'white' : '#99f6e4' }}>
                 {link.icon}
               </span>
               <span
-                className={`text-[10px] font-medium ${
-                  isActive ? 'text-teal-700' : 'text-gray-500'
-                }`}
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  color: isActive ? 'white' : '#99f6e4',
+                }}
               >
                 {link.label}
               </span>
