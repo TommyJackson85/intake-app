@@ -91,7 +91,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
             <MobileTopBar isDemo={true} />
 
             {/* Scrollable content */}
-            <main style={{ flex: 1, overflowY: 'auto', paddingTop: '56px', paddingBottom: '64px' }} className="lg:pt-0 lg:pb-0">
+            <main style={{ flex: 1, overflowY: 'auto' }} className="pt-14 pb-16 lg:pt-0 lg:pb-0">
               <div className="px-4 py-6 lg:px-10 lg:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
                 <div
                   role="alert"
