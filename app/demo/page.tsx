@@ -110,7 +110,7 @@ function DemoPageContent() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ marginBottom: '6px', fontSize: '32px' }}>Dashboard</h1>
           <p style={{ margin: 0, color: '#627c71', fontSize: '14px' }}>Your worklist and key dates for the next 7 days.</p>
@@ -213,7 +213,7 @@ function DemoPageContent() {
           Staff: {staff.map((s) => `${s.full_name} (${s.role})`).join(' | ')}
         </div>
 
-        <div style={{ background: 'white', border: '1px solid rgba(94,82,64,0.2)', borderRadius: '8px', overflow: 'hidden' }}>
+        <div style={{ background: 'white', border: '1px solid rgba(94,82,64,0.2)', borderRadius: '8px', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#fcfcf9' }}>

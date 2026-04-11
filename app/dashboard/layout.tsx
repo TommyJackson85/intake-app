@@ -3,7 +3,7 @@
 import { useAuth } from '@/lib/auth-context'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 import { useRouter, usePathname } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { needsTermsAcceptance } from '@/lib/terms-config'
 
 export default function DashboardLayout({
@@ -19,6 +19,13 @@ export default function DashboardLayout({
   const isDemoFirm = Boolean((firm as { is_demo_firm?: boolean } | null)?.is_demo_firm)
   const isDemoGuest = Boolean((profile as { is_demo_guest?: boolean } | null)?.is_demo_guest)
   const isRegisterFirmPage = pathname === '/dashboard/register-firm'
+
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [pathname])
 
   useEffect(() => {
     if (!loading && !session) {
@@ -62,196 +69,230 @@ export default function DashboardLayout({
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <aside style={{
-        width: '250px',
-        background: '#134252',
-        color: 'white',
-        padding: '20px',
-        position: 'fixed',
-        height: '100vh',
-        overflowY: 'auto',
-      }}>
-        <div style={{ marginBottom: '40px', fontSize: '20px', fontWeight: 600 }}>
-          <a href="/" style={{ color: 'inherit', textDecoration: 'none' }}>⚖️ LawIntake</a>
-          {isDemoFirm && (
-            <span
-              style={{
-                display: 'inline-block',
-                marginLeft: '8px',
-                fontSize: '11px',
-                background: '#f0b429',
-                color: '#134252',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontWeight: 600,
-              }}
-            >
-              Demo
-            </span>
-          )}
-          {isTestFirm && !isDemoFirm && (
-            <span
-              style={{
-                display: 'inline-block',
-                marginLeft: '8px',
-                fontSize: '11px',
-                background: '#90cfd9',
-                color: '#134252',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontWeight: 600,
-              }}
-            >
-              Dev
-            </span>
-          )}
-        </div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {hasFirm && (
-            <>
-              <a href="/dashboard" style={{ color: 'white', textDecoration: 'none' }}>Dashboard</a>
-              <a href="/dashboard/matters" style={{ color: 'white', textDecoration: 'none' }}>Matters</a>
-              <a href="/dashboard/intakes" style={{ color: 'white', textDecoration: 'none' }}>Intake/Leads</a>
-              <a href="/dashboard/calendar" style={{ color: 'white', textDecoration: 'none' }}>Calendar</a>
-              <a href="/dashboard/documents" style={{ color: 'white', textDecoration: 'none' }}>Documents</a>
-              {!isDemoFirm && (
-                <a href="/dashboard/billing" style={{ color: 'white', textDecoration: 'none' }}>Billing</a>
-              )}
-              <a href="/dashboard/clients" style={{ color: 'white', textDecoration: 'none' }}>Clients</a>
-              <a href="/dashboard/aml" style={{ color: 'white', textDecoration: 'none' }}>AML</a>
-            </>
-          )}
-          {!hasFirm && !isRegisterFirmPage && (
-            <a href="/dashboard/register-firm" style={{ color: '#90cfd9', textDecoration: 'none', fontWeight: 600 }}>
-              Register your firm
-            </a>
-          )}
-          {hasFirm && isDemoFirm && (
-            <form action="/api/auth/leave-demo-firm" method="POST" style={{ display: 'inline' }}>
-              <button
-                type="submit"
+    <div className="flex h-screen overflow-hidden">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:relative md:translate-x-0 md:flex md:flex-col md:flex-shrink-0
+        `}
+        style={{
+          background: '#134252',
+          color: 'white',
+          overflowY: 'auto',
+        }}
+      >
+        {/* Mobile close button */}
+        <button
+          className="md:hidden absolute top-4 right-4"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close sidebar"
+          style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px' }}
+        >
+          ✕
+        </button>
+
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ marginBottom: '40px', fontSize: '20px', fontWeight: 600 }}>
+            <a href="/" style={{ color: 'inherit', textDecoration: 'none' }}>⚖️ LawIntake</a>
+            {isDemoFirm && (
+              <span
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#90cfd9',
-                  textDecoration: 'none',
+                  display: 'inline-block',
+                  marginLeft: '8px',
+                  fontSize: '11px',
+                  background: '#f0b429',
+                  color: '#134252',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
                   fontWeight: 600,
-                  fontSize: 'inherit',
-                  cursor: 'pointer',
-                  padding: 0,
                 }}
               >
+                Demo
+              </span>
+            )}
+            {isTestFirm && !isDemoFirm && (
+              <span
+                style={{
+                  display: 'inline-block',
+                  marginLeft: '8px',
+                  fontSize: '11px',
+                  background: '#90cfd9',
+                  color: '#134252',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontWeight: 600,
+                }}
+              >
+                Dev
+              </span>
+            )}
+          </div>
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {hasFirm && (
+              <>
+                <a href="/dashboard" style={{ color: 'white', textDecoration: 'none' }}>Dashboard</a>
+                <a href="/dashboard/matters" style={{ color: 'white', textDecoration: 'none' }}>Matters</a>
+                <a href="/dashboard/intakes" style={{ color: 'white', textDecoration: 'none' }}>Intake/Leads</a>
+                <a href="/dashboard/calendar" style={{ color: 'white', textDecoration: 'none' }}>Calendar</a>
+                <a href="/dashboard/documents" style={{ color: 'white', textDecoration: 'none' }}>Documents</a>
+                {!isDemoFirm && (
+                  <a href="/dashboard/billing" style={{ color: 'white', textDecoration: 'none' }}>Billing</a>
+                )}
+                <a href="/dashboard/clients" style={{ color: 'white', textDecoration: 'none' }}>Clients</a>
+                <a href="/dashboard/aml" style={{ color: 'white', textDecoration: 'none' }}>AML</a>
+              </>
+            )}
+            {!hasFirm && !isRegisterFirmPage && (
+              <a href="/dashboard/register-firm" style={{ color: '#90cfd9', textDecoration: 'none', fontWeight: 600 }}>
                 Register your firm
-              </button>
-            </form>
-          )}
-          {hasFirm && (
-            <a href="/dashboard/settings" style={{ color: isDemoFirm ? 'rgba(255,255,255,0.8)' : 'white', textDecoration: 'none' }} title={isDemoFirm ? 'Settings are limited in demo mode' : undefined}>
-              Settings{isDemoFirm ? ' (limited)' : ' / Firm'}
-            </a>
-          )}
-          {show_dev_sudo && (
-            <a href="/dashboard/dev/sudo" style={{ color: '#f0b429', textDecoration: 'none', fontSize: '14px' }}>Dev Sudo</a>
-          )}
-        </nav>
-        <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-          {isDemoGuest ? (
-            <a
-              href="/auth/signup"
-              style={{ color: '#f0b429', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}
-            >
-              Create your account
-            </a>
-          ) : (
-            <a
-              href="/auth/logout"
-              onClick={handleLogout}
-              style={{ color: '#90cfd9', textDecoration: 'none', fontSize: '14px', cursor: 'pointer' }}
-            >
-              Sign Out
-            </a>
-          )}
-        </div>
-      </aside>
-
-      <main style={{
-        marginLeft: '250px',
-        flex: 1,
-        padding: '40px',
-        background: '#fcfcf9',
-      }}>
-        <ImpersonationBanner />
-        {/* Demo firm banner: shown on every dashboard page when currentFirm.is_demo_firm. CTA = Create account (Flow A) or Register firm (Flow B). */}
-        {isDemoFirm && (
-          <div
-            role="alert"
-            aria-live="polite"
-            style={{
-              marginBottom: '24px',
-              padding: '16px 20px',
-              background: 'linear-gradient(135deg, #fff8e6 0%, #fff4d6 100%)',
-              border: '2px solid #f0b429',
-              borderRadius: '8px',
-              fontSize: '15px',
-              color: '#134252',
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '16px',
-              boxShadow: '0 2px 8px rgba(240, 180, 41, 0.15)',
-            }}
-          >
-            <div>
-              <strong style={{ fontSize: '16px' }}>You are using a demo firm</strong>
-              <p style={{ margin: '6px 0 0', fontSize: '14px', opacity: 0.9 }}>
-                This is dummy data. Do not enter real client information. Data may be reset regularly.
-              </p>
-            </div>
+              </a>
+            )}
+            {hasFirm && isDemoFirm && (
+              <form action="/api/auth/leave-demo-firm" method="POST" style={{ display: 'inline' }}>
+                <button
+                  type="submit"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#90cfd9',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    fontSize: 'inherit',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  Register your firm
+                </button>
+              </form>
+            )}
+            {hasFirm && (
+              <a href="/dashboard/settings" style={{ color: isDemoFirm ? 'rgba(255,255,255,0.8)' : 'white', textDecoration: 'none' }} title={isDemoFirm ? 'Settings are limited in demo mode' : undefined}>
+                Settings{isDemoFirm ? ' (limited)' : ' / Firm'}
+              </a>
+            )}
+            {show_dev_sudo && (
+              <a href="/dashboard/dev/sudo" style={{ color: '#f0b429', textDecoration: 'none', fontSize: '14px' }}>Dev Sudo</a>
+            )}
+          </nav>
+          <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
             {isDemoGuest ? (
               <a
                 href="/auth/signup"
-                style={{
-                  display: 'inline-block',
-                  padding: '12px 24px',
-                  background: '#208096',
-                  color: 'white',
-                  borderRadius: '8px',
-                  textDecoration: 'none',
-                  fontWeight: 700,
-                  fontSize: '15px',
-                  whiteSpace: 'nowrap',
-                  boxShadow: '0 2px 4px rgba(32, 128, 150, 0.3)',
-                }}
+                style={{ color: '#f0b429', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}
               >
                 Create your account
               </a>
             ) : (
-              <form action="/api/auth/leave-demo-firm" method="POST" style={{ display: 'inline' }}>
-                <button
-                  type="submit"
+              <a
+                href="/auth/logout"
+                onClick={handleLogout}
+                style={{ color: '#90cfd9', textDecoration: 'none', fontSize: '14px', cursor: 'pointer' }}
+              >
+                Sign Out
+              </a>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto">
+        {/* Mobile header with hamburger */}
+        <div className="md:hidden sticky top-0 z-30 flex items-center px-4 py-3" style={{ background: '#134252' }}>
+          <button
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open sidebar"
+            style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', lineHeight: 1 }}
+          >
+            ☰
+          </button>
+          <span style={{ color: 'white', fontWeight: 600, fontSize: '18px', marginLeft: '12px' }}>⚖️ LawIntake</span>
+        </div>
+
+        <div className="px-4 py-6 md:px-10 md:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
+          <ImpersonationBanner />
+          {/* Demo firm banner */}
+          {isDemoFirm && (
+            <div
+              role="alert"
+              aria-live="polite"
+              style={{
+                marginBottom: '24px',
+                padding: '16px 20px',
+                background: 'linear-gradient(135deg, #fff8e6 0%, #fff4d6 100%)',
+                border: '2px solid #f0b429',
+                borderRadius: '8px',
+                fontSize: '15px',
+                color: '#134252',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                boxShadow: '0 2px 8px rgba(240, 180, 41, 0.15)',
+              }}
+            >
+              <div>
+                <strong style={{ fontSize: '16px' }}>You are using a demo firm</strong>
+                <p style={{ margin: '6px 0 0', fontSize: '14px', opacity: 0.9 }}>
+                  This is dummy data. Do not enter real client information. Data may be reset regularly.
+                </p>
+              </div>
+              {isDemoGuest ? (
+                <a
+                  href="/auth/signup"
                   style={{
                     display: 'inline-block',
                     padding: '12px 24px',
                     background: '#208096',
                     color: 'white',
-                    border: 'none',
                     borderRadius: '8px',
+                    textDecoration: 'none',
                     fontWeight: 700,
                     fontSize: '15px',
                     whiteSpace: 'nowrap',
-                    cursor: 'pointer',
                     boxShadow: '0 2px 4px rgba(32, 128, 150, 0.3)',
                   }}
                 >
-                  Register your law firm
-                </button>
-              </form>
-            )}
-          </div>
-        )}
-        {children}
+                  Create your account
+                </a>
+              ) : (
+                <form action="/api/auth/leave-demo-firm" method="POST" style={{ display: 'inline' }}>
+                  <button
+                    type="submit"
+                    style={{
+                      display: 'inline-block',
+                      padding: '12px 24px',
+                      background: '#208096',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '15px',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 4px rgba(32, 128, 150, 0.3)',
+                    }}
+                  >
+                    Register your law firm
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+          {children}
+        </div>
       </main>
     </div>
   )

@@ -119,9 +119,9 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 0, flexBasis: '400px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
             <div>
               <h1 style={{ marginBottom: '6px', fontSize: '32px' }}>Dashboard</h1>
               <p style={{ margin: 0, color: '#627c71', fontSize: '14px' }}>
@@ -180,7 +180,7 @@ export default function Dashboard() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
               gap: '14px',
               marginBottom: '18px',
             }}
@@ -262,7 +262,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div style={{ padding: '12px' }}>
+            <div style={{ padding: '12px', overflowX: 'auto' }}>
               {loading ? (
                 <div style={{ padding: '18px', color: '#627c71' }}>Loading…</div>
               ) : activeTab === 'intakes' ? (
@@ -342,7 +342,7 @@ export default function Dashboard() {
         </div>
 
         {/* Key dates panel */}
-        <aside style={{ width: '320px', flexShrink: 0 }}>
+        <aside style={{ width: '320px', flexShrink: 0, minWidth: 0, maxWidth: '100%' }}>
           <div style={{ background: 'white', borderRadius: '8px', border: '1px solid rgba(94, 82, 64, 0.2)', overflow: 'hidden' }}>
             <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(94, 82, 64, 0.15)', background: '#fcfcf9' }}>
               <div style={{ fontWeight: 900, color: '#134252' }}>Key dates</div>

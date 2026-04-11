@@ -8,7 +8,7 @@ export default function DemoClientsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', gap: '12px', flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: '32px', marginBottom: '6px' }}>Clients</h1>
           <p style={{ margin: 0, color: '#627c71', fontSize: '12px' }}>
@@ -30,7 +30,7 @@ export default function DemoClientsPage() {
         </Link>
       </div>
 
-      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid rgba(94, 82, 64, 0.2)', overflow: 'hidden' }}>
+      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid rgba(94, 82, 64, 0.2)', overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#fcfcf9', borderBottom: '1px solid rgba(94, 82, 64, 0.2)' }}>

@@ -53,7 +53,7 @@ export default function MattersPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ marginBottom: '6px', fontSize: '32px' }}>Matters</h1>
           <p style={{ margin: 0, color: '#627c71' }}>
@@ -81,7 +81,7 @@ export default function MattersPage() {
         </div>
       )}
 
-      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid rgba(94, 82, 64, 0.2)', overflow: 'hidden' }}>
+      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid rgba(94, 82, 64, 0.2)', overflowX: 'auto' }}>
         {loading ? (
           <div style={{ padding: '20px', color: '#627c71' }}>Loading…</div>
         ) : matters.length === 0 ? (
