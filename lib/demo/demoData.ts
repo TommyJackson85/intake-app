@@ -378,6 +378,17 @@ export const demoSeedData: DemoSeedData = {
       created_at: '2026-02-11',
       deletedAt: null,
     },
+    {
+      id: 'client-005',
+      full_name: "Sarah O'Brien",
+      email: 's.obrien@lawfirm.ie',
+      phone: '(407) 555-0199',
+      kyc_status: 'approved',
+      type: 'individual',
+      linked_matter_ids: ['matter-002'],
+      created_at: '2026-03-01',
+      deletedAt: null,
+    },
   ],
   calendarEvents: [
     {

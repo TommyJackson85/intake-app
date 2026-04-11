@@ -63,7 +63,7 @@ type DemoContextType = {
   getIntakeLeadByToken: (token: string) => DemoIntakeLead | undefined
   patchIntakeLead: (
     leadId: string,
-    patch: Partial<Pick<DemoIntakeLead, 'linkedMatterFileId' | 'linkedClientId'>>
+    patch: Partial<Pick<DemoIntakeLead, 'linkedMatterFileId' | 'linkedClientId' | 'conflict_check_status' | 'conflict_check_completed_at' | 'conflict_check_note'>>
   ) => void
   createDemoClientIfNotExists: (input: {
     full_name: string
