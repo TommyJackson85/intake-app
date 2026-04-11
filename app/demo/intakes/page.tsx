@@ -16,11 +16,18 @@ type ConflictResult = {
   hasConflict: boolean
   clientMatches: DemoClient[]
   matterMatches: DemoMatter[]
+  intakeMatches: DemoIntakeLead[]
 }
 
-function runConflictCheck(intakeName: string, clients: DemoClient[], matters: DemoMatter[]): ConflictResult {
+function runConflictCheck(
+  lead: DemoIntakeLead,
+  clients: DemoClient[],
+  matters: DemoMatter[],
+  allIntakeLeads: DemoIntakeLead[],
+): ConflictResult {
   const normalise = (s: string) => s.toLowerCase().trim()
-  const searchName = normalise(intakeName)
+  const intake = effectiveIntakeSnapshot(lead)
+  const searchName = normalise(intake.clientName?.trim() ?? '')
 
   const clientMatches = clients.filter(c =>
     !c.deletedAt &&
@@ -33,10 +40,18 @@ function runConflictCheck(intakeName: string, clients: DemoClient[], matters: De
      normalise(m.seller.name).includes(searchName) || searchName.includes(normalise(m.seller.name)))
   )
 
+  const intakeMatches = allIntakeLeads.filter(i => {
+    if (i.id === lead.id) return false
+    const otherSnapshot = effectiveIntakeSnapshot(i)
+    const otherName = normalise(otherSnapshot.clientName?.trim() ?? '')
+    return otherName.includes(searchName) || searchName.includes(otherName)
+  })
+
   return {
-    hasConflict: clientMatches.length > 0 || matterMatches.length > 0,
+    hasConflict: clientMatches.length > 0 || matterMatches.length > 0 || intakeMatches.length > 0,
     clientMatches,
     matterMatches,
+    intakeMatches,
   }
 }
 
@@ -81,11 +96,11 @@ export default function DemoIntakesPage() {
         showToast('No client name on this intake — cannot run conflict check.', 'err')
         return
       }
-      const result = runConflictCheck(name, clients, matters)
+      const result = runConflictCheck(lead, clients, matters, intakeLeads)
       setConflictModal({ open: true, lead, result })
       setConfirmNote('')
     },
-    [clients, matters, showToast]
+    [clients, matters, intakeLeads, showToast]
   )
 
   const handleMarkClear = useCallback(
@@ -521,7 +536,7 @@ export default function DemoIntakesPage() {
                 </div>
                 <div style={{ borderTop: '1px solid rgba(94,82,64,0.15)', marginBottom: 16 }} />
                 <p style={{ color: '#134252', fontSize: 14, lineHeight: 1.6 }}>
-                  No existing clients or matters match &ldquo;{effectiveIntakeSnapshot(conflictModal.lead).clientName}&rdquo;.
+                  No existing clients, matters, or other intakes match &ldquo;{effectiveIntakeSnapshot(conflictModal.lead).clientName}&rdquo;.
                   This intake is clear to proceed.
                 </p>
                 <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
@@ -594,6 +609,28 @@ export default function DemoIntakesPage() {
                       <div key={m.id} style={{ padding: '8px 12px', background: '#fff5f5', borderRadius: 6, marginBottom: 6, fontSize: 13 }}>
                         <strong>{m.file_id}</strong> — {m.buyer.name} / {m.seller.name}
                         <div style={{ color: '#627c71', fontSize: 12 }}>{m.property.address}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {conflictModal.result.intakeMatches.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <p style={{ fontWeight: 600, color: '#92400e', marginBottom: 6, fontSize: 13, margin: '0 0 6px' }}>
+                      Other Pending Intakes:
+                    </p>
+                    {conflictModal.result.intakeMatches.map((i) => (
+                      <div key={i.id} style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#fef3c7',
+                        borderRadius: 6,
+                        marginBottom: 6,
+                        fontSize: 13,
+                      }}>
+                        <span style={{ fontWeight: 600 }}>{effectiveIntakeSnapshot(i).clientName}</span>
+                        {' '}&mdash; {i.id} submitted {new Date(i.createdAt).toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        <br />
+                        <span style={{ color: '#6b7280' }}>{effectiveIntakeSnapshot(i).propertyAddress} &mdash; {effectiveIntakeSnapshot(i).matterType}</span>
                       </div>
                     ))}
                   </div>
