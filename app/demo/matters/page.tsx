@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
 import MatterDetailModal from '@/components/demo/MatterDetailModal'
@@ -18,6 +18,14 @@ function statusColor(status: DemoMatter['status']) {
 }
 
 export default function DemoMattersPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Loading matters…</div>}>
+      <DemoMattersContent />
+    </Suspense>
+  )
+}
+
+function DemoMattersContent() {
   const { matters, archiveMatter, archivedMatters } = useDemoStore()
 
   const [hoveredMatterId, setHoveredMatterId] = useState<string | null>(null)

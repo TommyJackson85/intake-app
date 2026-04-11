@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 
 function RegisterFirmContent() {
@@ -137,7 +138,7 @@ function RegisterFirmContent() {
         <p style={{ fontSize: '14px', color: '#627c71', marginBottom: '12px' }}>
           Want to explore first? Use the demo experience with sample data.
         </p>
-        <a
+        <Link
           href="/demo"
           style={{
             display: 'inline-block',
@@ -153,7 +154,7 @@ function RegisterFirmContent() {
           }}
         >
           Explore demo
-        </a>
+        </Link>
         <p style={{ fontSize: '12px', color: '#999', marginTop: '8px', marginBottom: 0 }}>
           In-memory demo data only. It resets on full page refresh.
         </p>

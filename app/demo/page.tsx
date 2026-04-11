@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useDemoStore } from '@/lib/demo/store'
 import type { DemoMatter } from '@/lib/demo/types'
@@ -20,6 +20,14 @@ function statusColor(status: DemoMatter['status']) {
 }
 
 export default function DemoPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Loading demo…</div>}>
+      <DemoPageContent />
+    </Suspense>
+  )
+}
+
+function DemoPageContent() {
   const { demoFirm, staff, matters, archivedMatters, updateMatterStatus } = useDemoStore()
   const [selectedMatterId, setSelectedMatterId] = useState(mattersDefault(matters))
   const [isNewMatterOpen, setIsNewMatterOpen] = useState(false)
