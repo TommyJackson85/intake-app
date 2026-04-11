@@ -66,7 +66,7 @@ export default function DashboardLayout({
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* Sidebar — hidden on mobile, visible on desktop */}
       <aside
-        className="hidden md:flex md:flex-col md:flex-shrink-0 w-64"
+        className="hidden lg:flex lg:flex-col lg:flex-shrink-0 w-64"
         style={{
           background: '#134252',
           color: 'white',
@@ -184,8 +184,8 @@ export default function DashboardLayout({
         <MobileTopBar firmName={firm?.name} />
 
         {/* Scrollable content */}
-        <main style={{ flex: 1, overflowY: 'auto', paddingTop: '56px', paddingBottom: '64px' }} className="md:pt-0 md:pb-0">
-          <div className="px-4 py-6 md:px-10 md:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
+        <main style={{ flex: 1, overflowY: 'auto', paddingTop: '56px', paddingBottom: '64px' }} className="lg:pt-0 lg:pb-0">
+          <div className="px-4 py-6 lg:px-10 lg:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
             <ImpersonationBanner />
             {/* Demo firm banner */}
             {isDemoFirm && (

@@ -56,14 +56,29 @@ function UsersIcon() {
 /* ─── Top bar with burger menu ─────────────────────────────────── */
 export function MobileTopBar({ firmName, isDemo = false }: { firmName?: string; isDemo?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const pathname = usePathname()
   const base = isDemo ? '/demo' : '/dashboard'
 
-  const secondaryLinks = isDemo
-    ? [{ href: `${base}/archive/matters`, label: 'Archive' }]
+  const allLinks = isDemo
+    ? [
+        { href: '/demo', label: 'Dashboard' },
+        { href: '/demo/matters', label: 'Matters' },
+        { href: '/demo/intakes', label: 'Intake/Leads' },
+        { href: '/demo/calendar', label: 'Calendar' },
+        { href: '/demo/documents', label: 'Documents' },
+        { href: '/demo/clients', label: 'Clients' },
+        { href: '/demo/archive/matters', label: 'Archive' },
+      ]
     : [
-        { href: `${base}/aml`, label: 'AML Compliance' },
-        { href: `${base}/billing`, label: 'Billing' },
-        { href: `${base}/settings`, label: 'Settings' },
+        { href: '/dashboard', label: 'Dashboard' },
+        { href: '/dashboard/matters', label: 'Matters' },
+        { href: '/dashboard/intakes', label: 'Intake/Leads' },
+        { href: '/dashboard/calendar', label: 'Calendar' },
+        { href: '/dashboard/documents', label: 'Documents' },
+        { href: '/dashboard/clients', label: 'Clients' },
+        { href: '/dashboard/aml', label: 'AML Compliance' },
+        { href: '/dashboard/billing', label: 'Billing' },
+        { href: '/dashboard/settings', label: 'Settings' },
       ]
 
   return (
@@ -82,7 +97,7 @@ export function MobileTopBar({ firmName, isDemo = false }: { firmName?: string; 
           padding: '12px 16px',
           color: 'white',
         }}
-        className="md:hidden shadow-md"
+        className="lg:hidden shadow-md"
       >
         {/* Burger button — left */}
         <button
@@ -123,7 +138,7 @@ export function MobileTopBar({ firmName, isDemo = false }: { firmName?: string; 
           <div
             onClick={() => setMenuOpen(false)}
             style={{ position: 'fixed', inset: 0, zIndex: 48, backgroundColor: 'rgba(0,0,0,0.3)' }}
-            className="md:hidden"
+            className="lg:hidden"
           />
           {/* Menu panel — slides down from top bar */}
           <div
@@ -136,26 +151,35 @@ export function MobileTopBar({ firmName, isDemo = false }: { firmName?: string; 
               backgroundColor: '#0f766e',
               borderBottom: '1px solid rgba(255,255,255,0.1)',
               boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              maxHeight: 'calc(100vh - 56px - 64px)',
+              overflowY: 'auto',
             }}
-            className="md:hidden"
+            className="lg:hidden"
           >
-            {secondaryLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                style={{
-                  display: 'block',
-                  padding: '14px 20px',
-                  color: 'rgba(255,255,255,0.9)',
-                  fontSize: '15px',
-                  borderBottom: '1px solid rgba(255,255,255,0.08)',
-                  textDecoration: 'none',
-                }}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {allLinks.map((link) => {
+              const isActive =
+                link.href === base
+                  ? pathname === base
+                  : pathname === link.href || pathname.startsWith(link.href + '/')
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    display: 'block',
+                    padding: '14px 20px',
+                    color: isActive ? 'white' : 'rgba(255,255,255,0.9)',
+                    fontWeight: isActive ? 700 : 400,
+                    fontSize: '15px',
+                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
           </div>
         </>
       )}
@@ -172,14 +196,13 @@ export function MobileBottomNav({ isDemo = false }: { isDemo?: boolean }) {
     { href: base, label: 'Home', icon: <HomeIcon /> },
     { href: `${base}/matters`, label: 'Matters', icon: <FolderIcon /> },
     { href: `${base}/intakes`, label: 'Intakes', icon: <InboxIcon /> },
-    { href: `${base}/calendar`, label: 'Calendar', icon: <CalendarIcon /> },
-    { href: `${base}/documents`, label: 'Docs', icon: <DocumentIcon /> },
     { href: `${base}/clients`, label: 'Clients', icon: <UsersIcon /> },
+    { href: `${base}/documents`, label: 'Docs', icon: <DocumentIcon /> },
   ]
 
   return (
     <nav
-      className="md:hidden"
+      className="lg:hidden"
       style={{
         position: 'fixed',
         bottom: 0,
