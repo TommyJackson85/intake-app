@@ -111,6 +111,7 @@ export const demoSeedData: DemoSeedData = {
     },
   ],
   fincenCertRequests: [],
+  documentRequests: [],
   demoFirm: {
     id: 'demo-firm-sunshine-title',
     name: 'Sunshine Title & Closings, P.A.',

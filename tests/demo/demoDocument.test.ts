@@ -57,4 +57,17 @@ describe('buildDemoDocument', () => {
   it('returns null when matter_id is empty', () => {
     expect(buildDemoDocument({ ...base, matter_id: '' }, { idFactory: () => 'x' })).toBeNull()
   })
+
+  it('returns null when uploaded_by_staff_id is empty or whitespace-only', () => {
+    expect(buildDemoDocument({ ...base, uploaded_by_staff_id: '' }, { idFactory: () => 'x' })).toBeNull()
+    expect(buildDemoDocument({ ...base, uploaded_by_staff_id: '   ' }, { idFactory: () => 'x' })).toBeNull()
+  })
+
+  it('trims uploaded_by_staff_id on success', () => {
+    const doc = buildDemoDocument(
+      { ...base, uploaded_by_staff_id: '  staff-9  ' },
+      { idFactory: () => 'x', nowIso: () => 't' }
+    )
+    expect(doc?.uploaded_by_staff_id).toBe('staff-9')
+  })
 })

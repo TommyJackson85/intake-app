@@ -1,20 +1,50 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { demoSeedData, DEMO_MILESTONE_LOGS, MILESTONE_LABELS, MILESTONE_ORDER } from '@/lib/demo/demoData'
 import type { MatterMilestoneStatus } from '@/lib/demo/types'
-
-const DEMO_MATTERS = demoSeedData.matters
+import { useDemoStore } from '@/lib/demo/store'
 
 export default function ClientPortalPage() {
   const params = useParams()
   const token = typeof params.token === 'string' ? params.token : ''
+  const { matters, documentRequests, fulfillDemoDocumentRequest } = useDemoStore()
+  const [fulfillRequestId, setFulfillRequestId] = useState<string | null>(null)
+  const [fulfillFileName, setFulfillFileName] = useState('')
+  const [fulfillError, setFulfillError] = useState<string | null>(null)
+
+  const closeFulfillModal = () => {
+    setFulfillRequestId(null)
+    setFulfillFileName('')
+    setFulfillError(null)
+  }
+
+  useEffect(() => {
+    if (!fulfillRequestId) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeFulfillModal()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [fulfillRequestId])
 
   const matter = useMemo(
-    () => DEMO_MATTERS.find((m) => m.portal_token === token) ?? null,
-    [token],
+    () => matters.find((m) => m.portal_token === token) ?? null,
+    [matters, token],
   )
+
+  const openDocumentRequestsForMatter = useMemo(() => {
+    if (!matter) return []
+    return documentRequests
+      .filter((r) => r.matter_id === matter.id && r.status === 'open')
+      .sort((a, b) => new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime())
+  }, [documentRequests, matter])
 
   const logs = useMemo(
     () => (matter ? DEMO_MILESTONE_LOGS.filter((l) => l.matter_id === matter.id) : []),
@@ -100,6 +130,210 @@ export default function ClientPortalPage() {
             })}
           </div>
         </div>
+
+        {/* Open document requests — same `documentRequests` as /demo/documents (DemoProvider) */}
+        {openDocumentRequestsForMatter.length > 0 && (
+          <div
+            style={{
+              background: 'white',
+              borderRadius: 12,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              padding: '20px 24px',
+              marginBottom: 28,
+              borderLeft: '4px solid #0f766e',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: '#627c71',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                marginBottom: 14,
+              }}
+            >
+              Requested documents
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {openDocumentRequestsForMatter.map((req, idx) => (
+                <div
+                  key={req.id}
+                  style={{
+                    paddingBottom: idx < openDocumentRequestsForMatter.length - 1 ? 16 : 0,
+                    borderBottom: idx < openDocumentRequestsForMatter.length - 1 ? '1px solid #f3f4f6' : 'none',
+                  }}
+                >
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#134252', marginBottom: 4 }}>{req.title}</div>
+                  {req.description && (
+                    <div style={{ fontSize: 13, color: '#627c71', marginBottom: 8, lineHeight: 1.45 }}>{req.description}</div>
+                  )}
+                  <div style={{ fontSize: 12, color: '#9ca3af', display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
+                    <span>
+                      <span style={{ color: '#627c71' }}>Category:</span> {req.category}
+                    </span>
+                    <span style={{ textTransform: 'capitalize' }}>
+                      <span style={{ color: '#627c71' }}>Status:</span> {req.status}
+                    </span>
+                    <span>
+                      <span style={{ color: '#627c71' }}>Requested:</span>{' '}
+                      {new Date(req.requested_at).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFulfillRequestId(req.id)
+                        setFulfillFileName('')
+                        setFulfillError(null)
+                      }}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: 'none',
+                        background: '#0f766e',
+                        color: 'white',
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Upload document
+                    </button>
+                    <span style={{ marginLeft: 10, fontSize: 12, color: '#9ca3af' }}>
+                      Demo: enter a file name only (no real upload).
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {fulfillRequestId && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Simulate document upload"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) closeFulfillModal()
+            }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.45)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 18,
+              zIndex: 100,
+            }}
+          >
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 400,
+                background: 'white',
+                borderRadius: 12,
+                boxShadow: '0 18px 40px rgba(0,0,0,0.2)',
+                padding: '22px 24px',
+              }}
+            >
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#134252', marginBottom: 6 }}>Upload document</div>
+              <div style={{ fontSize: 13, color: '#627c71', marginBottom: 16 }}>
+                Enter the file name as it will appear in your closing file (demo only).
+              </div>
+              {fulfillError && (
+                <div
+                  role="alert"
+                  style={{
+                    marginBottom: 12,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    background: '#fee',
+                    border: '1px solid #f5c2c7',
+                    color: '#842029',
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  {fulfillError}
+                </div>
+              )}
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#134252', marginBottom: 8 }}>
+                File name
+                <input
+                  value={fulfillFileName}
+                  onChange={(e) => setFulfillFileName(e.target.value)}
+                  placeholder="e.g. HUD-1 Final.pdf"
+                  autoFocus
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    marginTop: 6,
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #e5e7eb',
+                    fontSize: 14,
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </label>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
+                <button
+                  type="button"
+                  onClick={closeFulfillModal}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    border: '1px solid #d1d5db',
+                    background: 'white',
+                    fontWeight: 600,
+                    color: '#134252',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFulfillError(null)
+                    const name = fulfillFileName.trim()
+                    if (!name) {
+                      setFulfillError('Enter a file name.')
+                      return
+                    }
+                    fulfillDemoDocumentRequest({
+                      portal_token: token,
+                      request_id: fulfillRequestId,
+                      file_name: name,
+                    })
+                    closeFulfillModal()
+                  }}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: '#0f766e',
+                    color: 'white',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Timeline */}
         <div style={{

@@ -240,6 +240,7 @@ export type DemoSeedData = {
   clients: DemoClient[]
   calendarEvents: DemoCalendarEvent[]
   documents: DemoDocument[]
+  documentRequests: DemoDocumentRequest[]
   intakeLeads: DemoIntakeLead[]
   fincenCertRequests: DemoFinCENCertRequest[]
 }
@@ -276,4 +277,20 @@ export type DemoDocument = {
   uploaded_by_staff_id: string
   status: 'draft' | 'reviewed' | 'final'
   deletedAt: string | null
+}
+
+export type DemoDocumentRequestStatus = 'open' | 'fulfilled'
+
+/** Lawyer-side request for a document from the client / counterparty (demo; no portal workflow yet). */
+export type DemoDocumentRequest = {
+  id: string
+  matter_id: string
+  title: string
+  description: string | null
+  category: DemoDocument['category']
+  requested_at: string
+  requested_by_staff_id: string
+  status: DemoDocumentRequestStatus
+  /** Set when fulfilled (e.g. portal simulated upload); links to `DemoDocument.id`. */
+  fulfilled_document_id: string | null
 }

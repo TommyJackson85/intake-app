@@ -12,19 +12,17 @@ const CATEGORIES: DemoDocument['category'][] = [
   'Post-Closing',
 ]
 
-const STATUSES: DemoDocument['status'][] = ['draft', 'reviewed', 'final']
-
-type UploadDemoDocumentModalProps = {
+type RequestDemoDocumentModalProps = {
   isOpen: boolean
   onClose: () => void
 }
 
-export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoDocumentModalProps) {
-  const { matters, staff, addDemoDocument } = useDemoStore()
+export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDemoDocumentModalProps) {
+  const { matters, staff, addDemoDocumentRequest } = useDemoStore()
   const [matterId, setMatterId] = useState('')
-  const [name, setName] = useState('')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
   const [category, setCategory] = useState<DemoDocument['category']>('Contract')
-  const [status, setStatus] = useState<DemoDocument['status']>('draft')
   const [staffId, setStaffId] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
   const wasOpenRef = useRef(false)
@@ -38,9 +36,9 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
     wasOpenRef.current = true
 
     setSaveError(null)
-    setName('')
+    setTitle('')
+    setDescription('')
     setCategory('Contract')
-    setStatus('draft')
     setMatterId(matters[0]?.id ?? '')
     setStaffId(staff[0]?.id ?? '')
   }, [isOpen, matters, staff])
@@ -71,21 +69,21 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
       setSaveError('Select a matter.')
       return
     }
-    if (!name.trim()) {
-      setSaveError('Enter a document name.')
+    if (!title.trim()) {
+      setSaveError('Enter a request title.')
       return
     }
     if (!staffId.trim()) {
-      setSaveError('Select who is uploading.')
+      setSaveError('Select who is requesting.')
       return
     }
-    addDemoDocument({
+    addDemoDocumentRequest({
       matter_id: matterId,
-      name: name.trim(),
+      title: title.trim(),
+      description: description.trim() || null,
       category,
-      status,
-      uploaded_by_staff_id: staffId,
-      uploaded_at: new Date().toISOString(),
+      requested_by_staff_id: staffId,
+      requested_at: new Date().toISOString(),
     })
     onClose()
   }
@@ -94,7 +92,7 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Simulate document upload (demo)"
+      aria-label="Request document (demo)"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -130,10 +128,10 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
         >
           <div>
             <div style={{ fontSize: '20px', fontWeight: 900, color: '#134252', marginBottom: '2px' }}>
-              Simulate upload
+              Request document
             </div>
             <div style={{ color: '#627c71', fontSize: '13px' }}>
-              Demo only — no file is stored; a row is added to the documents list.
+              Demo only — records what the firm asked for; portal delivery is not implemented yet.
             </div>
           </div>
           <div style={{ marginLeft: 'auto' }}>
@@ -207,11 +205,11 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
           </label>
 
           <label style={{ display: 'block', marginBottom: 12, fontSize: 13, fontWeight: 700, color: '#134252' }}>
-            Document name
+            Request title
             <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Signed contract.pdf"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Final settlement statement"
               style={{
                 display: 'block',
                 width: '100%',
@@ -225,57 +223,54 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
             />
           </label>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#134252' }}>
-              Category
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as DemoDocument['category'])}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  marginTop: 6,
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(94,82,64,0.25)',
-                  fontSize: 14,
-                  background: '#fff',
-                }}
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#134252' }}>
-              Status
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as DemoDocument['status'])}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  marginTop: 6,
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(94,82,64,0.25)',
-                  fontSize: 14,
-                  background: '#fff',
-                }}
-              >
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <label style={{ display: 'block', marginBottom: 12, fontSize: 13, fontWeight: 700, color: '#134252' }}>
+            Description <span style={{ fontWeight: 500, color: '#627c71' }}>(optional)</span>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Instructions or context for the client or team"
+              rows={3}
+              style={{
+                display: 'block',
+                width: '100%',
+                marginTop: 6,
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: '1px solid rgba(94,82,64,0.25)',
+                fontSize: 14,
+                boxSizing: 'border-box',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+              }}
+            />
+          </label>
+
+          <label style={{ display: 'block', marginBottom: 12, fontSize: 13, fontWeight: 700, color: '#134252' }}>
+            Category
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as DemoDocument['category'])}
+              style={{
+                display: 'block',
+                width: '100%',
+                marginTop: 6,
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: '1px solid rgba(94,82,64,0.25)',
+                fontSize: 14,
+                background: '#fff',
+              }}
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <label style={{ display: 'block', marginBottom: 18, fontSize: 13, fontWeight: 700, color: '#134252' }}>
-            Uploaded by
+            Requested by
             <select
               value={staffId}
               onChange={(e) => setStaffId(e.target.value)}
@@ -326,7 +321,7 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
                 fontWeight: 800,
               }}
             >
-              Add document
+              Save request
             </button>
           </div>
         </form>

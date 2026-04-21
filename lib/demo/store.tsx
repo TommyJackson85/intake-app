@@ -8,6 +8,7 @@ import type {
   DemoCalendarEvent,
   DemoClient,
   DemoDocument,
+  DemoDocumentRequest,
   FinCENBeneficialOwner,
   FinCENPropertyInfo,
   FinCENReportStatus,
@@ -22,7 +23,18 @@ import type {
 } from '@/lib/demo/types'
 import { deriveMatterStatus } from '@/lib/demo-utils'
 import { findExistingDemoClient } from '@/lib/demo/demoIntakeFlow'
-import { appendDemoDocumentIfValid, type AddDemoDocumentInput } from '@/lib/demo/demoDocument'
+import {
+  appendDemoDocumentIfValid,
+  mergeStoredDocumentsWithSeed,
+  type AddDemoDocumentInput,
+} from '@/lib/demo/demoDocument'
+import {
+  appendDemoDocumentRequestIfValid,
+  mergeStoredDocumentRequestsWithSeed,
+  tryFulfillDemoDocumentRequest,
+  withCoercedDocumentRequestStatus,
+  type AddDemoDocumentRequestInput,
+} from '@/lib/demo/demoDocumentRequest'
 
 type DemoContextType = {
   demoFirm: DemoSeedData['demoFirm']
@@ -31,6 +43,7 @@ type DemoContextType = {
   clients: DemoClient[]
   calendarEvents: DemoCalendarEvent[]
   documents: DemoDocument[]
+  documentRequests: DemoDocumentRequest[]
   intakeLeads: DemoIntakeLead[]
   archivedMatters: DemoMatter[]
   archivedClients: DemoClient[]
@@ -50,6 +63,9 @@ type DemoContextType = {
   permanentlyDeleteClient: (clientId: string) => void
   createDemoMatter: (input: CreateDemoMatterInput) => void
   addDemoDocument: (input: AddDemoDocumentInput) => void
+  addDemoDocumentRequest: (input: AddDemoDocumentRequestInput) => void
+  /** Appends one `DemoDocument` (same helper as `addDemoDocument`) and marks the request fulfilled — one `setState`. */
+  fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => void
   registerIntakeLead: (input: {
     token: string
     fileReference: string
@@ -124,10 +140,36 @@ const DEMO_FINCEN_CERT_STORAGE_KEY = 'lawintake-demo-fincen-cert-requests-v1'
 /** Full demo matters snapshot — survives refresh and syncs across tabs (demo-only). */
 const DEMO_MATTERS_STORAGE_KEY = 'lawintake-demo-matters-v1'
 
+/** Demo documents snapshot — merged with seed by id on load (demo-only). */
+const DEMO_DOCUMENTS_STORAGE_KEY = 'lawintake-demo-documents-v1'
+
+/** Lawyer-side document requests — merged with seed by id on load (demo-only). */
+const DEMO_DOCUMENT_REQUESTS_STORAGE_KEY = 'lawintake-demo-document-requests-v1'
+
 function persistDemoMatters(matters: DemoMatter[]) {
   try {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(DEMO_MATTERS_STORAGE_KEY, JSON.stringify(matters))
+    }
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function persistDemoDocuments(documents: DemoDocument[]) {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DEMO_DOCUMENTS_STORAGE_KEY, JSON.stringify(documents))
+    }
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function persistDemoDocumentRequests(rows: DemoDocumentRequest[]) {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DEMO_DOCUMENT_REQUESTS_STORAGE_KEY, JSON.stringify(rows))
     }
   } catch {
     /* ignore quota / private mode */
@@ -370,12 +412,15 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
-  /** Hydrate matters + FinCEN cert requests from localStorage (same session / after refresh / new tab). */
+  /** Hydrate matters + FinCEN cert requests + documents + document requests from localStorage (same session / after refresh / new tab). */
   useEffect(() => {
     try {
       const rawMatters = typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_MATTERS_STORAGE_KEY) : null
       const rawFincen = typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_FINCEN_CERT_STORAGE_KEY) : null
-      if (!rawMatters && !rawFincen) return
+      const rawDocuments = typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_DOCUMENTS_STORAGE_KEY) : null
+      const rawDocumentRequests =
+        typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_DOCUMENT_REQUESTS_STORAGE_KEY) : null
+      if (!rawMatters && !rawFincen && !rawDocuments && !rawDocumentRequests) return
       setState((prev) => {
         let matters = prev.matters
         if (rawMatters) {
@@ -393,7 +438,25 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           }
         }
         matters = syncMattersWithCertRequests(matters, fincenCertRequests)
-        return { ...prev, matters, fincenCertRequests }
+        let documents = prev.documents
+        if (rawDocuments) {
+          const parsed = JSON.parse(rawDocuments) as DemoDocument[]
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const stored = parsed.filter((d): d is DemoDocument => d != null && typeof d.id === 'string')
+            documents = mergeStoredDocumentsWithSeed(stored, prev.documents)
+          }
+        }
+        let documentRequests = prev.documentRequests
+        if (rawDocumentRequests) {
+          const parsed = JSON.parse(rawDocumentRequests) as DemoDocumentRequest[]
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const stored = parsed
+              .filter((r): r is DemoDocumentRequest => r != null && typeof r.id === 'string')
+              .map(withCoercedDocumentRequestStatus)
+            documentRequests = mergeStoredDocumentRequestsWithSeed(stored, prev.documentRequests)
+          }
+        }
+        return { ...prev, matters, fincenCertRequests, documents, documentRequests }
       })
     } catch {
       /* ignore */
@@ -410,6 +473,28 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     }, 250)
     return () => window.clearTimeout(t)
   }, [state.matters])
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        persistDemoDocuments(state.documents)
+      } catch {
+        /* ignore */
+      }
+    }, 250)
+    return () => window.clearTimeout(t)
+  }, [state.documents])
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        persistDemoDocumentRequests(state.documentRequests)
+      } catch {
+        /* ignore */
+      }
+    }, 250)
+    return () => window.clearTimeout(t)
+  }, [state.documentRequests])
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -460,6 +545,46 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== DEMO_DOCUMENTS_STORAGE_KEY || !e.newValue) return
+      try {
+        const parsed = JSON.parse(e.newValue) as DemoDocument[]
+        if (!Array.isArray(parsed)) return
+        const sanitized = parsed.filter((d): d is DemoDocument => d != null && typeof d.id === 'string')
+        setState((prev) => ({
+          ...prev,
+          documents: mergeStoredDocumentsWithSeed(sanitized, prev.documents),
+        }))
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== DEMO_DOCUMENT_REQUESTS_STORAGE_KEY || !e.newValue) return
+      try {
+        const parsed = JSON.parse(e.newValue) as DemoDocumentRequest[]
+        if (!Array.isArray(parsed)) return
+        const sanitized = parsed
+          .filter((r): r is DemoDocumentRequest => r != null && typeof r.id === 'string')
+          .map(withCoercedDocumentRequestStatus)
+        setState((prev) => ({
+          ...prev,
+          documentRequests: mergeStoredDocumentRequestsWithSeed(sanitized, prev.documentRequests),
+        }))
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   const value = useMemo<DemoContextType>(() => {
     return {
       demoFirm: state.demoFirm,
@@ -470,6 +595,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       clients: state.clients.filter((c) => !c.deletedAt),
       calendarEvents: state.calendarEvents.filter((e) => !e.deletedAt),
       documents: state.documents.filter((d) => !d.deletedAt),
+      documentRequests: state.documentRequests,
       intakeLeads: state.intakeLeads,
       fincenCertRequests: state.fincenCertRequests,
       archivedMatters: state.matters
@@ -1259,6 +1385,27 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           const documents = appendDemoDocumentIfValid(prev.documents, input)
           if (documents === prev.documents) return prev
           return { ...prev, documents }
+        })
+      },
+      addDemoDocumentRequest: (input) => {
+        setState((prev) => {
+          const documentRequests = appendDemoDocumentRequestIfValid(prev.documentRequests, input)
+          if (documentRequests === prev.documentRequests) return prev
+          return { ...prev, documentRequests }
+        })
+      },
+      fulfillDemoDocumentRequest: (input) => {
+        setState((prev) => {
+          const uploaded_by_staff_id = prev.staff[0]?.id ?? ''
+          if (!uploaded_by_staff_id.trim()) return prev
+          const result = tryFulfillDemoDocumentRequest(
+            prev.matters,
+            prev.documents,
+            prev.documentRequests,
+            { ...input, uploaded_by_staff_id }
+          )
+          if (!result) return prev
+          return { ...prev, documents: result.documents, documentRequests: result.documentRequests }
         })
       },
     }

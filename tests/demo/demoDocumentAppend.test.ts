@@ -53,6 +53,17 @@ describe('appendDemoDocumentIfValid', () => {
     expect(next).toHaveLength(1)
   })
 
+  it('returns the same array reference when uploaded_by_staff_id is invalid', () => {
+    const prev = [seedDoc]
+    const next = appendDemoDocumentIfValid(
+      prev,
+      { ...validInput, uploaded_by_staff_id: '  ' },
+      { idFactory: () => 'x', nowIso: () => 't' }
+    )
+    expect(next).toBe(prev)
+    expect(next).toHaveLength(1)
+  })
+
   it('appended document includes deletedAt null from the builder path', () => {
     const next = appendDemoDocumentIfValid([], validInput, {
       idFactory: () => 'only',
