@@ -1,10 +1,12 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
+import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
 
 export default function DemoDocumentsPage() {
   const { documents, matters, staff } = useDemoStore()
+  const [uploadOpen, setUploadOpen] = useState(false)
 
   const sorted = useMemo(
     () => [...documents].sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()),
@@ -14,9 +16,30 @@ export default function DemoDocumentsPage() {
   return (
     <div>
       <h1 style={{ marginBottom: '6px', fontSize: '32px' }}>Documents</h1>
-      <p style={{ marginTop: 0, marginBottom: '24px', color: '#627c71' }}>
+      <p style={{ marginTop: 0, marginBottom: '16px', color: '#627c71' }}>
         Matter documents and closing file artifacts in demo mode.
       </p>
+
+      <div style={{ marginBottom: '16px' }}>
+        <button
+          type="button"
+          onClick={() => setUploadOpen(true)}
+          style={{
+            padding: '10px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            background: '#134252',
+            color: '#fff',
+            fontWeight: 800,
+            cursor: 'pointer',
+            fontSize: '14px',
+          }}
+        >
+          Simulate upload
+        </button>
+      </div>
+
+      <UploadDemoDocumentModal isOpen={uploadOpen} onClose={() => setUploadOpen(false)} />
 
       <div style={{ background: 'white', borderRadius: '8px', border: '1px solid rgba(94,82,64,0.2)', overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>

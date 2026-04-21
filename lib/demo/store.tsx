@@ -22,6 +22,7 @@ import type {
 } from '@/lib/demo/types'
 import { deriveMatterStatus } from '@/lib/demo-utils'
 import { findExistingDemoClient } from '@/lib/demo/demoIntakeFlow'
+import { appendDemoDocumentIfValid, type AddDemoDocumentInput } from '@/lib/demo/demoDocument'
 
 type DemoContextType = {
   demoFirm: DemoSeedData['demoFirm']
@@ -48,6 +49,7 @@ type DemoContextType = {
   permanentlyDeleteMatter: (matterId: string) => void
   permanentlyDeleteClient: (clientId: string) => void
   createDemoMatter: (input: CreateDemoMatterInput) => void
+  addDemoDocument: (input: AddDemoDocumentInput) => void
   registerIntakeLead: (input: {
     token: string
     fileReference: string
@@ -1251,6 +1253,13 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           }
         })
         if (createdInfo) input.onCreated?.(createdInfo)
+      },
+      addDemoDocument: (input) => {
+        setState((prev) => {
+          const documents = appendDemoDocumentIfValid(prev.documents, input)
+          if (documents === prev.documents) return prev
+          return { ...prev, documents }
+        })
       },
     }
   }, [state])
