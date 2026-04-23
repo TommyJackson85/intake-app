@@ -1396,6 +1396,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       },
       fulfillDemoDocumentRequest: (input) => {
         setState((prev) => {
+          // Demo-mode fallback uploader for portal-simulated uploads.
           const uploaded_by_staff_id = prev.staff[0]?.id ?? ''
           if (!uploaded_by_staff_id.trim()) return prev
           const result = tryFulfillDemoDocumentRequest(

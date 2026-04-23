@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
 import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
 import RequestDemoDocumentModal from '@/app/demo/_components/RequestDemoDocumentModal'
+import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
 
 export default function DemoDocumentsPage() {
   const { documents, documentRequests, matters, staff } = useDemoStore()
@@ -102,6 +103,7 @@ export default function DemoDocumentsPage() {
               sortedRequests.map((req) => {
                 const matter = matters.find((m) => m.id === req.matter_id)
                 const by = staff.find((s) => s.id === req.requested_by_staff_id)
+                const fulfilledDocName = getFulfilledRequestDocumentName(req, documents)
                 return (
                   <tr key={req.id} style={{ borderBottom: '1px solid rgba(94,82,64,0.12)' }}>
                     <td style={{ padding: '14px', color: '#134252', fontWeight: 700, verticalAlign: 'top' }}>
@@ -109,6 +111,11 @@ export default function DemoDocumentsPage() {
                       {req.description && (
                         <div style={{ marginTop: '6px', fontWeight: 500, color: '#627c71', fontSize: '13px' }}>
                           {req.description}
+                        </div>
+                      )}
+                      {req.status === 'fulfilled' && (
+                        <div style={{ marginTop: '6px', fontWeight: 600, color: '#2f855a', fontSize: '13px' }}>
+                          Fulfilled{fulfilledDocName ? " by " + fulfilledDocName : ""}
                         </div>
                       )}
                     </td>

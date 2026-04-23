@@ -120,6 +120,7 @@ describe('tryFulfillDemoDocumentRequest', () => {
       matter_id: 'matter-001',
       name: 'HUD-1 final.pdf',
       category: 'Closing',
+      status: 'draft',
       uploaded_by_staff_id: 'staff-emma-kline',
     })
 

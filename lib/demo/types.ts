@@ -281,7 +281,7 @@ export type DemoDocument = {
 
 export type DemoDocumentRequestStatus = 'open' | 'fulfilled'
 
-/** Lawyer-side request for a document from the client / counterparty (demo; no portal workflow yet). */
+/** Lawyer-side document request tracked in demo store and visible in portal. */
 export type DemoDocumentRequest = {
   id: string
   matter_id: string

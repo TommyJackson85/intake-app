@@ -126,6 +126,15 @@ export function appendDemoDocumentRequestIfValid(
   return [...rows, next]
 }
 
+/** Resolve the linked fulfilled `DemoDocument` name for display in lawyer UI. */
+export function getFulfilledRequestDocumentName(
+  request: DemoDocumentRequest,
+  documents: DemoDocument[]
+): string | null {
+  if (request.status !== 'fulfilled' || !request.fulfilled_document_id) return null
+  return documents.find((d) => d.id === request.fulfilled_document_id)?.name ?? null
+}
+
 export function mergeStoredDocumentRequestsWithSeed(
   stored: DemoDocumentRequest[],
   seed: DemoDocumentRequest[]

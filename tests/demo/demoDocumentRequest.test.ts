@@ -3,6 +3,7 @@ import {
   appendDemoDocumentRequestIfValid,
   buildDemoDocumentRequest,
   coerceDemoDocumentRequestStatus,
+  getFulfilledRequestDocumentName,
   mergeStoredDocumentRequestsWithSeed,
   withCoercedDocumentRequestStatus,
 } from '@/lib/demo/demoDocumentRequest'
@@ -101,6 +102,29 @@ describe('appendDemoDocumentRequestIfValid', () => {
 
     const same = appendDemoDocumentRequestIfValid(next, { ...baseInput, title: '' })
     expect(same).toBe(next)
+  })
+})
+
+describe('getFulfilledRequestDocumentName', () => {
+  it('returns linked document name only for fulfilled requests', () => {
+    const reqOpen = buildDemoDocumentRequest(baseInput, { idFactory: () => 'r1', nowIso: () => 't' })!
+    const reqDone = { ...reqOpen, status: 'fulfilled' as const, fulfilled_document_id: 'doc-1' }
+    const docs = [
+      {
+        id: 'doc-1',
+        matter_id: reqDone.matter_id,
+        name: 'Signed HUD-1.pdf',
+        category: reqDone.category,
+        uploaded_at: 't',
+        uploaded_by_staff_id: 'staff-1',
+        status: 'draft' as const,
+        deletedAt: null,
+      },
+    ]
+
+    expect(getFulfilledRequestDocumentName(reqOpen, docs)).toBeNull()
+    expect(getFulfilledRequestDocumentName(reqDone, docs)).toBe('Signed HUD-1.pdf')
+    expect(getFulfilledRequestDocumentName({ ...reqDone, fulfilled_document_id: 'missing' }, docs)).toBeNull()
   })
 })
 
