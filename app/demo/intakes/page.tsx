@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DemoIntakeLead, DemoClient, DemoMatter, DemoConflictCheckStatus } from '@/lib/demo/types'
 import {
+  buildIntakeStarterDocuments,
   effectiveIntakeSnapshot,
   mapIntakeLeadToClientCreateInput,
   mapIntakeLeadToNewMatterInitialValues,
@@ -62,7 +63,7 @@ function resolveIntakeUrl(lead: DemoIntakeLead, origin: string) {
 }
 
 export default function DemoIntakesPage() {
-  const { matters, clients, intakeLeads, patchIntakeLead, createDemoClientIfNotExists, linkDemoClientToMatterByFileId } = useDemoStore()
+  const { matters, staff, clients, intakeLeads, patchIntakeLead, createDemoClientIfNotExists, linkDemoClientToMatterByFileId, addDemoDocument } = useDemoStore()
   const [isNewIntakeOpen, setIsNewIntakeOpen] = useState(false)
   const [origin, setOrigin] = useState('')
   const [toast, setToast] = useState<{ message: string; tone: 'ok' | 'err' } | null>(null)
@@ -73,6 +74,9 @@ export default function DemoIntakesPage() {
     result: ConflictResult | null
   }>({ open: false, lead: null, result: null })
   const [confirmNote, setConfirmNote] = useState('')
+  const closeConflictModal = useCallback(() => {
+    setConflictModal({ open: false, lead: null, result: null })
+  }, [])
 
   const [matterModalOpen, setMatterModalOpen] = useState(false)
   const [matterPreset, setMatterPreset] = useState<ReturnType<typeof mapIntakeLeadToNewMatterInitialValues> | null>(null)
@@ -144,6 +148,20 @@ export default function DemoIntakesPage() {
     setOrigin(typeof window !== 'undefined' ? window.location.origin : '')
   }, [])
 
+  useEffect(() => {
+    if (!conflictModal.open) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeConflictModal()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [closeConflictModal, conflictModal.open])
+
   const openMatterFromLead = useCallback(
     (lead: DemoIntakeLead) => {
       if (lead.linkedMatterFileId) {
@@ -166,10 +184,20 @@ export default function DemoIntakesPage() {
         if (lead?.linkedClientId) {
           linkDemoClientToMatterByFileId(lead.linkedClientId, info.fileId)
         }
+        if (lead) {
+          // Starter docs are created here (not at lead creation) so each row has a real `matter_id` link.
+          const uploadedByStaffId = staff[0]?.id ?? ''
+          const starterDocuments = buildIntakeStarterDocuments({
+            lead,
+            matterId: info.matterId,
+            uploadedByStaffId,
+          })
+          for (const row of starterDocuments) addDemoDocument(row)
+        }
       }
       showToast(`Matter ${info.fileId} created. You can open it from Matters or the dashboard.`)
     },
-    [intakeLeads, linkDemoClientToMatterByFileId, matterLeadId, patchIntakeLead, showToast]
+    [addDemoDocument, intakeLeads, linkDemoClientToMatterByFileId, matterLeadId, patchIntakeLead, showToast, staff]
   )
 
   const createClientFromLead = useCallback(
@@ -507,6 +535,9 @@ export default function DemoIntakesPage() {
 
       {conflictModal.open && conflictModal.lead && conflictModal.result && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Conflict check result"
           style={{
             position: 'fixed',
             inset: 0,
@@ -516,7 +547,9 @@ export default function DemoIntakesPage() {
             justifyContent: 'center',
             zIndex: 9999,
           }}
-          onClick={() => setConflictModal({ open: false, lead: null, result: null })}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeConflictModal()
+          }}
         >
           <div
             style={{
@@ -527,8 +560,32 @@ export default function DemoIntakesPage() {
               width: '90%',
               boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
             }}
-            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#134252', marginBottom: 2 }}>Conflict check</div>
+                <div style={{ color: '#627c71', fontSize: 13 }}>Demo only — review and update intake conflict status.</div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={closeConflictModal}
+                style={{
+                  marginLeft: 'auto',
+                  background: 'none',
+                  border: 'none',
+                  color: '#627c71',
+                  cursor: 'pointer',
+                  fontSize: 18,
+                  fontWeight: 900,
+                  lineHeight: 1,
+                  padding: 0,
+                }}
+              >
+                ×
+              </button>
+            </div>
             {!conflictModal.result.hasConflict ? (
               <>
                 <div style={{ fontSize: 20, fontWeight: 800, color: '#2f855a', marginBottom: 8 }}>
@@ -558,7 +615,7 @@ export default function DemoIntakesPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setConflictModal({ open: false, lead: null, result: null })}
+                    onClick={closeConflictModal}
                     style={{
                       padding: '10px 18px',
                       borderRadius: 6,
@@ -690,7 +747,7 @@ export default function DemoIntakesPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setConflictModal({ open: false, lead: null, result: null })}
+                    onClick={closeConflictModal}
                     style={{
                       padding: '10px 14px',
                       borderRadius: 6,

@@ -273,6 +273,10 @@ export type DemoDocument = {
   matter_id: string
   name: string
   category: 'Contract' | 'Title' | 'Closing' | 'Compliance' | 'Post-Closing'
+  document_subtype?: string | null
+  description?: string | null
+  document_date?: string | null
+  source?: string | null
   uploaded_at: string
   uploaded_by_staff_id: string
   status: 'draft' | 'reviewed' | 'final'

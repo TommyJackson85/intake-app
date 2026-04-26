@@ -620,7 +620,7 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
                   fontSize: 13,
                 }}
               >
-                Demo mode — no real emails are sent.
+                Demo only — no real emails are sent.
               </div>
 
               <section style={{ background: 'white', border: '1px solid rgba(94,82,64,0.2)', borderRadius: 10, overflow: 'hidden' }}>

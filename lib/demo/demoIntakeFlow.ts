@@ -5,6 +5,8 @@ import type {
   DemoPartyType,
   DemoTransactionRole,
 } from '@/lib/demo/types'
+import type { AddDemoDocumentInput } from '@/lib/demo/demoDocument'
+import { buildEngagementLetterDraftInput } from '@/lib/demo/demoDocument'
 
 /** Labels for client + lawyer intake UIs */
 export const DEMO_TRANSACTION_ROLE_OPTIONS: { value: DemoTransactionRole; label: string }[] = [
@@ -161,4 +163,51 @@ export function findExistingDemoClient(
     )
   }
   return undefined
+}
+
+type BuildIntakeStarterDocumentsInput = {
+  lead: DemoIntakeLead
+  matterId: string
+  uploadedByStaffId: string
+  nowIso?: string
+}
+
+/**
+ * Builds initial metadata-only document rows when an intake is opened as a matter.
+ * This keeps starter docs linked to a real `matterId` (no orphan document records).
+ */
+export function buildIntakeStarterDocuments(input: BuildIntakeStarterDocumentsInput): AddDemoDocumentInput[] {
+  const matter_id = input.matterId.trim()
+  const uploaded_by_staff_id = input.uploadedByStaffId.trim()
+  if (!matter_id || !uploaded_by_staff_id) return []
+
+  const intake = effectiveIntakeSnapshot(input.lead)
+  const fileRef = input.lead.fileReference?.trim() || 'Intake'
+  const createdDate = input.lead.createdAt?.slice(0, 10) || input.nowIso?.slice(0, 10) || ''
+  const roleSummary =
+    intake.transactionRole === 'other'
+      ? intake.transactionRoleOther?.trim() || 'Other'
+      : intake.transactionRole
+
+  return [
+    {
+      matter_id,
+      name: `${fileRef} - Intake Summary`,
+      category: 'Compliance',
+      document_subtype: 'Intake summary',
+      description: `Generated from intake lead for ${intake.clientName || 'client'} (${roleSummary}).`,
+      document_date: createdDate,
+      source: 'Intake form (demo)',
+      status: 'reviewed',
+      uploaded_by_staff_id,
+    },
+    buildEngagementLetterDraftInput({
+      matter_id,
+      uploaded_by_staff_id,
+      namePrefix: fileRef,
+      document_date: createdDate,
+      source: 'Intake workflow (demo)',
+      description: 'Starter draft created from intake to begin matter setup.',
+    }),
+  ].filter((row): row is AddDemoDocumentInput => row !== null)
 }

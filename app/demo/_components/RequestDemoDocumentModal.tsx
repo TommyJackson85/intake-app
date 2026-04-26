@@ -17,6 +17,29 @@ type RequestDemoDocumentModalProps = {
   onClose: () => void
 }
 
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 13,
+  fontWeight: 700,
+  color: '#134252',
+}
+const optionalLabelStyle: React.CSSProperties = {
+  fontWeight: 500,
+  color: '#627c71',
+}
+
+const controlStyle: React.CSSProperties = {
+  display: 'block',
+  width: '100%',
+  marginTop: 6,
+  padding: '10px 12px',
+  borderRadius: 8,
+  border: '1px solid rgba(94,82,64,0.25)',
+  fontSize: 14,
+  boxSizing: 'border-box',
+  background: '#fff',
+}
+
 export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDemoDocumentModalProps) {
   const { matters, staff, addDemoDocumentRequest } = useDemoStore()
   const [matterId, setMatterId] = useState('')
@@ -131,7 +154,7 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
               Request document
             </div>
             <div style={{ color: '#627c71', fontSize: '13px' }}>
-              Demo only — records what the firm asked for; portal delivery is not implemented yet.
+              Demo only — records metadata for requested documents; no real file is stored or downloaded.
             </div>
           </div>
           <div style={{ marginLeft: 'auto' }}>
@@ -174,22 +197,13 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
             </div>
           )}
 
-          <label style={{ display: 'block', marginBottom: 12, fontSize: 13, fontWeight: 700, color: '#134252' }}>
+          <label style={{ ...labelStyle, marginBottom: 12 }}>
             Matter
             <select
               value={matterId}
               onChange={(e) => setMatterId(e.target.value)}
               required
-              style={{
-                display: 'block',
-                width: '100%',
-                marginTop: 6,
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid rgba(94,82,64,0.25)',
-                fontSize: 14,
-                background: '#fff',
-              }}
+              style={controlStyle}
             >
               {matters.length === 0 ? (
                 <option value="">No matters</option>
@@ -204,62 +218,33 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
             </select>
           </label>
 
-          <label style={{ display: 'block', marginBottom: 12, fontSize: 13, fontWeight: 700, color: '#134252' }}>
+          <label style={{ ...labelStyle, marginBottom: 12 }}>
             Request title
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Final settlement statement"
-              style={{
-                display: 'block',
-                width: '100%',
-                marginTop: 6,
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid rgba(94,82,64,0.25)',
-                fontSize: 14,
-                boxSizing: 'border-box',
-              }}
+              style={controlStyle}
             />
           </label>
 
-          <label style={{ display: 'block', marginBottom: 12, fontSize: 13, fontWeight: 700, color: '#134252' }}>
-            Description <span style={{ fontWeight: 500, color: '#627c71' }}>(optional)</span>
+          <label style={{ ...labelStyle, marginBottom: 12 }}>
+            Description / notes <span style={optionalLabelStyle}>(optional)</span>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Instructions or context for the client or team"
               rows={3}
-              style={{
-                display: 'block',
-                width: '100%',
-                marginTop: 6,
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid rgba(94,82,64,0.25)',
-                fontSize: 14,
-                boxSizing: 'border-box',
-                resize: 'vertical',
-                fontFamily: 'inherit',
-              }}
+              style={{ ...controlStyle, resize: 'vertical', fontFamily: 'inherit' }}
             />
           </label>
 
-          <label style={{ display: 'block', marginBottom: 12, fontSize: 13, fontWeight: 700, color: '#134252' }}>
+          <label style={{ ...labelStyle, marginBottom: 12 }}>
             Category
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as DemoDocument['category'])}
-              style={{
-                display: 'block',
-                width: '100%',
-                marginTop: 6,
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid rgba(94,82,64,0.25)',
-                fontSize: 14,
-                background: '#fff',
-              }}
+              style={controlStyle}
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -269,21 +254,12 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
             </select>
           </label>
 
-          <label style={{ display: 'block', marginBottom: 18, fontSize: 13, fontWeight: 700, color: '#134252' }}>
+          <label style={{ ...labelStyle, marginBottom: 18 }}>
             Requested by
             <select
               value={staffId}
               onChange={(e) => setStaffId(e.target.value)}
-              style={{
-                display: 'block',
-                width: '100%',
-                marginTop: 6,
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid rgba(94,82,64,0.25)',
-                fontSize: 14,
-                background: '#fff',
-              }}
+              style={controlStyle}
             >
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>

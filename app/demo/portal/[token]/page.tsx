@@ -13,6 +13,7 @@ export default function ClientPortalPage() {
   const [fulfillRequestId, setFulfillRequestId] = useState<string | null>(null)
   const [fulfillFileName, setFulfillFileName] = useState('')
   const [fulfillError, setFulfillError] = useState<string | null>(null)
+  const [fulfillNotice, setFulfillNotice] = useState<string | null>(null)
 
   const closeFulfillModal = () => {
     setFulfillRequestId(null)
@@ -33,6 +34,12 @@ export default function ClientPortalPage() {
       document.body.style.overflow = prevOverflow
     }
   }, [fulfillRequestId])
+
+  useEffect(() => {
+    if (!fulfillNotice) return
+    const t = window.setTimeout(() => setFulfillNotice(null), 4500)
+    return () => window.clearTimeout(t)
+  }, [fulfillNotice])
 
   const matter = useMemo(
     () => matters.find((m) => m.portal_token === token) ?? null,
@@ -208,12 +215,29 @@ export default function ClientPortalPage() {
                       Upload document
                     </button>
                     <span style={{ marginLeft: 10, fontSize: 12, color: '#9ca3af' }}>
-                      Demo: enter a file name only (no real upload).
+                      Demo: records metadata only; no real file is uploaded, stored, or downloaded.
                     </span>
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+        )}
+        {fulfillNotice && (
+          <div
+            role="status"
+            style={{
+              background: '#ecfdf5',
+              color: '#065f46',
+              border: '1px solid #a7f3d0',
+              borderRadius: 10,
+              padding: '12px 14px',
+              marginBottom: 18,
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            {fulfillNotice}
           </div>
         )}
 
@@ -246,28 +270,53 @@ export default function ClientPortalPage() {
                 padding: '22px 24px',
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#134252', marginBottom: 6 }}>Upload document</div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#134252', marginBottom: 2 }}>Upload document</div>
+                  <div style={{ fontSize: 13, color: '#627c71' }}>
+                    Demo only — metadata only. No real file stored.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  onClick={closeFulfillModal}
+                  style={{
+                    marginLeft: 'auto',
+                    background: 'none',
+                    border: 'none',
+                    color: '#627c71',
+                    cursor: 'pointer',
+                    fontSize: 18,
+                    fontWeight: 900,
+                    lineHeight: 1,
+                    padding: 0,
+                  }}
+                >
+                  ×
+                </button>
+              </div>
               <div style={{ fontSize: 13, color: '#627c71', marginBottom: 16 }}>
-                Enter the file name as it will appear in your closing file (demo only).
+                Enter the file name as it will appear in your closing file.
               </div>
               {fulfillError && (
                 <div
                   role="alert"
                   style={{
-                    marginBottom: 12,
-                    padding: '8px 10px',
+                    marginBottom: 14,
+                    padding: '10px 12px',
                     borderRadius: 8,
                     background: '#fee',
                     border: '1px solid #f5c2c7',
                     color: '#842029',
                     fontSize: 13,
-                    fontWeight: 600,
+                    fontWeight: 700,
                   }}
                 >
                   {fulfillError}
                 </div>
               )}
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#134252', marginBottom: 8 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#134252', marginBottom: 12 }}>
                 File name
                 <input
                   value={fulfillFileName}
@@ -280,7 +329,7 @@ export default function ClientPortalPage() {
                     marginTop: 6,
                     padding: '10px 12px',
                     borderRadius: 8,
-                    border: '1px solid #e5e7eb',
+                    border: '1px solid rgba(94,82,64,0.25)',
                     fontSize: 14,
                     boxSizing: 'border-box',
                   }}
@@ -311,11 +360,17 @@ export default function ClientPortalPage() {
                       setFulfillError('Enter a file name.')
                       return
                     }
+                    const request = documentRequests.find((r) => r.id === fulfillRequestId)
                     fulfillDemoDocumentRequest({
                       portal_token: token,
                       request_id: fulfillRequestId,
                       file_name: name,
                     })
+                    setFulfillNotice(
+                      request
+                        ? `Submitted "${name}" for "${request.title}" (demo metadata only; no real file stored).`
+                        : `Submitted "${name}" (demo metadata only; no real file stored).`
+                    )
                     closeFulfillModal()
                   }}
                   style={{

@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import type { DemoNewMatterInitialValues } from '@/lib/demo/demoIntakeFlow'
 import type { DemoMatter, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
 import { useDemoStore } from '@/lib/demo/store'
+import { buildEngagementLetterDraftInput } from '@/lib/demo/demoDocument'
+import { resolveEngagementLetterPreview } from '@/lib/demo/engagementLetterPreview'
 
 export function getNextDemoFileId(existingFileIds: string[]) {
   const parsed = existingFileIds
@@ -61,7 +63,14 @@ export default function NewMatterModal({
   initialValues = null,
   onMatterCreated,
 }: NewMatterModalProps) {
-  const { createDemoMatter } = useDemoStore()
+  const { demoFirm, createDemoMatter, addDemoDocument, staff } = useDemoStore()
+  const defaultAttorneyName = useMemo(
+    () =>
+      staff.find((s) => s.role.toLowerCase().includes('attorney'))?.full_name ??
+      staff[0]?.full_name ??
+      '',
+    [staff]
+  )
   const [matterType, setMatterType] = useState(EMPTY_FORM.matterType)
   const [propertyAddress, setPropertyAddress] = useState('')
   const [propertyType, setPropertyType] = useState(EMPTY_FORM.propertyType)
@@ -78,6 +87,15 @@ export default function NewMatterModal({
   const [otherTitleRole, setOtherTitleRole] = useState('')
   const [titleName, setTitleName] = useState('')
   const [buyerType, setBuyerType] = useState<DemoPartyType>('individual')
+  const [activeTab, setActiveTab] = useState<'matter' | 'starter'>('matter')
+  const [createEngagementLetterDraft, setCreateEngagementLetterDraft] = useState(true)
+  const [engagementClientName, setEngagementClientName] = useState('')
+  const [engagementAttorneyName, setEngagementAttorneyName] = useState('')
+  const [engagementPropertyAddress, setEngagementPropertyAddress] = useState('')
+  const [engagementScopeSummary, setEngagementScopeSummary] = useState('')
+  const [engagementFeeSummary, setEngagementFeeSummary] = useState('')
+  const [engagementExclusionsSummary, setEngagementExclusionsSummary] = useState('')
+  const [engagementCostsSummary, setEngagementCostsSummary] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
@@ -87,6 +105,8 @@ export default function NewMatterModal({
     if (!isOpen) return
     setSaveError(null)
     setSaving(false)
+    setActiveTab('matter')
+    setCreateEngagementLetterDraft(true)
     if (initialValues) {
       setMatterType(initialValues.matterType)
       setPropertyAddress(initialValues.propertyAddress)
@@ -105,6 +125,19 @@ export default function NewMatterModal({
       setOtherTitleRole(role === 'other' ? (initialValues.partyRoleOther ?? '') : '')
       setTitleName(role === 'other' ? (initialValues.contactName ?? '') : '')
       setBuyerType(initialValues.buyerType ?? 'individual')
+      setEngagementClientName(initialValues.buyerName || '')
+      setEngagementAttorneyName(defaultAttorneyName)
+      setEngagementPropertyAddress(initialValues.propertyAddress || '')
+      setEngagementScopeSummary(
+        `Representation for ${initialValues.transactionType || 'Purchase'} closing and related settlement coordination.`
+      )
+      setEngagementFeeSummary('Flat closing fee per engagement terms; third-party costs billed separately.')
+      setEngagementExclusionsSummary(
+        'No litigation, tax advice, lender representation, or post-closing disputes unless separately agreed in writing.'
+      )
+      setEngagementCostsSummary(
+        'Recording, title, courier, wire, HOA/estoppel, and other third-party charges remain client responsibility.'
+      )
       return
     }
     setMatterType(EMPTY_FORM.matterType)
@@ -123,7 +156,32 @@ export default function NewMatterModal({
     setOtherTitleRole('')
     setTitleName('')
     setBuyerType('individual')
-  }, [isOpen, initialValues])
+    setEngagementClientName('')
+    setEngagementAttorneyName(defaultAttorneyName)
+    setEngagementPropertyAddress('')
+    setEngagementScopeSummary('Representation for purchase closing and related settlement coordination.')
+    setEngagementFeeSummary('Flat closing fee per engagement terms; third-party costs billed separately.')
+    setEngagementExclusionsSummary(
+      'No litigation, tax advice, lender representation, or post-closing disputes unless separately agreed in writing.'
+    )
+    setEngagementCostsSummary(
+      'Recording, title, courier, wire, HOA/estoppel, and other third-party charges remain client responsibility.'
+    )
+  }, [defaultAttorneyName, isOpen, initialValues])
+
+  useEffect(() => {
+    if (!isOpen) return
+    if (!engagementClientName.trim() && buyerName.trim()) {
+      setEngagementClientName(buyerName)
+    }
+  }, [buyerName, engagementClientName, isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+    if (!engagementPropertyAddress.trim() && propertyAddress.trim()) {
+      setEngagementPropertyAddress(propertyAddress)
+    }
+  }, [engagementPropertyAddress, isOpen, propertyAddress])
 
   useEffect(() => {
     if (!isDismissable) return
@@ -144,11 +202,94 @@ export default function NewMatterModal({
 
   if (!isOpen) return null
 
+  const engagementPreview = resolveEngagementLetterPreview({
+    dateLabel: closingDate || new Date().toISOString().slice(0, 10),
+    matterType,
+    defaults: {
+      clientName: buyerName || 'Client Name',
+      attorneyName: defaultAttorneyName || 'Assigned attorney',
+      fileReference: nextFileId,
+      propertyAddress: propertyAddress || 'Property address pending',
+    },
+    fields: {
+      clientName: engagementClientName,
+      attorneyName: engagementAttorneyName,
+      fileReference: nextFileId,
+      propertyAddress: engagementPropertyAddress,
+      scopeSummary: engagementScopeSummary,
+      feeSummary: engagementFeeSummary,
+      exclusionsSummary: engagementExclusionsSummary,
+      costsSummary: engagementCostsSummary,
+    },
+  })
+
+  const handleCreateMatter = () => {
+    setSaveError(null)
+    setSaving(true)
+    try {
+      const otherBlock =
+        intakeTransactionRole === 'other'
+          ? [
+              otherTitleRole.trim() ? `Other Title: ${otherTitleRole.trim()}.` : '',
+              titleName.trim() ? `Title's Name: ${titleName.trim()}.` : '',
+            ]
+              .filter(Boolean)
+              .join(' ')
+          : ''
+      const special_notes = [otherBlock, intakeNotes.trim()].filter(Boolean).join('\n\n')
+
+      createDemoMatter({
+        file_id: nextFileId,
+        matter_type: matterType,
+        transactionType,
+        purchasePrice,
+        property_address: propertyAddress,
+        property_type: propertyType as DemoMatter['property']['property_type'],
+        county,
+        closing_date: closingDate,
+        buyer_name: buyerName,
+        seller_name: sellerName,
+        buyer_type: buyerType,
+        buyer_email: buyerEmail,
+        buyer_phone: buyerPhone,
+        special_notes,
+        onCreated: (info) => {
+          if (createEngagementLetterDraft) {
+            const uploadedByStaffId = staff[0]?.id ?? ''
+            const draftInput = buildEngagementLetterDraftInput({
+              matter_id: info.matterId,
+              uploaded_by_staff_id: uploadedByStaffId,
+              namePrefix: info.fileId,
+              document_date: closingDate.trim(),
+              source: 'Matter setup (demo)',
+              clientName: engagementClientName || buyerName,
+              attorneyName: engagementAttorneyName || defaultAttorneyName,
+              fileReference: info.fileId,
+              propertyAddress: engagementPropertyAddress || propertyAddress,
+              scopeSummary: engagementScopeSummary,
+              feeSummary: engagementFeeSummary,
+              exclusionsSummary: engagementExclusionsSummary,
+              costsSummary: engagementCostsSummary,
+            })
+            if (draftInput) addDemoDocument(draftInput)
+          }
+          onMatterCreated?.(info)
+        },
+      })
+      onCreateDemo()
+      onClose()
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Could not create matter.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label=" (Demo)"
+      aria-label="Create matter (demo)"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -172,13 +313,16 @@ export default function NewMatterModal({
           border: '1px solid rgba(94,82,64,0.25)',
           boxShadow: '0 18px 40px rgba(0,0,0,0.25)',
           overflow: 'hidden',
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(94,82,64,0.15)', display: 'flex', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: '22px', fontWeight: 900, color: '#134252', marginBottom: '2px' }}></div>
+            <div style={{ fontSize: '22px', fontWeight: 900, color: '#134252', marginBottom: '2px' }}>Create matter</div>
             <div style={{ color: '#627c71', fontSize: '13px' }}>
-              Demo mode: creates a local in-memory matter
+              Demo only — creates a local in-memory matter record.
               {initialValues ? ' — fields prefilled from intake (edit as needed).' : ''}
             </div>
           </div>
@@ -203,7 +347,8 @@ export default function NewMatterModal({
           </div>
         </div>
 
-        <div style={{ padding: '18px 20px' }}>
+
+        <div style={{ padding: '18px 20px', overflowY: 'auto', flex: 1 }}>
           {saveError && (
             <div
               role="alert"
@@ -221,7 +366,43 @@ export default function NewMatterModal({
               {saveError}
             </div>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            <button
+              type="button"
+              onClick={() => setActiveTab('matter')}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 999,
+                border: activeTab === 'matter' ? 'none' : '1px solid rgba(94,82,64,0.25)',
+                background: activeTab === 'matter' ? '#208096' : '#fff',
+                color: activeTab === 'matter' ? '#fff' : '#134252',
+                fontWeight: 800,
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              Matter details
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('starter')}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 999,
+                border: activeTab === 'starter' ? 'none' : '1px solid rgba(94,82,64,0.25)',
+                background: activeTab === 'starter' ? '#208096' : '#fff',
+                color: activeTab === 'starter' ? '#fff' : '#134252',
+                fontWeight: 800,
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              Starter documents
+            </button>
+          </div>
+
+          {activeTab === 'matter' ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '12px', color: '#627c71', fontWeight: 700 }}>File reference</label>
               <input
@@ -346,7 +527,9 @@ export default function NewMatterModal({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '12px', color: '#627c71', fontWeight: 700 }}>Buyer email</label>
+              <label style={{ fontSize: '12px', color: '#627c71', fontWeight: 700 }}>
+                Buyer email <span style={{ fontWeight: 500 }}>(optional)</span>
+              </label>
               <input
                 type="email"
                 value={buyerEmail}
@@ -354,9 +537,10 @@ export default function NewMatterModal({
                 style={{ padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(94,82,64,0.22)' }}
               />
             </div>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '12px', color: '#627c71', fontWeight: 700 }}>Buyer phone</label>
+              <label style={{ fontSize: '12px', color: '#627c71', fontWeight: 700 }}>
+                Buyer phone <span style={{ fontWeight: 500 }}>(optional)</span>
+              </label>
               <input
                 type="tel"
                 value={buyerPhone}
@@ -385,7 +569,9 @@ export default function NewMatterModal({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: '1 / -1' }}>
-              <label style={{ fontSize: '12px', color: '#627c71', fontWeight: 700 }}>Notes (from intake / internal)</label>
+              <label style={{ fontSize: '12px', color: '#627c71', fontWeight: 700 }}>
+                Notes (from intake / internal) <span style={{ fontWeight: 500 }}>(optional)</span>
+              </label>
               <textarea
                 value={intakeNotes}
                 onChange={(e) => setIntakeNotes(e.target.value)}
@@ -393,85 +579,227 @@ export default function NewMatterModal({
                 style={{ padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(94,82,64,0.22)', resize: 'vertical' }}
               />
             </div>
-          </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '18px' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              style={{
-                background: 'white',
-                color: '#134252',
-                border: '1px solid rgba(94,82,64,0.25)',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                fontWeight: 800,
-                cursor: saving ? 'not-allowed' : 'pointer',
-                opacity: saving ? 0.7 : 1,
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => {
-                setSaveError(null)
-                setSaving(true)
-                try {
-                  const otherBlock =
-                    intakeTransactionRole === 'other'
-                      ? [
-                          otherTitleRole.trim() ? `Other Title: ${otherTitleRole.trim()}.` : '',
-                          titleName.trim() ? `Title's Name: ${titleName.trim()}.` : '',
-                        ]
-                          .filter(Boolean)
-                          .join(' ')
-                      : ''
-                  const special_notes = [otherBlock, intakeNotes.trim()].filter(Boolean).join('\n\n')
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: 12 }}>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(94,82,64,0.2)',
+                  background: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={createEngagementLetterDraft}
+                  onChange={(e) => setCreateEngagementLetterDraft(e.target.checked)}
+                  style={{ marginTop: 2 }}
+                />
+                <span style={{ fontSize: 13, color: '#134252', fontWeight: 700 }}>
+                  Create engagement letter draft
+                  <span style={{ display: 'block', marginTop: 2, fontWeight: 500, color: '#627c71' }}>
+                    Demo only — metadata only. No real file generated.
+                  </span>
+                </span>
+              </label>
 
-                  createDemoMatter({
-                    file_id: nextFileId,
-                    matter_type: matterType,
-                    transactionType,
-                    purchasePrice,
-                    property_address: propertyAddress,
-                    property_type: propertyType as DemoMatter['property']['property_type'],
-                    county,
-                    closing_date: closingDate,
-                    buyer_name: buyerName,
-                    seller_name: sellerName,
-                    buyer_type: buyerType,
-                    buyer_email: buyerEmail,
-                    buyer_phone: buyerPhone,
-                    special_notes,
-                    onCreated: (info) => {
-                      onMatterCreated?.(info)
-                    },
-                  })
-                  onCreateDemo()
-                  onClose()
-                } catch (e) {
-                  setSaveError(e instanceof Error ? e.message : 'Could not create matter.')
-                } finally {
-                  setSaving(false)
-                }
-              }}
-              style={{
-                background: '#208096',
-                color: 'white',
-                border: 'none',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                fontWeight: 900,
-                cursor: saving ? 'not-allowed' : 'pointer',
-                opacity: saving ? 0.75 : 1,
-              }}
-            >
-              {saving ? 'Saving…' : 'Create Matter (Demo)'}
-            </button>
-          </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, opacity: createEngagementLetterDraft ? 1 : 0.65 }}>
+                <label style={{ display: 'block', fontSize: 12, color: '#627c71', fontWeight: 700, gridColumn: '1 / -1' }}>
+                  File reference (from matter)
+                  <input
+                    value={nextFileId}
+                    readOnly
+                    disabled
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(94,82,64,0.22)', background: '#f4f4f0', color: '#134252' }}
+                  />
+                </label>
+                <label style={{ display: 'block', fontSize: 12, color: '#627c71', fontWeight: 700 }}>
+                  Client / buyer name
+                  <input
+                    value={engagementClientName}
+                    onChange={(e) => setEngagementClientName(e.target.value)}
+                    disabled={!createEngagementLetterDraft}
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(94,82,64,0.22)' }}
+                  />
+                </label>
+                <label style={{ display: 'block', fontSize: 12, color: '#627c71', fontWeight: 700 }}>
+                  Attorney
+                  <input
+                    value={engagementAttorneyName}
+                    onChange={(e) => setEngagementAttorneyName(e.target.value)}
+                    disabled={!createEngagementLetterDraft}
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(94,82,64,0.22)' }}
+                  />
+                </label>
+                <label style={{ display: 'block', fontSize: 12, color: '#627c71', fontWeight: 700, gridColumn: '1 / -1' }}>
+                  Property address
+                  <input
+                    value={engagementPropertyAddress}
+                    onChange={(e) => setEngagementPropertyAddress(e.target.value)}
+                    disabled={!createEngagementLetterDraft}
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(94,82,64,0.22)' }}
+                  />
+                </label>
+                <label style={{ display: 'block', fontSize: 12, color: '#627c71', fontWeight: 700, gridColumn: '1 / -1' }}>
+                  Scope summary
+                  <textarea
+                    value={engagementScopeSummary}
+                    onChange={(e) => setEngagementScopeSummary(e.target.value)}
+                    disabled={!createEngagementLetterDraft}
+                    rows={2}
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(94,82,64,0.22)', resize: 'vertical' }}
+                  />
+                </label>
+                <label style={{ display: 'block', fontSize: 12, color: '#627c71', fontWeight: 700, gridColumn: '1 / -1' }}>
+                  Fee / representation summary
+                  <textarea
+                    value={engagementFeeSummary}
+                    onChange={(e) => setEngagementFeeSummary(e.target.value)}
+                    disabled={!createEngagementLetterDraft}
+                    rows={2}
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(94,82,64,0.22)', resize: 'vertical' }}
+                  />
+                </label>
+                <label style={{ display: 'block', fontSize: 12, color: '#627c71', fontWeight: 700, gridColumn: '1 / -1' }}>
+                  Exclusions summary
+                  <textarea
+                    value={engagementExclusionsSummary}
+                    onChange={(e) => setEngagementExclusionsSummary(e.target.value)}
+                    disabled={!createEngagementLetterDraft}
+                    rows={2}
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(94,82,64,0.22)', resize: 'vertical' }}
+                  />
+                </label>
+                <label style={{ display: 'block', fontSize: 12, color: '#627c71', fontWeight: 700, gridColumn: '1 / -1' }}>
+                  Costs / third-party expenses summary
+                  <textarea
+                    value={engagementCostsSummary}
+                    onChange={(e) => setEngagementCostsSummary(e.target.value)}
+                    disabled={!createEngagementLetterDraft}
+                    rows={2}
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(94,82,64,0.22)', resize: 'vertical' }}
+                  />
+                </label>
+              </div>
+
+              <div style={{ border: '1px solid rgba(94,82,64,0.2)', borderRadius: 8, background: '#fff', padding: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginBottom: 6 }}>
+                  Engagement letter draft preview (demo template)
+                </div>
+                <div style={{ fontSize: 12, color: '#627c71', marginBottom: 8 }}>
+                  This preview shows how the metadata-only draft will be saved.
+                </div>
+                <div
+                  style={{
+                    border: '1px solid rgba(17,24,39,0.18)',
+                    borderRadius: 4,
+                    padding: '14px 12px',
+                    background: '#fcfcff',
+                    fontSize: 12,
+                    color: '#134252',
+                    lineHeight: 1.6,
+                    maxHeight: 320,
+                    overflowY: 'auto',
+                  }}
+                >
+                  <div style={{ fontWeight: 800 }}>{demoFirm.name}</div>
+                  <div style={{ color: '#627c71' }}>{demoFirm.office_location}</div>
+                  <div style={{ color: '#627c71', marginBottom: 10 }}>{demoFirm.email}</div>
+                  <div style={{ marginBottom: 8 }}>
+                    Date: {engagementPreview.dateLabel}
+                  </div>
+                  <div>Via email</div>
+                  <div style={{ marginBottom: 8 }}>
+                    {engagementPreview.clientName}
+                  </div>
+                  <div>
+                    Re: Engagement for {engagementPreview.matterType} - File {engagementPreview.fileReference}
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    Property: {engagementPreview.propertyAddress}
+                  </div>
+                  <p style={{ margin: '0 0 10px' }}>
+                    Dear {engagementPreview.clientName},
+                  </p>
+                  <p style={{ margin: '0 0 10px' }}>
+                    Thank you for selecting {demoFirm.name} to represent you in connection with the above-referenced
+                    Florida real estate transaction. This draft engagement letter outlines our representation for your
+                    review before any final execution.
+                  </p>
+                  <p style={{ margin: '0 0 10px' }}>
+                    <strong>Scope of representation.</strong> {engagementPreview.scopeSummary}
+                  </p>
+                  <p style={{ margin: '0 0 10px' }}>
+                    <strong>Exclusions.</strong> {engagementPreview.exclusionsSummary}
+                  </p>
+                  <p style={{ margin: '0 0 10px' }}>
+                    <strong>Fee arrangement.</strong> {engagementPreview.feeSummary}
+                  </p>
+                  <p style={{ margin: '0 0 10px' }}>
+                    <strong>Costs and third-party charges.</strong> {engagementPreview.costsSummary}
+                  </p>
+                  <p style={{ margin: '0 0 10px' }}>
+                    If these terms are acceptable, please sign below to acknowledge this draft engagement structure.
+                  </p>
+                  <div style={{ marginTop: 10 }}>
+                    Acknowledged and agreed:
+                    <div style={{ marginTop: 14 }}>______________________________</div>
+                    <div style={{ color: '#627c71' }}>Client signature (demo placeholder)</div>
+                  </div>
+                  <div style={{ marginTop: 10 }}>
+                    Sincerely,
+                    <div style={{ marginTop: 8 }}>{engagementPreview.attorneyName}</div>
+                    <div style={{ color: '#627c71' }}>{demoFirm.name}</div>
+                  </div>
+                  <div style={{ marginTop: 10, color: '#627c71' }}>
+                    Demo template preview only; not an executed legal document.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '0', padding: '14px 20px', borderTop: '1px solid rgba(94,82,64,0.15)', background: '#fcfcf9' }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            style={{
+              background: 'white',
+              color: '#134252',
+              border: '1px solid rgba(94,82,64,0.25)',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontWeight: 800,
+              cursor: saving ? 'not-allowed' : 'pointer',
+              opacity: saving ? 0.7 : 1,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={handleCreateMatter}
+            style={{
+              background: '#208096',
+              color: 'white',
+              border: 'none',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontWeight: 900,
+              cursor: saving ? 'not-allowed' : 'pointer',
+              opacity: saving ? 0.75 : 1,
+            }}
+          >
+            {saving ? 'Saving…' : 'Create Matter (Demo)'}
+          </button>
         </div>
       </div>
     </div>

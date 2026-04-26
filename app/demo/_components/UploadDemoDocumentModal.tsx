@@ -13,18 +13,53 @@ const CATEGORIES: DemoDocument['category'][] = [
 ]
 
 const STATUSES: DemoDocument['status'][] = ['draft', 'reviewed', 'final']
+const SUBTYPES_BY_CATEGORY: Record<DemoDocument['category'], string[]> = {
+  Contract: ['Purchase contract', 'Addendum', 'Proof of funds', 'Entity docs'],
+  Title: ['Title commitment', 'Survey', 'HOA/Condo docs', 'Estoppel'],
+  Closing: ['Closing disclosure', 'Settlement statement', 'Wire confirmation', 'Signed closing package'],
+  Compliance: ['FIRPTA affidavit', 'OFAC/AML check', 'Identity verification', 'Tax form'],
+  'Post-Closing': ['Recorded deed', 'Final title policy', 'Lender package', 'Post-closing checklist'],
+}
 
 type UploadDemoDocumentModalProps = {
   isOpen: boolean
   onClose: () => void
+  preferredMatterId?: string | null
+}
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 13,
+  fontWeight: 700,
+  color: '#134252',
 }
 
-export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoDocumentModalProps) {
+const optionalLabelStyle: React.CSSProperties = {
+  fontWeight: 500,
+  color: '#627c71',
+}
+
+const controlStyle: React.CSSProperties = {
+  display: 'block',
+  width: '100%',
+  marginTop: 6,
+  padding: '10px 12px',
+  borderRadius: 8,
+  border: '1px solid rgba(94,82,64,0.25)',
+  fontSize: 14,
+  boxSizing: 'border-box',
+  background: '#fff',
+}
+
+export default function UploadDemoDocumentModal({ isOpen, onClose, preferredMatterId = null }: UploadDemoDocumentModalProps) {
   const { matters, staff, addDemoDocument } = useDemoStore()
   const [matterId, setMatterId] = useState('')
   const [name, setName] = useState('')
   const [category, setCategory] = useState<DemoDocument['category']>('Contract')
+  const [documentSubtype, setDocumentSubtype] = useState(SUBTYPES_BY_CATEGORY.Contract[0])
   const [status, setStatus] = useState<DemoDocument['status']>('draft')
+  const [description, setDescription] = useState('')
+  const [documentDate, setDocumentDate] = useState('')
+  const [source, setSource] = useState('')
   const [staffId, setStaffId] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
   const wasOpenRef = useRef(false)
@@ -40,10 +75,25 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
     setSaveError(null)
     setName('')
     setCategory('Contract')
+    setDocumentSubtype(SUBTYPES_BY_CATEGORY.Contract[0])
     setStatus('draft')
-    setMatterId(matters[0]?.id ?? '')
+    setDescription('')
+    setDocumentDate('')
+    setSource('')
+    const preferredMatter =
+      preferredMatterId && matters.some((m) => m.id === preferredMatterId)
+        ? preferredMatterId
+        : matters[0]?.id ?? ''
+    setMatterId(preferredMatter)
     setStaffId(staff[0]?.id ?? '')
-  }, [isOpen, matters, staff])
+  }, [isOpen, matters, preferredMatterId, staff])
+
+  useEffect(() => {
+    const options = SUBTYPES_BY_CATEGORY[category]
+    if (!options.includes(documentSubtype)) {
+      setDocumentSubtype(options[0] ?? '')
+    }
+  }, [category, documentSubtype])
 
   useEffect(() => {
     if (!isOpen) return
@@ -83,6 +133,10 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
       matter_id: matterId,
       name: name.trim(),
       category,
+      document_subtype: documentSubtype.trim(),
+      description: description.trim(),
+      document_date: documentDate.trim(),
+      source: source.trim(),
       status,
       uploaded_by_staff_id: staffId,
       uploaded_at: new Date().toISOString(),
@@ -176,22 +230,13 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
             </div>
           )}
 
-          <label style={{ display: 'block', marginBottom: 12, fontSize: 13, fontWeight: 700, color: '#134252' }}>
+          <label style={{ ...labelStyle, marginBottom: 12 }}>
             Matter
             <select
               value={matterId}
               onChange={(e) => setMatterId(e.target.value)}
               required
-              style={{
-                display: 'block',
-                width: '100%',
-                marginTop: 6,
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid rgba(94,82,64,0.25)',
-                fontSize: 14,
-                background: '#fff',
-              }}
+              style={controlStyle}
             >
               {matters.length === 0 ? (
                 <option value="">No matters</option>
@@ -206,41 +251,23 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
             </select>
           </label>
 
-          <label style={{ display: 'block', marginBottom: 12, fontSize: 13, fontWeight: 700, color: '#134252' }}>
+          <label style={{ ...labelStyle, marginBottom: 12 }}>
             Document name
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Signed contract.pdf"
-              style={{
-                display: 'block',
-                width: '100%',
-                marginTop: 6,
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid rgba(94,82,64,0.25)',
-                fontSize: 14,
-                boxSizing: 'border-box',
-              }}
+              style={controlStyle}
             />
           </label>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#134252' }}>
+            <label style={labelStyle}>
               Category
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as DemoDocument['category'])}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  marginTop: 6,
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(94,82,64,0.25)',
-                  fontSize: 14,
-                  background: '#fff',
-                }}
+                style={controlStyle}
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -249,21 +276,67 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
                 ))}
               </select>
             </label>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#134252' }}>
+            <label style={labelStyle}>
+              Document subtype <span style={optionalLabelStyle}>(optional)</span>
+              <select
+                value={documentSubtype}
+                onChange={(e) => setDocumentSubtype(e.target.value)}
+                style={controlStyle}
+              >
+                {SUBTYPES_BY_CATEGORY[category].map((subtype) => (
+                  <option key={subtype} value={subtype}>
+                    {subtype}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <details style={{ marginBottom: 14 }}>
+            <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#134252' }}>
+              More details (optional)
+            </summary>
+            <div style={{ marginTop: 10 }}>
+              <label style={{ ...labelStyle, marginBottom: 10 }}>
+                Description / notes <span style={optionalLabelStyle}>(optional)</span>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  placeholder="e.g. Buyer-signed version received for review."
+                  style={{ ...controlStyle, resize: 'vertical' }}
+                />
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <label style={labelStyle}>
+                  Document date <span style={optionalLabelStyle}>(optional)</span>
+                  <input
+                    type="date"
+                    value={documentDate}
+                    onChange={(e) => setDocumentDate(e.target.value)}
+                    style={controlStyle}
+                  />
+                </label>
+                <label style={labelStyle}>
+                  Received from / source <span style={optionalLabelStyle}>(optional)</span>
+                  <input
+                    value={source}
+                    onChange={(e) => setSource(e.target.value)}
+                    placeholder="e.g. Buyer agent, title company"
+                    style={controlStyle}
+                  />
+                </label>
+              </div>
+            </div>
+          </details>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <label style={labelStyle}>
               Status
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as DemoDocument['status'])}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  marginTop: 6,
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(94,82,64,0.25)',
-                  fontSize: 14,
-                  background: '#fff',
-                }}
+                style={controlStyle}
               >
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
@@ -274,21 +347,12 @@ export default function UploadDemoDocumentModal({ isOpen, onClose }: UploadDemoD
             </label>
           </div>
 
-          <label style={{ display: 'block', marginBottom: 18, fontSize: 13, fontWeight: 700, color: '#134252' }}>
+          <label style={{ ...labelStyle, marginBottom: 18 }}>
             Uploaded by
             <select
               value={staffId}
               onChange={(e) => setStaffId(e.target.value)}
-              style={{
-                display: 'block',
-                width: '100%',
-                marginTop: 6,
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid rgba(94,82,64,0.25)',
-                fontSize: 14,
-                background: '#fff',
-              }}
+              style={controlStyle}
             >
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>

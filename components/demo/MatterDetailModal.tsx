@@ -9,6 +9,7 @@ import DemoTimelineNotes from '@/components/demo/DemoTimelineNotes'
 import { displayOrFallback, parseOtherPartyInfo } from '@/lib/demo/matterPartyDisplay'
 import DemoFinCENTab from '@/components/demo/DemoFinCENTab'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
+import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
 
 type MatterDetailModalProps = {
   matter: DemoMatter | null
@@ -73,6 +74,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive }: 
   >(
     'Overview'
   )
+  const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)
 
   const effectiveMatter = useMemo(() => {
     if (!matter) return null
@@ -87,6 +89,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive }: 
   useEffect(() => {
     if (!open) return
     setActiveTab('Overview')
+    setIsAddDocumentOpen(false)
   }, [open])
 
   useEffect(() => {
@@ -96,7 +99,12 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive }: 
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = prevOverflow
+    }
   }, [open, onClose])
 
   if (!open) return null
@@ -524,6 +532,26 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive }: 
 
           {activeTab === 'Documents' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                <div style={{ color: '#627c71', fontSize: 13 }}>
+                  Demo only - metadata only. No real file is stored.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddDocumentOpen(true)}
+                  style={{
+                    background: '#134252',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '8px 12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Add document
+                </button>
+              </div>
               {matterDocuments.length === 0 ? (
                 <div style={{ color: '#627c71' }}>No documents on file for this matter.</div>
               ) : (
@@ -578,6 +606,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive }: 
                     )
                   })
               )}
+              <UploadDemoDocumentModal
+                isOpen={isAddDocumentOpen}
+                onClose={() => setIsAddDocumentOpen(false)}
+                preferredMatterId={effectiveMatter.id}
+              />
             </div>
           )}
 
