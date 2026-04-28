@@ -2,20 +2,34 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
-import type { DemoMatter, DemoMatterStatus } from '@/lib/demo/types'
-import { useDemoData } from '@/context/DemoDataContext'
+import type {
+  DemoCondoDiligenceDocStatus,
+  DemoCondoDiligenceMatterStatus,
+  DemoMatter,
+  DemoMatterStatus,
+} from '@/lib/demo/types'
 import DemoTaskChecklist from '@/components/demo/DemoTaskChecklist'
 import DemoTimelineNotes from '@/components/demo/DemoTimelineNotes'
 import { displayOrFallback, parseOtherPartyInfo } from '@/lib/demo/matterPartyDisplay'
 import DemoFinCENTab from '@/components/demo/DemoFinCENTab'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
+import {
+  condoDiligenceMatterStatusPresentation,
+  condoRequiredDocMatchesLinkageHaystack,
+  condoRequiredDocDerivedStatusPresentation,
+  deriveCondoRequiredDocumentStatus,
+  isCondoDiligenceUntouched,
+  isCondoDiligenceEligible,
+  syncRequiredDocumentsFromDerivedLinkage,
+} from '@/lib/demo/condoDiligence'
 
 type MatterDetailModalProps = {
   matter: DemoMatter | null
   open: boolean
   onClose: () => void
   onArchive: (matterId: string) => void
+  initialTab?: MatterDetailTab
 }
 
 function statusColor(status: DemoMatterStatus) {
@@ -64,33 +78,252 @@ function dateBadgeAndColors(dateStr: string) {
   return { leftBorder: '#208096', text: '#134252', pill: null as null | string }
 }
 
+function fincenStatusPresentation(input: {
+  required: boolean
+  completedFields: number
+  pendingClient: boolean
+}): { label: string; helper: string; bg: string; color: string; border: string } | null {
+  if (!input.required) return null
+  if (input.completedFields >= 111) {
+    return {
+      label: 'Completed',
+      helper: 'All required AML / FinCEN fields are complete.',
+      bg: '#e8f5f0',
+      color: '#166534',
+      border: 'rgba(47,133,90,0.35)',
+    }
+  }
+  if (input.pendingClient) {
+    return {
+      label: 'Pending client',
+      helper: 'Waiting on client certification details.',
+      bg: '#fff4d6',
+      color: '#b45309',
+      border: 'rgba(240,180,41,0.35)',
+    }
+  }
+  if (input.completedFields > 0) {
+    return {
+      label: 'In progress',
+      helper: 'AML / FinCEN intake has started.',
+      bg: '#dbeafe',
+      color: '#1e40af',
+      border: 'rgba(30,64,175,0.25)',
+    }
+  }
+  return {
+    label: 'Not started',
+    helper: 'No AML / FinCEN data entered yet.',
+    bg: '#f5f5f5',
+    color: '#627c71',
+    border: 'rgba(94,82,64,0.2)',
+  }
+}
+
+function fincenNextStepSummary(input: {
+  required: boolean
+  completedFields: number
+  pendingClient: boolean
+}): string | null {
+  if (!input.required) return null
+  if (input.completedFields >= 111) return 'Ready for final review.'
+  if (input.pendingClient) return 'Client details still needed.'
+  if (input.completedFields > 0) return 'Complete remaining AML / FinCEN fields.'
+  return 'Start AML / FinCEN intake details.'
+}
+
+function condoNextStepSummary(condoDiligence: ReturnType<typeof useDemoStore>['getCondoDiligence'] extends (id: string) => infer T ? T : never): string {
+  if (!condoDiligence) return 'Review required association records.'
+  const outstanding = condoDiligence.requiredDocuments.filter((d) => d.status === 'outstanding').length
+  const requested = condoDiligence.requiredDocuments.filter((d) => d.status === 'requested').length
+  if (outstanding > 0) return `${outstanding} required document${outstanding === 1 ? '' : 's'} still outstanding.`
+  if (requested > 0) return `${requested} document request${requested === 1 ? '' : 's'} pending receipt.`
+  return 'All required documents received; review findings.'
+}
+
 type KeyDateItem = { label: string; dateStr: string }
 
-export default function MatterDetailModal({ matter, open, onClose, onArchive }: MatterDetailModalProps) {
-  const { documents, staff } = useDemoStore()
-  const { matters } = useDemoData()
-  const [activeTab, setActiveTab] = useState<
-    'Overview' | 'Parties & Contacts' | 'Key Dates' | 'Tasks' | 'Documents' | 'Notes' | 'FinCEN / AML'
-  >(
-    'Overview'
-  )
+type MatterDetailTab =
+  | 'Overview'
+  | 'Parties & Contacts'
+  | 'Key Dates'
+  | 'Tasks'
+  | 'Documents'
+  | 'Condo Diligence'
+  | 'Notes'
+  | 'FinCEN / AML'
+
+const CONDO_FINDING_TEMPLATES: { id: string; label: string; text: string }[] = [
+  {
+    id: 'reserve-budget',
+    label: 'Reserve / budget',
+    text: 'Reserve and budget review indicates potential underfunding for projected repairs; confirm adequacy and update buyer risk notes.',
+  },
+  {
+    id: 'milestone-structural',
+    label: 'Milestone / structural',
+    text: 'Milestone/structural inspection materials suggest follow-up is needed on identified building items before closing clearance.',
+  },
+  {
+    id: 'insurance-coverage',
+    label: 'Insurance coverage',
+    text: 'Insurance summary appears to show a potential coverage or deductible gap; verify policy limits and carrier terms.',
+  },
+  {
+    id: 'board-minutes-governance',
+    label: 'Board minutes / governance',
+    text: 'Board minutes reference pending governance or maintenance issues that should be reviewed with client before closing.',
+  },
+  {
+    id: 'special-assessment',
+    label: 'Special assessment',
+    text: 'Potential or active special assessment noted; confirm amount, timing, and allocation responsibility in closing documents.',
+  },
+]
+
+export default function MatterDetailModal({ matter, open, onClose, onArchive, initialTab }: MatterDetailModalProps) {
+  const {
+    documents,
+    documentRequests,
+    staff,
+    addDemoDocumentRequest,
+    getMatterById,
+    getArchivedMatterById,
+    ensureCondoDiligence,
+    getCondoDiligence,
+    patchCondoDiligence,
+  } = useDemoStore()
+  const [activeTab, setActiveTab] = useState<MatterDetailTab>('Overview')
   const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)
 
-  const effectiveMatter = useMemo(() => {
-    if (!matter) return null
-    return matters.find((m) => m.id === matter.id) ?? matter
-  }, [matter, matters])
+  const matterId = matter?.id ?? ''
+  const effectiveMatter: DemoMatter | null =
+    matterId !== '' ? (getMatterById(matterId) ?? getArchivedMatterById(matterId) ?? matter) : null
+
+  const condoEligible = Boolean(effectiveMatter && isCondoDiligenceEligible(effectiveMatter))
+  const condoDiligence = matterId ? getCondoDiligence(matterId) : undefined
+  const showCondoDiligenceTab = Boolean(condoDiligence) || condoEligible
+  const fincenRequired = Boolean(effectiveMatter && isFincenEligibleMatter(effectiveMatter))
+  const fincenCompletedFields = effectiveMatter?.fincen?.completedFields ?? 0
+  const fincenPendingClient = effectiveMatter?.fincen?.certRequest?.status === 'pending_client'
+  const fincenSummary = fincenStatusPresentation({
+    required: fincenRequired,
+    completedFields: fincenCompletedFields,
+    pendingClient: fincenPendingClient,
+  })
+  const fincenNextStep = fincenNextStepSummary({
+    required: fincenRequired,
+    completedFields: fincenCompletedFields,
+    pendingClient: fincenPendingClient,
+  })
 
   const matterDocuments = useMemo(() => {
     if (!effectiveMatter) return []
     return documents.filter((d) => d.matter_id === effectiveMatter.id)
   }, [documents, effectiveMatter])
 
+  const matterDocumentRequests = useMemo(() => {
+    if (!effectiveMatter) return []
+    return documentRequests.filter((r) => r.matter_id === effectiveMatter.id)
+  }, [documentRequests, effectiveMatter])
+
+  const condoLinkedSyncPreview = useMemo(() => {
+    if (!condoDiligence || !effectiveMatter) return null
+    return syncRequiredDocumentsFromDerivedLinkage(condoDiligence.requiredDocuments, {
+      matterId: effectiveMatter.id,
+      documents: matterDocuments,
+      documentRequests: matterDocumentRequests,
+    })
+  }, [condoDiligence, effectiveMatter, matterDocuments, matterDocumentRequests])
+
+  const canSyncCondoChecklistFromLinks = Boolean(
+    condoLinkedSyncPreview &&
+      condoDiligence &&
+      condoLinkedSyncPreview.some((d, i) => d.status !== condoDiligence.requiredDocuments[i]?.status),
+  )
+  const requestedByStaffId = staff[0]?.id ?? ''
+  const hasOpenMatchingCondoRequest = (docId: string) =>
+    matterDocumentRequests.some((r) => {
+      if (r.status !== 'open') return false
+      const haystack = [r.title, r.description ?? '', r.category]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return condoRequiredDocMatchesLinkageHaystack(haystack, docId)
+    })
+  const hasReceivedMatchingCondoDoc = (docId: string) =>
+    matterDocuments.some((d) => {
+      if (d.deletedAt) return false
+      const haystack = [d.name, d.document_subtype ?? '', d.description ?? '', d.category]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return condoRequiredDocMatchesLinkageHaystack(haystack, docId)
+    })
+  const createCondoDocRequest = (doc: { id: string; label: string }) => {
+    if (!requestedByStaffId || !effectiveMatter) return
+    addDemoDocumentRequest({
+      matter_id: effectiveMatter.id,
+      title: `Condo diligence: ${doc.label}`,
+      description: `Requested from Condo Diligence checklist (${doc.id.replace(/_/g, ' ')}).`,
+      category: 'Compliance',
+      requested_by_staff_id: requestedByStaffId,
+      requested_at: new Date().toISOString(),
+    })
+  }
+  const requestableCondoDocs = condoDiligence
+    ? condoDiligence.requiredDocuments.filter((doc) => {
+        const derived = deriveCondoRequiredDocumentStatus({
+          matterId: effectiveMatter?.id ?? '',
+          condoDocId: doc.id,
+          storedStatus: doc.status,
+          documents: matterDocuments,
+          documentRequests: matterDocumentRequests,
+        })
+        return (
+          derived === 'outstanding' &&
+          !hasOpenMatchingCondoRequest(doc.id) &&
+          !hasReceivedMatchingCondoDoc(doc.id) &&
+          Boolean(requestedByStaffId)
+        )
+      })
+    : []
+  const condoDocPackSummary = useMemo(() => {
+    if (!condoDiligence || !effectiveMatter) return null
+    let received = 0
+    let requested = 0
+    let outstanding = 0
+    for (const doc of condoDiligence.requiredDocuments) {
+      const derived = deriveCondoRequiredDocumentStatus({
+        matterId: effectiveMatter.id,
+        condoDocId: doc.id,
+        storedStatus: doc.status,
+        documents: matterDocuments,
+        documentRequests: matterDocumentRequests,
+      })
+      if (derived === 'received') received += 1
+      else if (derived === 'requested') requested += 1
+      else outstanding += 1
+    }
+    return { received, requested, outstanding, total: condoDiligence.requiredDocuments.length }
+  }, [condoDiligence, effectiveMatter, matterDocuments, matterDocumentRequests])
+
   useEffect(() => {
     if (!open) return
-    setActiveTab('Overview')
+    setActiveTab(initialTab ?? 'Overview')
     setIsAddDocumentOpen(false)
-  }, [open])
+  }, [open, matterId, initialTab])
+
+  useEffect(() => {
+    if (!open || activeTab !== 'Condo Diligence' || !matterId) return
+    ensureCondoDiligence(matterId)
+  }, [activeTab, ensureCondoDiligence, matterId, open])
+
+  useEffect(() => {
+    if (activeTab === 'Condo Diligence' && !showCondoDiligenceTab) {
+      setActiveTab('Overview')
+    }
+  }, [activeTab, showCondoDiligenceTab])
 
   useEffect(() => {
     if (!open) return
@@ -106,6 +339,17 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive }: 
       document.body.style.overflow = prevOverflow
     }
   }, [open, onClose])
+
+  const tabList: MatterDetailTab[] = [
+    'Overview',
+    'Parties & Contacts',
+    'Key Dates',
+    'Tasks',
+    'Documents',
+    ...(showCondoDiligenceTab ? (['Condo Diligence'] as const) : []),
+    'Notes',
+    'FinCEN / AML',
+  ]
 
   if (!open) return null
 
@@ -223,9 +467,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive }: 
           }}
         >
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {(
-              ['Overview', 'Parties & Contacts', 'Key Dates', 'Tasks', 'Documents', 'Notes', 'FinCEN / AML'] as const
-            ).map((tab) => {
+            {tabList.map((tab) => {
               const active = tab === activeTab
               const isFinCENRequired = isFincenEligibleMatter(effectiveMatter)
               const isFinCENReady = (effectiveMatter.fincen?.completedFields ?? 0) >= 111
@@ -358,6 +600,101 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive }: 
                 <div style={{ fontSize: '12px', color: '#627c71', fontWeight: 800, marginBottom: '4px' }}>File opened</div>
                 <div style={{ color: '#134252', fontWeight: 900 }}>{formatYmd(effectiveMatter.fileOpenedDate)}</div>
               </div>
+
+              {(showCondoDiligenceTab || fincenSummary) && (
+                <div style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: 8, padding: 12, background: 'white' }}>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: '#134252', marginBottom: 8 }}>Compliance Summary</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {showCondoDiligenceTab && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: '#134252' }}>Condo Diligence</div>
+                          <div style={{ fontSize: 11, color: '#627c71' }}>
+                            {condoNextStepSummary(condoDiligence)}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '5px 10px',
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 900,
+                              background: condoDiligenceMatterStatusPresentation(condoDiligence?.status ?? 'not_started').bg,
+                              color: condoDiligenceMatterStatusPresentation(condoDiligence?.status ?? 'not_started').color,
+                              border: `1px solid ${condoDiligenceMatterStatusPresentation(condoDiligence?.status ?? 'not_started').border}`,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {condoDiligenceMatterStatusPresentation(condoDiligence?.status ?? 'not_started').label}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('Condo Diligence')}
+                            aria-label="Review Condo Diligence workflow"
+                            style={{
+                              background: 'white',
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              borderRadius: 6,
+                              padding: '4px 8px',
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: '#134252',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Review
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {fincenSummary && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: '#134252' }}>AML / FinCEN</div>
+                          <div style={{ fontSize: 11, color: '#627c71' }}>{fincenNextStep ?? fincenSummary.helper}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '5px 10px',
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 900,
+                              background: fincenSummary.bg,
+                              color: fincenSummary.color,
+                              border: `1px solid ${fincenSummary.border}`,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {fincenSummary.label}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('FinCEN / AML')}
+                            aria-label="Review AML and FinCEN workflow"
+                            style={{
+                              background: 'white',
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              borderRadius: 6,
+                              padding: '4px 8px',
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: '#134252',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Review
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {effectiveMatter.specialNotes.trim() !== '' && (
                 <div
@@ -611,6 +948,388 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive }: 
                 onClose={() => setIsAddDocumentOpen(false)}
                 preferredMatterId={effectiveMatter.id}
               />
+            </div>
+          )}
+
+          {activeTab === 'Condo Diligence' && showCondoDiligenceTab && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ fontSize: 12, color: '#627c71' }}>
+                Demo only — checklist and notes are metadata in this session (persisted locally for demo).
+              </div>
+              {!condoDiligence ? (
+                <div style={{ color: '#627c71' }}>Loading condo diligence…</div>
+              ) : (
+                <>
+                  {isCondoDiligenceUntouched(condoDiligence) && (
+                    <div
+                      style={{
+                        border: '1px solid rgba(30,64,175,0.25)',
+                        borderRadius: 8,
+                        padding: 12,
+                        background: '#dbeafe',
+                        color: '#1e3a8a',
+                      }}
+                    >
+                      <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 4 }}>
+                        Condo diligence is ready for this matter.
+                      </div>
+                      <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                        Review required association records, track requested and received items, and capture findings here.
+                        Start with estoppel, milestone/SIRS materials, budget, insurance summary, and recent board minutes.
+                        Linked documents and open requests can help update the checklist.
+                      </div>
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      border: '1px solid rgba(94,82,64,0.12)',
+                      borderRadius: 8,
+                      padding: 14,
+                      background: 'white',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      gap: 12,
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 900, color: '#134252', marginBottom: 4 }}>
+                        Florida condo diligence
+                      </div>
+                      <div style={{ fontSize: 12, color: '#627c71' }}>
+                        Required association and closing-support items for this matter (demo).
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '6px 12px',
+                        borderRadius: 999,
+                        fontSize: 12,
+                        fontWeight: 900,
+                        background: condoDiligenceMatterStatusPresentation(condoDiligence.status).bg,
+                        color: condoDiligenceMatterStatusPresentation(condoDiligence.status).color,
+                        border: `1px solid ${condoDiligenceMatterStatusPresentation(condoDiligence.status).border}`,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {condoDiligenceMatterStatusPresentation(condoDiligence.status).label}
+                    </span>
+                  </div>
+                  {condoDocPackSummary && (
+                    <div
+                      style={{
+                        border: '1px solid rgba(94,82,64,0.12)',
+                        borderRadius: 8,
+                        padding: '10px 12px',
+                        background: 'white',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 8,
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ fontSize: 12, fontWeight: 900, color: '#134252' }}>
+                        Condo doc pack
+                      </span>
+                      <span style={{ fontSize: 11, color: '#2f855a', fontWeight: 800 }}>
+                        Received: {condoDocPackSummary.received}
+                      </span>
+                      <span style={{ fontSize: 11, color: '#1e40af', fontWeight: 800 }}>
+                        Requested: {condoDocPackSummary.requested}
+                      </span>
+                      <span style={{ fontSize: 11, color: '#b45309', fontWeight: 800 }}>
+                        Outstanding: {condoDocPackSummary.outstanding}
+                      </span>
+                      <span style={{ fontSize: 11, color: '#627c71', marginLeft: 'auto' }}>
+                        {condoDocPackSummary.total} total
+                      </span>
+                    </div>
+                  )}
+
+                  <div style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: 8, padding: 14, background: 'white' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                        marginBottom: 6,
+                      }}
+                    >
+                      <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>Required documents</div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          disabled={requestableCondoDocs.length === 0}
+                          onClick={() => {
+                            requestableCondoDocs.forEach((doc) => createCondoDocRequest(doc))
+                          }}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: 6,
+                            border: '1px solid rgba(94,82,64,0.25)',
+                            background: requestableCondoDocs.length > 0 ? '#fff' : '#f0f0f0',
+                            fontWeight: 800,
+                            fontSize: 11,
+                            color: '#134252',
+                            cursor: requestableCondoDocs.length > 0 ? 'pointer' : 'not-allowed',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Request missing docs
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!canSyncCondoChecklistFromLinks}
+                          onClick={() => {
+                            if (!condoLinkedSyncPreview) return
+                            patchCondoDiligence(matterId, { requiredDocuments: condoLinkedSyncPreview })
+                          }}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: 6,
+                            border: '1px solid rgba(94,82,64,0.25)',
+                            background: canSyncCondoChecklistFromLinks ? '#fff' : '#f0f0f0',
+                            fontWeight: 800,
+                            fontSize: 11,
+                            color: '#134252',
+                            cursor: canSyncCondoChecklistFromLinks ? 'pointer' : 'not-allowed',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Sync checklist from links
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#627c71', marginBottom: 10, lineHeight: 1.4 }}>
+                      {
+                        "Row badge reflects this matter's demo documents and open requests when titles match (read-only). Use the button to copy linked Received/Requested into the saved checklist; rows with no link stay as saved."
+                      }
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {condoDiligence.requiredDocuments.map((doc) => {
+                        const derived = deriveCondoRequiredDocumentStatus({
+                          matterId: effectiveMatter.id,
+                          condoDocId: doc.id,
+                          storedStatus: doc.status,
+                          documents: matterDocuments,
+                          documentRequests: matterDocumentRequests,
+                        })
+                        const derivedPresent = condoRequiredDocDerivedStatusPresentation(derived)
+                        const hasOpenMatchingRequest = hasOpenMatchingCondoRequest(doc.id)
+                        const hasReceivedMatchingDoc = hasReceivedMatchingCondoDoc(doc.id)
+                        const canRequestDoc =
+                          derived === 'outstanding' &&
+                          Boolean(requestedByStaffId) &&
+                          !hasOpenMatchingRequest &&
+                          !hasReceivedMatchingDoc
+                        return (
+                          <label
+                            key={doc.id}
+                            style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              alignItems: 'center',
+                              gap: 10,
+                              fontSize: 13,
+                              color: '#134252',
+                            }}
+                          >
+                            <span style={{ flex: '1 1 160px', fontWeight: 700 }}>{doc.label}</span>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: derivedPresent.bg,
+                                color: derivedPresent.color,
+                                border: `1px solid ${derivedPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {derivedPresent.label}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={!canRequestDoc}
+                              onClick={() => {
+                                createCondoDocRequest(doc)
+                              }}
+                              style={{
+                                padding: '5px 8px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(94,82,64,0.25)',
+                                background: canRequestDoc ? '#fff' : '#f0f0f0',
+                                color: '#134252',
+                                fontSize: 11,
+                                fontWeight: 800,
+                                cursor: canRequestDoc ? 'pointer' : 'not-allowed',
+                              }}
+                            >
+                              Request
+                            </button>
+                            <select
+                              title="Saved checklist value (demo); effective badge prefers documents and open requests."
+                              aria-label={`Saved status for ${doc.label}`}
+                              value={doc.status}
+                              onChange={(e) => {
+                                const status = e.target.value as DemoCondoDiligenceDocStatus
+                                const requiredDocuments = condoDiligence.requiredDocuments.map((d) =>
+                                  d.id === doc.id ? { ...d, status } : d,
+                                )
+                                patchCondoDiligence(matterId, { requiredDocuments })
+                              }}
+                              style={{
+                                padding: '6px 10px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(94,82,64,0.25)',
+                                fontWeight: 700,
+                                color: '#134252',
+                              }}
+                            >
+                              <option value="outstanding">Outstanding</option>
+                              <option value="requested">Requested</option>
+                              <option value="received">Received</option>
+                            </select>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: 8, padding: 14, background: 'white' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>Findings</div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const id = `finding-${Date.now()}`
+                          patchCondoDiligence(matterId, {
+                            findings: [...condoDiligence.findings, { id, text: '' }],
+                          })
+                        }}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 6,
+                          border: '1px solid rgba(94,82,64,0.25)',
+                          background: '#fff',
+                          fontWeight: 800,
+                          fontSize: 12,
+                          color: '#134252',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Add finding
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                      {CONDO_FINDING_TEMPLATES.map((template) => (
+                        <button
+                          key={template.id}
+                          type="button"
+                          onClick={() => {
+                            const id = `finding-${Date.now()}-${template.id}`
+                            patchCondoDiligence(matterId, {
+                              findings: [...condoDiligence.findings, { id, text: template.text }],
+                            })
+                          }}
+                          style={{
+                            padding: '5px 8px',
+                            borderRadius: 6,
+                            border: '1px solid rgba(94,82,64,0.25)',
+                            background: '#fff',
+                            fontWeight: 800,
+                            fontSize: 11,
+                            color: '#134252',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          + {template.label}
+                        </button>
+                      ))}
+                    </div>
+                    {condoDiligence.findings.length === 0 ? (
+                      <div style={{ fontSize: 13, color: '#627c71' }}>No findings yet. Add a line when something material shows up in diligence.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {condoDiligence.findings.map((f) => (
+                          <textarea
+                            key={f.id}
+                            value={f.text}
+                            onChange={(e) => {
+                              const text = e.target.value
+                              const findings = condoDiligence.findings.map((x) => (x.id === f.id ? { ...x, text } : x))
+                              patchCondoDiligence(matterId, { findings })
+                            }}
+                            rows={2}
+                            placeholder="Finding (demo)"
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(94,82,64,0.22)',
+                              fontSize: 13,
+                              resize: 'vertical',
+                              boxSizing: 'border-box',
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                    Notes
+                    <textarea
+                      value={condoDiligence.notes}
+                      onChange={(e) => patchCondoDiligence(matterId, { notes: e.target.value })}
+                      rows={4}
+                      placeholder="Internal notes (demo)"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        marginTop: 6,
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        border: '1px solid rgba(94,82,64,0.22)',
+                        fontSize: 13,
+                        resize: 'vertical',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </label>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: '#627c71', fontWeight: 700 }}>Matter status (diligence)</span>
+                    <select
+                      value={condoDiligence.status}
+                      onChange={(e) =>
+                        patchCondoDiligence(matterId, {
+                          status: e.target.value as DemoCondoDiligenceMatterStatus,
+                        })
+                      }
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: '1px solid rgba(94,82,64,0.25)',
+                        fontWeight: 700,
+                        color: '#134252',
+                      }}
+                    >
+                      <option value="not_started">Not started</option>
+                      <option value="in_progress">In progress</option>
+                      <option value="under_review">Under review</option>
+                      <option value="cleared">Cleared</option>
+                      <option value="flagged">Flagged</option>
+                    </select>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

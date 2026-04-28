@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
-import type { DemoIntakeDemoDelivery, DemoIntakeSnapshot, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
+import type { DemoIntakeDemoDelivery, DemoIntakeSnapshot, DemoMatter, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
 import { DEMO_BUYER_TYPE_OPTIONS, DEMO_TRANSACTION_ROLE_OPTIONS } from '@/lib/demo/demoIntakeFlow'
 import { useDemoStore } from '@/lib/demo/store'
+import { isCondoDiligenceEligible } from '@/lib/demo/condoDiligence'
 
 type Props = {
   isOpen: boolean
@@ -23,6 +24,7 @@ type FormValues = {
   buyerType: DemoPartyType
   matterType: string
   propertyAddress: string
+  propertyType: DemoMatter['property']['property_type']
   county: string
   targetClosingDate: string
   notes: string
@@ -81,6 +83,12 @@ const tailFieldRows: FieldRow[] = [
     ],
   },
   { key: 'propertyAddress', label: 'Property address', type: 'text' },
+  {
+    key: 'propertyType',
+    label: 'Property type',
+    type: 'select',
+    options: ['Single-Family Home', 'Condo', 'Townhouse', 'Commercial', 'Land'],
+  },
   { key: 'county', label: 'County', type: 'text' },
   { key: 'targetClosingDate', label: 'Target closing date', type: 'date' },
   { key: 'notes', label: 'Notes', type: 'textarea' },
@@ -105,6 +113,7 @@ function toIntakeSnapshot(values: FormValues): DemoIntakeSnapshot {
       values.transactionRole === 'buyer' || values.transactionRole === 'both' ? values.buyerType : undefined,
     matterType: values.matterType,
     propertyAddress: values.propertyAddress,
+    propertyType: values.propertyType,
     county: values.county,
     targetClosingDate: values.targetClosingDate,
     notes: values.notes,
@@ -168,6 +177,7 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
     buyerType: 'individual',
     matterType: 'Financed Residential Purchase',
     propertyAddress: '',
+    propertyType: 'Single-Family Home',
     county: '',
     targetClosingDate: '',
     notes: '',
@@ -228,6 +238,14 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
     [values, nextFileId, emailSubject, emailBody, emailRecipientName, emailRecipientEmail, linkToken, origin]
   )
   const preview = phase === 'generated' && generated ? generated : live
+  const condoDiligenceMayApply = useMemo(
+    () =>
+      isCondoDiligenceEligible({
+        matter_type: values.matterType,
+        property: { address: values.propertyAddress, property_type: values.propertyType },
+      }),
+    [values.matterType, values.propertyAddress, values.propertyType]
+  )
 
   const setLawyerValue = <K extends keyof FormValues>(k: K, val: FormValues[K]) => {
     setValues((p) => ({ ...p, [k]: val }))
@@ -455,7 +473,25 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
               </section>
 
               <section style={{ background: 'white', border: '1px solid rgba(94,82,64,0.2)', borderRadius: 10, padding: 14 }}>
-                <div style={{ fontWeight: 900, color: '#134252', marginBottom: 10 }}>Intake details</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ fontWeight: 900, color: '#134252' }}>Intake details</div>
+                  {condoDiligenceMayApply && (
+                    <span
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 999,
+                        fontSize: 11,
+                        fontWeight: 900,
+                        border: '1px solid rgba(30,64,175,0.25)',
+                        color: '#1e40af',
+                        background: '#dbeafe',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Condo diligence may apply
+                    </span>
+                  )}
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {leadFieldRows.map((f) => (
                     <div key={f.key}>

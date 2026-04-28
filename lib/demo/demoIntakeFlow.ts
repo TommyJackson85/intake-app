@@ -94,7 +94,7 @@ export function mapIntakeLeadToNewMatterInitialValues(lead: DemoIntakeLead): Dem
   return {
     matterType: s.matterType || DEFAULT_MATTER.matterType,
     propertyAddress: s.propertyAddress,
-    propertyType: inferPropertyTypeFromMatterType(s.matterType),
+    propertyType: s.propertyType ?? inferPropertyTypeFromMatterType(s.matterType),
     county: s.county,
     closingDate: s.targetClosingDate,
     buyerName,

@@ -12,6 +12,7 @@ function normalizeSnapshot(s: DemoIntakeSnapshot): DemoIntakeSnapshot {
     ...s,
     transactionRole: s.transactionRole ?? 'buyer',
     transactionRoleOther: s.transactionRoleOther ?? '',
+    propertyType: s.propertyType ?? 'Single-Family Home',
   }
 }
 
@@ -42,6 +43,12 @@ const tailFieldDefs: FieldDef[] = [
     ],
   },
   { key: 'propertyAddress', label: 'Property address', kind: 'text' },
+  {
+    key: 'propertyType',
+    label: 'Property type',
+    kind: 'select',
+    options: ['Single-Family Home', 'Condo', 'Townhouse', 'Commercial', 'Land'],
+  },
   { key: 'county', label: 'County', kind: 'text' },
   { key: 'targetClosingDate', label: 'Target closing date', kind: 'date' },
   { key: 'notes', label: 'Notes', kind: 'textarea' },

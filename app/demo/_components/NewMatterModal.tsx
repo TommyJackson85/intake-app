@@ -6,6 +6,7 @@ import type { DemoMatter, DemoPartyType, DemoTransactionRole } from '@/lib/demo/
 import { useDemoStore } from '@/lib/demo/store'
 import { buildEngagementLetterDraftInput } from '@/lib/demo/demoDocument'
 import { resolveEngagementLetterPreview } from '@/lib/demo/engagementLetterPreview'
+import { isCondoDiligenceEligible } from '@/lib/demo/condoDiligence'
 
 export function getNextDemoFileId(existingFileIds: string[]) {
   const parsed = existingFileIds
@@ -201,6 +202,14 @@ export default function NewMatterModal({
   }, [isDismissable, onClose])
 
   if (!isOpen) return null
+  const condoDiligenceMayApply = isCondoDiligenceEligible({
+    matter_type: matterType,
+    property: {
+      address: propertyAddress,
+      county,
+      property_type: propertyType as DemoMatter['property']['property_type'],
+    },
+  })
 
   const engagementPreview = resolveEngagementLetterPreview({
     dateLabel: closingDate || new Date().toISOString().slice(0, 10),
@@ -443,6 +452,22 @@ export default function NewMatterModal({
                 <option>Land</option>
               </select>
             </div>
+            {condoDiligenceMayApply && (
+              <div
+                style={{
+                  gridColumn: '1 / -1',
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(30,64,175,0.25)',
+                  background: '#dbeafe',
+                  color: '#1e40af',
+                  fontSize: 12,
+                  fontWeight: 800,
+                }}
+              >
+                Condo diligence may apply for this matter.
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '12px', color: '#627c71', fontWeight: 700 }}>County</label>

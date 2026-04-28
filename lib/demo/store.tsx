@@ -20,6 +20,11 @@ import type {
   DemoPartyType,
   DemoSeedData,
   DemoTaskStatus,
+  DemoCondoDiligence,
+  DemoCondoDiligenceDocStatus,
+  DemoCondoDiligenceFinding,
+  DemoCondoDiligenceMatterStatus,
+  DemoCondoDiligenceRequiredDocument,
 } from '@/lib/demo/types'
 import { deriveMatterStatus } from '@/lib/demo-utils'
 import { findExistingDemoClient } from '@/lib/demo/demoIntakeFlow'
@@ -35,6 +40,11 @@ import {
   withCoercedDocumentRequestStatus,
   type AddDemoDocumentRequestInput,
 } from '@/lib/demo/demoDocumentRequest'
+import {
+  buildDefaultCondoDiligence,
+  deriveCondoDiligenceMatterStatusFromChecklist,
+  isCondoDiligenceEligible,
+} from '@/lib/demo/condoDiligence'
 
 type DemoContextType = {
   demoFirm: DemoSeedData['demoFirm']
@@ -66,6 +76,9 @@ type DemoContextType = {
   addDemoDocumentRequest: (input: AddDemoDocumentRequestInput) => void
   /** Appends one `DemoDocument` (same helper as `addDemoDocument`) and marks the request fulfilled — one `setState`. */
   fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => void
+  getCondoDiligence: (matterId: string) => DemoCondoDiligence | undefined
+  ensureCondoDiligence: (matterId: string) => void
+  patchCondoDiligence: (matterId: string, patch: Partial<DemoCondoDiligence>) => void
   registerIntakeLead: (input: {
     token: string
     fileReference: string
@@ -146,6 +159,9 @@ const DEMO_DOCUMENTS_STORAGE_KEY = 'lawintake-demo-documents-v1'
 /** Lawyer-side document requests — merged with seed by id on load (demo-only). */
 const DEMO_DOCUMENT_REQUESTS_STORAGE_KEY = 'lawintake-demo-document-requests-v1'
 
+/** Matter-scoped condo diligence checklist (demo-only; keyed by matter id). */
+const DEMO_CONDO_DILIGENCE_STORAGE_KEY = 'lawintake-demo-condo-diligence-v1'
+
 function persistDemoMatters(matters: DemoMatter[]) {
   try {
     if (typeof localStorage !== 'undefined') {
@@ -173,6 +189,88 @@ function persistDemoDocumentRequests(rows: DemoDocumentRequest[]) {
     }
   } catch {
     /* ignore quota / private mode */
+  }
+}
+
+function persistDemoCondoDiligence(map: Record<string, DemoCondoDiligence>) {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DEMO_CONDO_DILIGENCE_STORAGE_KEY, JSON.stringify(map))
+    }
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function isDemoCondoDiligenceDocStatus(s: unknown): s is DemoCondoDiligenceDocStatus {
+  return s === 'outstanding' || s === 'requested' || s === 'received'
+}
+
+function isDemoCondoDiligenceMatterStatus(s: unknown): s is DemoCondoDiligenceMatterStatus {
+  return s === 'not_started' || s === 'in_progress' || s === 'under_review' || s === 'cleared' || s === 'flagged'
+}
+
+function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
+  if (!raw || typeof raw !== 'object') return null
+  const o = raw as Record<string, unknown>
+  if (typeof o.applicable !== 'boolean') return null
+  if (!isDemoCondoDiligenceMatterStatus(o.status)) return null
+  if (typeof o.updated_at !== 'string' || !o.updated_at.trim()) return null
+  if (typeof o.notes !== 'string') return null
+  if (!Array.isArray(o.requiredDocuments) || !Array.isArray(o.findings)) return null
+
+  const requiredDocuments: DemoCondoDiligenceRequiredDocument[] = []
+  for (const item of o.requiredDocuments) {
+    if (!item || typeof item !== 'object') continue
+    const d = item as Record<string, unknown>
+    const id = typeof d.id === 'string' ? d.id.trim() : ''
+    const label = typeof d.label === 'string' ? d.label.trim() : ''
+    if (!id || !label) continue
+    if (!isDemoCondoDiligenceDocStatus(d.status)) continue
+    const detail =
+      d.detail === null || d.detail === undefined
+        ? null
+        : typeof d.detail === 'string'
+          ? d.detail
+          : null
+    requiredDocuments.push({ id, label, status: d.status, detail })
+  }
+  if (requiredDocuments.length === 0) return null
+
+  const findings: DemoCondoDiligenceFinding[] = []
+  for (const item of o.findings) {
+    if (!item || typeof item !== 'object') continue
+    const f = item as Record<string, unknown>
+    const id = typeof f.id === 'string' ? f.id.trim() : ''
+    const text = typeof f.text === 'string' ? f.text : ''
+    if (!id) continue
+    findings.push({ id, text })
+  }
+
+  return {
+    applicable: o.applicable,
+    status: o.status,
+    requiredDocuments,
+    findings,
+    notes: o.notes,
+    updated_at: o.updated_at.trim(),
+  }
+}
+
+function parseCondoDiligenceMapFromStorage(raw: string): Record<string, DemoCondoDiligence> | null {
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+    const out: Record<string, DemoCondoDiligence> = {}
+    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+      const matterId = k.trim()
+      if (!matterId) continue
+      const row = parseDemoCondoDiligenceRow(v)
+      if (row) out[matterId] = row
+    }
+    return Object.keys(out).length > 0 ? out : null
+  } catch {
+    return null
   }
 }
 
@@ -371,13 +469,17 @@ function syncMattersWithCertRequests(matters: DemoMatter[], requests: DemoFinCEN
 
 export function DemoProvider({ children }: { children: React.ReactNode }) {
   // Matters + FinCEN cert requests hydrate from localStorage; seed fills missing ids on first load.
-  const [state, setState] = useState<DemoSeedData & {
-    recentlyDeletedMatters: DemoMatter[]
-    recentlyDeletedClients: DemoClient[]
-  }>(() => ({
+  const [state, setState] = useState<
+    DemoSeedData & {
+      recentlyDeletedMatters: DemoMatter[]
+      recentlyDeletedClients: DemoClient[]
+      condoDiligenceByMatterId: Record<string, DemoCondoDiligence>
+    }
+  >(() => ({
     ...cloneSeedData(),
     recentlyDeletedMatters: [],
     recentlyDeletedClients: [],
+    condoDiligenceByMatterId: {},
   }))
 
   useEffect(() => {
@@ -420,7 +522,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       const rawDocuments = typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_DOCUMENTS_STORAGE_KEY) : null
       const rawDocumentRequests =
         typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_DOCUMENT_REQUESTS_STORAGE_KEY) : null
-      if (!rawMatters && !rawFincen && !rawDocuments && !rawDocumentRequests) return
+      const rawCondoDiligence =
+        typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_CONDO_DILIGENCE_STORAGE_KEY) : null
+      if (!rawMatters && !rawFincen && !rawDocuments && !rawDocumentRequests && !rawCondoDiligence) return
       setState((prev) => {
         let matters = prev.matters
         if (rawMatters) {
@@ -456,7 +560,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             documentRequests = mergeStoredDocumentRequestsWithSeed(stored, prev.documentRequests)
           }
         }
-        return { ...prev, matters, fincenCertRequests, documents, documentRequests }
+        let condoDiligenceByMatterId = prev.condoDiligenceByMatterId
+        if (rawCondoDiligence) {
+          const storedMap = parseCondoDiligenceMapFromStorage(rawCondoDiligence)
+          if (storedMap) {
+            condoDiligenceByMatterId = { ...prev.condoDiligenceByMatterId, ...storedMap }
+          }
+        }
+        return { ...prev, matters, fincenCertRequests, documents, documentRequests, condoDiligenceByMatterId }
       })
     } catch {
       /* ignore */
@@ -495,6 +606,17 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     }, 250)
     return () => window.clearTimeout(t)
   }, [state.documentRequests])
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        persistDemoCondoDiligence(state.condoDiligenceByMatterId)
+      } catch {
+        /* ignore */
+      }
+    }, 250)
+    return () => window.clearTimeout(t)
+  }, [state.condoDiligenceByMatterId])
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -576,6 +698,24 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         setState((prev) => ({
           ...prev,
           documentRequests: mergeStoredDocumentRequestsWithSeed(sanitized, prev.documentRequests),
+        }))
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== DEMO_CONDO_DILIGENCE_STORAGE_KEY || !e.newValue) return
+      try {
+        const storedMap = parseCondoDiligenceMapFromStorage(e.newValue)
+        if (!storedMap) return
+        setState((prev) => ({
+          ...prev,
+          condoDiligenceByMatterId: { ...prev.condoDiligenceByMatterId, ...storedMap },
         }))
       } catch {
         /* ignore */
@@ -737,11 +877,15 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             const target = prev.matters.find((m) => m.id === matterId)
             if (!target) return prev
             const removedAt = target.deletedAt ?? new Date().toISOString()
+            const condoDiligenceByMatterId = Object.fromEntries(
+              Object.entries(prev.condoDiligenceByMatterId).filter(([k]) => k !== matterId),
+            ) as Record<string, DemoCondoDiligence>
             return {
               ...prev,
               matters: prev.matters.filter((m) => m.id !== matterId),
               calendarEvents: prev.calendarEvents.filter((evt) => evt.matter_id !== matterId),
               documents: prev.documents.filter((doc) => doc.matter_id !== matterId),
+              condoDiligenceByMatterId,
               recentlyDeletedMatters: [
                 { ...target, deletedAt: removedAt },
                 ...prev.recentlyDeletedMatters.filter((m) => m.id !== matterId),
@@ -1373,9 +1517,15 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
           createdInfo = { matterId: nextMatter.id, fileId: nextMatter.file_id }
 
+          const condoDiligenceByMatterId =
+            isCondoDiligenceEligible(nextMatter) && !prev.condoDiligenceByMatterId[nextMatter.id]
+              ? { ...prev.condoDiligenceByMatterId, [nextMatter.id]: buildDefaultCondoDiligence() }
+              : prev.condoDiligenceByMatterId
+
           return {
             ...prev,
             matters: [...prev.matters, nextMatter],
+            condoDiligenceByMatterId,
           }
         })
         if (createdInfo) input.onCreated?.(createdInfo)
@@ -1407,6 +1557,58 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           )
           if (!result) return prev
           return { ...prev, documents: result.documents, documentRequests: result.documentRequests }
+        })
+      },
+      getCondoDiligence: (matterId) => {
+        const id = matterId.trim()
+        if (!id) return undefined
+        return state.condoDiligenceByMatterId[id]
+      },
+      ensureCondoDiligence: (matterId) => {
+        const id = matterId.trim()
+        if (!id) return
+        setState((prev) => {
+          if (prev.condoDiligenceByMatterId[id]) return prev
+          const matter = prev.matters.find((m) => m.id === id && !m.deletedAt)
+          if (!matter || !isCondoDiligenceEligible(matter)) return prev
+          return {
+            ...prev,
+            condoDiligenceByMatterId: {
+              ...prev.condoDiligenceByMatterId,
+              [id]: buildDefaultCondoDiligence(),
+            },
+          }
+        })
+      },
+      patchCondoDiligence: (matterId, patch) => {
+        const id = matterId.trim()
+        if (!id) return
+        setState((prev) => {
+          const existing = prev.condoDiligenceByMatterId[id]
+          if (!existing) return prev
+          const definedEntries = Object.fromEntries(
+            Object.entries(patch).filter(([, v]) => v !== undefined),
+          ) as Partial<DemoCondoDiligence>
+          const nextBase: DemoCondoDiligence = {
+            ...existing,
+            ...definedEntries,
+            updated_at: new Date().toISOString(),
+          }
+          const shouldDeriveMatterStatus =
+            'requiredDocuments' in definedEntries || 'findings' in definedEntries
+          const next: DemoCondoDiligence = shouldDeriveMatterStatus
+            ? {
+                ...nextBase,
+                status: deriveCondoDiligenceMatterStatusFromChecklist({
+                  requiredDocuments: nextBase.requiredDocuments,
+                  findings: nextBase.findings,
+                }),
+              }
+            : nextBase
+          return {
+            ...prev,
+            condoDiligenceByMatterId: { ...prev.condoDiligenceByMatterId, [id]: next },
+          }
         })
       },
     }

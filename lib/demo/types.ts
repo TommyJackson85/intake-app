@@ -167,6 +167,38 @@ export type DemoMatter = {
   timeline: DemoTimelineEvent[]
 }
 
+/** Matter-level Florida condo diligence (demo). */
+export type DemoCondoDiligenceMatterStatus =
+  | 'not_started'
+  | 'in_progress'
+  | 'under_review'
+  | 'cleared'
+  | 'flagged'
+
+export type DemoCondoDiligenceDocStatus = 'outstanding' | 'requested' | 'received'
+
+export type DemoCondoDiligenceRequiredDocument = {
+  id: string
+  label: string
+  status: DemoCondoDiligenceDocStatus
+  detail?: string | null
+}
+
+/** One-line or short finding; list grows in UI over time. */
+export type DemoCondoDiligenceFinding = {
+  id: string
+  text: string
+}
+
+export type DemoCondoDiligence = {
+  applicable: boolean
+  status: DemoCondoDiligenceMatterStatus
+  requiredDocuments: DemoCondoDiligenceRequiredDocument[]
+  findings: DemoCondoDiligenceFinding[]
+  notes: string
+  updated_at: string
+}
+
 export type DemoFirm = {
   id: string
   name: string
@@ -191,6 +223,7 @@ export type DemoIntakeSnapshot = {
   transactionRoleOther: string
   matterType: string
   propertyAddress: string
+  propertyType?: DemoMatter['property']['property_type']
   county: string
   targetClosingDate: string
   notes: string

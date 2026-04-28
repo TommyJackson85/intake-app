@@ -5,7 +5,9 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
 import MatterDetailModal from '@/components/demo/MatterDetailModal'
-import type { DemoMatter } from '@/lib/demo/types'
+import type { DemoCondoDiligenceMatterStatus, DemoMatter } from '@/lib/demo/types'
+import { condoDiligenceMatterStatusPresentation, isCondoDiligenceEligible } from '@/lib/demo/condoDiligence'
+import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 import { getMatterPartyDisplayRows } from '@/lib/demo/matterPartyDisplay'
 import { useSearchParams } from 'next/navigation'
 
@@ -17,6 +19,17 @@ function statusColor(status: DemoMatter['status']) {
   return '#627c71'
 }
 
+function fincenListSignalPresentation(matter: DemoMatter): { label: string; bg: string; color: string; border: string } | null {
+  if (!isFincenEligibleMatter(matter)) return null
+  const completed = matter.fincen?.completedFields ?? 0
+  if (completed >= 111) {
+    return { label: 'AML · OK', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+  }
+  return { label: 'AML · Attention', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+}
+
+type MatterDetailInitialTab = 'Condo Diligence' | 'FinCEN / AML'
+
 export default function DemoMattersPage() {
   return (
     <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Loading matters…</div>}>
@@ -26,10 +39,11 @@ export default function DemoMattersPage() {
 }
 
 function DemoMattersContent() {
-  const { matters, archiveMatter, archivedMatters } = useDemoStore()
+  const { matters, archiveMatter, archivedMatters, getCondoDiligence } = useDemoStore()
 
   const [hoveredMatterId, setHoveredMatterId] = useState<string | null>(null)
   const [selectedMatter, setSelectedMatter] = useState<DemoMatter | null>(null)
+  const [selectedMatterInitialTab, setSelectedMatterInitialTab] = useState<MatterDetailInitialTab | undefined>(undefined)
   const didOpenFromQueryRef = useRef(false)
   const [isNewMatterOpen, setIsNewMatterOpen] = useState(false)
   const [showDemoCreationDisabledBanner, setShowDemoCreationDisabledBanner] = useState(false)
@@ -126,7 +140,10 @@ function DemoMattersContent() {
             {matters.map((m) => (
               <tr
                 key={m.id}
-                onClick={() => setSelectedMatter(m)}
+                onClick={() => {
+                  setSelectedMatterInitialTab(undefined)
+                  setSelectedMatter(m)
+                }}
                 onMouseEnter={() => setHoveredMatterId(m.id)}
                 onMouseLeave={() => setHoveredMatterId(null)}
                 style={{
@@ -137,10 +154,60 @@ function DemoMattersContent() {
               >
                 {(() => {
                   const partyRows = getMatterPartyDisplayRows(m)
+                  const condoEligible = isCondoDiligenceEligible(m)
+                  const condoRow = condoEligible ? getCondoDiligence(m.id) : undefined
+                  const condoStatus: DemoCondoDiligenceMatterStatus = condoRow?.status ?? 'not_started'
+                  const condoChip = condoEligible ? condoDiligenceMatterStatusPresentation(condoStatus) : null
+                  const fincenChip = fincenListSignalPresentation(m)
+                  const condoNeedsAttention = condoEligible && condoStatus !== 'cleared'
+                  const fincenNeedsAttention = isFincenEligibleMatter(m) && (m.fincen?.completedFields ?? 0) < 111
+                  const complianceInitialTab: MatterDetailInitialTab | undefined = condoNeedsAttention
+                    ? 'Condo Diligence'
+                    : fincenNeedsAttention
+                      ? 'FinCEN / AML'
+                      : undefined
                   return (
                     <>
                 <td style={{ padding: '14px', color: '#134252', fontWeight: 800 }}>
-                  <span style={{ color: '#208096', textDecoration: 'underline' }}>{m.file_id}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ color: '#208096', textDecoration: 'underline' }}>{m.file_id}</span>
+                    {condoChip && (
+                      <span
+                        title="Condo diligence (demo)"
+                        style={{
+                          display: 'inline-block',
+                          padding: '3px 8px',
+                          borderRadius: '999px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          letterSpacing: '0.02em',
+                          background: condoChip.bg,
+                          color: condoChip.color,
+                          border: `1px solid ${condoChip.border}`,
+                        }}
+                      >
+                        Condo · {condoChip.label}
+                      </span>
+                    )}
+                    {fincenChip && (
+                      <span
+                        title="AML / FinCEN (demo)"
+                        style={{
+                          display: 'inline-block',
+                          padding: '3px 8px',
+                          borderRadius: '999px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          letterSpacing: '0.02em',
+                          background: fincenChip.bg,
+                          color: fincenChip.color,
+                          border: `1px solid ${fincenChip.border}`,
+                        }}
+                      >
+                        {fincenChip.label}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td style={{ padding: '14px', color: '#134252' }}>
                   {partyRows.length > 0 ? (
@@ -165,6 +232,28 @@ function DemoMattersContent() {
                 </td>
                 <td style={{ padding: '14px', color: statusColor(m.status), fontWeight: 800 }}>{m.status}</td>
                 <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
+                  {complianceInitialTab && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedMatterInitialTab(complianceInitialTab)
+                        setSelectedMatter(m)
+                      }}
+                      style={{
+                        background: '#fff',
+                        border: '1px solid rgba(94,82,64,0.3)',
+                        color: '#134252',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        marginRight: '6px',
+                      }}
+                    >
+                      Review compliance
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -238,7 +327,11 @@ function DemoMattersContent() {
       <MatterDetailModal
         matter={selectedMatter}
         open={selectedMatter !== null}
-        onClose={() => setSelectedMatter(null)}
+        initialTab={selectedMatterInitialTab}
+        onClose={() => {
+          setSelectedMatter(null)
+          setSelectedMatterInitialTab(undefined)
+        }}
         onArchive={(id) => archiveMatter(id)}
       />
     </div>
