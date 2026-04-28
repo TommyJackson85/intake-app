@@ -238,7 +238,10 @@ export function isCondoDiligenceUntouched(input: Pick<DemoCondoDiligence, 'statu
   return input.status === 'not_started' && notesEmpty && noFindings && allOutstanding
 }
 
-type MatterEligibilityInput = Pick<DemoMatter, 'matter_type' | 'property'>
+type MatterEligibilityInput = {
+  matter_type: DemoMatter['matter_type']
+  property: Pick<DemoMatter['property'], 'address' | 'property_type'> & { county?: DemoMatter['property']['county'] }
+}
 
 /** True when the property address looks like Florida (demo heuristic). */
 export function isFloridaPropertyAddress(address: string): boolean {

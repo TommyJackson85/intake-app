@@ -242,7 +242,10 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
     () =>
       isCondoDiligenceEligible({
         matter_type: values.matterType,
-        property: { address: values.propertyAddress, property_type: values.propertyType },
+        property: {
+          address: values.propertyAddress,
+          property_type: values.propertyType,
+        }
       }),
     [values.matterType, values.propertyAddress, values.propertyType]
   )
