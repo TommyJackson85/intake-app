@@ -16,6 +16,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.92.0",
     "@sentry/nextjs": "^10.35.0",
     "@stripe/stripe-js": "^2.4.0",
     "@supabase/ssr": "^0.8.0",

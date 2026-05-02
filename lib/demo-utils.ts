@@ -14,7 +14,10 @@ function parseYmdToLocalStart(dateStr: string) {
 }
 
 /**
- * Pure helper: derives a demo matter status from task completion.
+ * Pure helper: derives a demo matter **pipeline** status from task completion (same labels as `DemoMatter.status`).
+ * This is one of several independent status concepts (`DemoMatter.status`, milestone logs, docs, condo, FinCEN, …).
+ * See `systemContract.knownDivergences` id `multiple-status-concepts` in `lib/domain/system-contract.ts`.
+ *
  * `closingDate` is optional so the function can be unit tested without it.
  * When `closingDate` is missing, `Closed/Post-Closing` will never be returned.
  */

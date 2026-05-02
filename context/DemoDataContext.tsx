@@ -1,5 +1,11 @@
 'use client'
 
+/**
+ * Narrow UI facade over `useDemoStore` for task index + timeline notes (e.g. checklist/timeline widgets).
+ * Not a second store: the same matter rows and timeline mutations persist via `DemoProvider` / localStorage
+ * where applicable. See `systemContract.knownDivergences` id `demo-data-context-wording` in `lib/domain/system-contract.ts`.
+ */
+
 import React, { createContext, useCallback, useContext, useMemo } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
 import type { DemoMatter, DemoTaskStatus } from '@/lib/demo/types'
@@ -14,7 +20,7 @@ type DemoDataContextType = {
 const DemoDataContext = createContext<DemoDataContextType | null>(null)
 
 export function DemoDataProvider({ children }: { children: React.ReactNode }) {
-  // Demo in-memory state — resets on refresh (implemented by DemoProvider).
+  // Delegates to `useDemoStore`; matters (and related demo slices) persist across refresh per store/localStorage rules.
   const { matters, updateTaskStatus: storeUpdateTaskStatus, updateMatterStatus, addTimelineNote } = useDemoStore()
 
   const updateTaskStatus = useCallback(

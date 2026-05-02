@@ -98,10 +98,13 @@ function DemoMattersContent() {
             padding: '12px 18px',
             borderRadius: '6px',
             fontWeight: 800,
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '14px',
           }}
           onClick={() => setIsNewMatterOpen(true)}
         >
-          + 
+          + New matter
         </button>
       </div>
 

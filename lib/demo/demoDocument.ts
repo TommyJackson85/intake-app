@@ -1,3 +1,6 @@
+/**
+ * Build/merge helpers for `DemoDocument`. Conceptual home: `systemContract.domains.documentsAndUploads`.
+ */
 import type { DemoDocument } from '@/lib/demo/types'
 import { buildEngagementLetterDescription } from '@/lib/demo/engagementLetterPreview'
 

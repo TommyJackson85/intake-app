@@ -1,3 +1,7 @@
+/**
+ * Florida condo diligence helpers (eligibility, checklist, linkage to demo documents/requests).
+ * Maps to `systemContract.domains.compliance` (condo slice) — implementation detail, not the contract file itself.
+ */
 import type {
   DemoCondoDiligence,
   DemoCondoDiligenceDocStatus,

@@ -68,6 +68,7 @@ export function MobileTopBar({ firmName, isDemo = false }: { firmName?: string; 
         { href: '/demo/documents', label: 'Documents' },
         { href: '/demo/clients', label: 'Clients' },
         { href: '/demo/archive/matters', label: 'Archive' },
+        { href: '/demo/dev/ai-payloads', label: 'Dev · AI payload' },
       ]
     : [
         { href: '/dashboard', label: 'Dashboard' },
