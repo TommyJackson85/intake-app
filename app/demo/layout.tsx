@@ -17,6 +17,8 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
     { href: '/demo/documents', label: 'Documents' },
     { href: '/demo/clients', label: 'Clients' },
     { href: '/demo/archive/matters', label: 'Archive' },
+    /** Dev-only payload inspector; safe to remove when AI handoff is productionized */
+    { href: '/demo/dev/ai-payloads', label: 'Dev · AI payload' },
   ]
 
   return (
@@ -55,7 +57,10 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
 
               <nav style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {navItems.map((item) => {
-                  const selected = pathname === item.href || (item.label === 'Archive' && pathname?.startsWith('/demo/archive'))
+                  const selected =
+                    pathname === item.href ||
+                    (item.label === 'Archive' && pathname?.startsWith('/demo/archive')) ||
+                    (item.href === '/demo/dev/ai-payloads' && pathname?.startsWith('/demo/dev'))
                   return (
                     <Link
                       key={item.href}

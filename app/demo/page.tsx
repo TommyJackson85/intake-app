@@ -9,6 +9,7 @@ import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMat
 import DemoTaskChecklist from '@/components/demo/DemoTaskChecklist'
 import DemoTimelineNotes from '@/components/demo/DemoTimelineNotes'
 import NewIntakeDemoModal from './_components/NewIntakeDemoModal'
+import SystemContractMapCard from './_components/SystemContractMapCard'
 import { getMatterPartyDisplayRows } from '@/lib/demo/matterPartyDisplay'
 
 function statusColor(status: DemoMatter['status']) {
@@ -88,11 +89,14 @@ function DemoPageContent() {
 
   if (!selectedMatter) {
     return (
-      <div style={{ background: 'white', border: '1px solid rgba(94,82,64,0.2)', borderRadius: '8px', padding: '20px' }}>
-        <h2 style={{ marginTop: 0 }}>No active matters</h2>
-        <p style={{ color: '#627c71', marginBottom: 0 }}>
-          All demo matters may be archived for this session. Refresh the page to restore seeded demo data.
-        </p>
+      <div>
+        <div style={{ background: 'white', border: '1px solid rgba(94,82,64,0.2)', borderRadius: '8px', padding: '20px' }}>
+          <h2 style={{ marginTop: 0 }}>No active matters</h2>
+          <p style={{ color: '#627c71', marginBottom: 0 }}>
+            All demo matters may be archived for this session. Refresh the page to restore seeded demo data.
+          </p>
+        </div>
+        <SystemContractMapCard />
       </div>
     )
   }
@@ -114,13 +118,19 @@ function DemoPageContent() {
         <div>
           <h1 style={{ marginBottom: '6px', fontSize: '32px' }}>Dashboard</h1>
           <p style={{ margin: 0, color: '#627c71', fontSize: '14px' }}>Your worklist and key dates for the next 7 days.</p>
+          <p style={{ margin: '10px 0 0', color: '#627c71', fontSize: '13px', maxWidth: '52rem', lineHeight: 1.55 }}>
+            <strong style={{ color: '#134252' }}>New intake link</strong> captures a lead and optional pseudo-send (saved under Intake / Leads).
+            <strong style={{ color: '#134252' }}> New matter</strong> opens a file directly in this demo session. Use the table for a quick
+            snapshot; <strong style={{ color: '#134252' }}>full workspace</strong> covers documents, missing-doc requests, client portal, and
+            compliance (FinCEN / condo).
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <button type="button" style={actionBtn('#208096', 'white')} onClick={() => setIsNewIntakeOpen(true)}>
             + New intake link
           </button>
           <button type="button" style={actionBtn('rgba(94, 82, 64, 0.12)', '#134252')} onClick={() => setIsNewMatterOpen(true)}>
-            + 
+            + New matter
           </button>
         </div>
       </div>
@@ -256,6 +266,19 @@ function DemoPageContent() {
           <p style={{ marginTop: 0, color: '#627c71', fontSize: '13px' }}>
             {selectedMatter.property.property_type} - {selectedMatter.property.county}
           </p>
+          <p style={{ margin: '0 0 12px' }}>
+            <Link
+              href={`/demo/matters?matter=${encodeURIComponent(selectedMatter.file_id)}`}
+              style={{
+                fontSize: '13px',
+                fontWeight: 800,
+                color: '#208096',
+                textDecoration: 'none',
+              }}
+            >
+              Open full matter workspace →
+            </Link>
+          </p>
           <label style={{ fontSize: '12px', color: '#627c71', display: 'block', marginBottom: '6px' }}>
             Matter status
           </label>
@@ -291,6 +314,8 @@ function DemoPageContent() {
         </div>
       </aside>
       </div>
+
+      <SystemContractMapCard />
 
       <NewMatterModal
         isOpen={isNewMatterOpen}

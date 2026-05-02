@@ -1,3 +1,9 @@
+/**
+ * Demo-local domain types (`Demo*`) — implementation of the conceptual model documented in
+ * `lib/domain/system-contract.ts`. That file names domains, relationships, and known divergences
+ * (mixed casing, multiple status concepts, split FinCEN storage, etc.); this file remains the
+ * authoritative TypeScript shape for browser-backed demo state. Do not treat `types/database.ts` as parallel truth.
+ */
 export type MatterMilestoneStatus =
   | 'instruction_received' | 'aml_checks_started' | 'aml_checks_complete'
   | 'title_search_started' | 'title_search_complete' | 'contracts_received'

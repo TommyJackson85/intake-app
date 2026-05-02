@@ -1,3 +1,6 @@
+/**
+ * Build/merge/fulfillment helpers for `DemoDocumentRequest`. Conceptual home: `systemContract.domains.documentRequests`.
+ */
 import { appendDemoDocumentIfValid, type BuildDemoDocumentOptions } from '@/lib/demo/demoDocument'
 import type { DemoDocument, DemoMatter, DemoDocumentRequest, DemoDocumentRequestStatus } from '@/lib/demo/types'
 

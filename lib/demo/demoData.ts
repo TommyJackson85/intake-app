@@ -1,3 +1,7 @@
+/**
+ * Seeded demo dataset and static milestone vocabulary (portal narrative).
+ * Aligns with `systemContract.domains` for firm seed, matters, and timeline/milestone story — not a runtime loader for the contract object.
+ */
 import type { DemoSeedData, MatterMilestoneStatus, DemoMilestoneLog } from '@/lib/demo/types'
 
 export const MILESTONE_LABELS: Record<MatterMilestoneStatus, string> = {

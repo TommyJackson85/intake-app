@@ -1,5 +1,11 @@
 'use client'
 
+/**
+ * Demo operational layer: React context, mutations, and localStorage persistence for demo data.
+ * Conceptual domain map and drift notes: `lib/domain/system-contract.ts`.
+ * Persistence keys and serialized shapes are stable API for existing user sessions — change only with migration.
+ */
+
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { demoSeedData } from '@/lib/demo/demoData'
 import type {

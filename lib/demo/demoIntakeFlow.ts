@@ -1,3 +1,6 @@
+/**
+ * Intake lead → matter/client mapping helpers. Conceptual home: `systemContract.domains.intakes` + `partiesAndContacts`.
+ */
 import type {
   DemoClient,
   DemoIntakeLead,
