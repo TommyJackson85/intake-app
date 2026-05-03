@@ -44,6 +44,8 @@ export type DemoParty = {
   type?: DemoPartyType
   email: string
   phone: string
+  /** Former / trading / informal names — demo conflict check only */
+  aliases?: string[]
 }
 
 export type DemoStaffProfile = {
@@ -223,6 +225,8 @@ export type DemoIntakeRelatedParty = {
   name: string
   /** Short label for staff context, e.g. co-borrower, spouse */
   roleLabel?: string
+  /** Optional alternate names — demo conflict only */
+  aliases?: string[]
 }
 
 /** Lawyer-prefilled intake fields (secure form); separate from email recipient identity */
@@ -230,6 +234,8 @@ export type DemoIntakeSnapshot = {
   clientName: string
   clientEmail: string
   clientPhone: string
+  /** Alternate / former names for the primary client — demo conflict only */
+  clientAliases?: string[]
   /** Where the client name should appear when opening a matter from this intake */
   transactionRole: DemoTransactionRole
   /** When `transactionRole` is `other`, short free-text description */
@@ -249,6 +255,21 @@ export type DemoIntakeSnapshot = {
 }
 
 export type DemoConflictCheckStatus = 'pending' | 'clear' | 'flagged' | 'confirmed_no_conflict'
+
+/**
+ * Latest demo conflict-check run only (overwritten on each run). Reasons are `ConflictMatchReason` string keys for stable storage.
+ * @see `lib/demo/demoConflictLastRun.ts`
+ */
+export type DemoConflictLastRun = {
+  runAt: string
+  runByLabel: string
+  /** Intake fields as searched, normalized — may differ from current lead if intake was edited later */
+  intakeSnapshot: DemoIntakeSnapshot
+  hasConflict: boolean
+  clientRows: { clientId: string; fullName: string; email: string; reasons: string[] }[]
+  matterRows: { matterId: string; fileId: string; buyerName: string; sellerName: string; reasons: string[] }[]
+  intakeRows: { leadId: string; fileReference: string; clientName: string; reasons: string[] }[]
+}
 
 export type DemoIntakeLeadStatus = 'pending_client' | 'submitted'
 
@@ -281,6 +302,8 @@ export type DemoIntakeLead = {
   conflict_check_status?: DemoConflictCheckStatus
   conflict_check_completed_at?: string | null
   conflict_check_note?: string | null
+  /** Overwritten each time staff runs the demo conflict check from Intake / Leads */
+  conflict_check_last_run?: DemoConflictLastRun | null
 }
 
 export type DemoSeedData = {
@@ -298,6 +321,8 @@ export type DemoSeedData = {
 export type DemoClient = {
   id: string
   full_name: string
+  /** Former / informal names — demo conflict check only */
+  aliases?: string[]
   email: string
   phone: string
   kyc_status: 'approved' | 'pending' | 'flagged'

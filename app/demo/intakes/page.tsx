@@ -16,6 +16,13 @@ import {
   type ConflictMatchReason,
   type DemoConflictCheckResult,
 } from '@/lib/demo/demoConflictCheck'
+import { buildConflictCheckLastRun } from '@/lib/demo/demoConflictLastRun'
+import {
+  buildDemoConflictMemoHtml,
+  memoRowsFromLastRun,
+  memoRowsFromLiveResult,
+  openDemoConflictMemoHtml,
+} from '@/lib/demo/demoConflictMemo'
 import { useDemoStore } from '@/lib/demo/store'
 import NewIntakeDemoModal from '@/app/demo/_components/NewIntakeDemoModal'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
@@ -86,16 +93,20 @@ export default function DemoIntakesPage() {
       const intake = effectiveIntakeSnapshot(lead)
       if (!canRunDemoConflictCheck(intake)) {
         showToast(
-          'Add a primary client name, related party, property address (8+ chars), or development/building name to run a conflict check.',
+          'Add a client name, alias, related party, email, phone, property address (8+ chars), or development/building name to run a conflict check.',
           'err',
         )
         return
       }
       const result = runDemoConflictCheck(lead, clients, matters, intakeLeads)
-      setConflictModal({ open: true, lead, result })
+      const runAt = new Date().toISOString()
+      const runByLabel = staff[0]?.full_name ?? 'Demo staff'
+      const lastRun = buildConflictCheckLastRun(lead, result, { runByLabel, runAt })
+      patchIntakeLead(lead.id, { conflict_check_last_run: lastRun })
+      setConflictModal({ open: true, lead: { ...lead, conflict_check_last_run: lastRun }, result })
       setConfirmNote('')
     },
-    [clients, matters, intakeLeads, showToast]
+    [clients, matters, intakeLeads, patchIntakeLead, showToast, staff]
   )
 
   const handleMarkClear = useCallback(
@@ -133,6 +144,49 @@ export default function DemoIntakesPage() {
       showToast('Intake flagged as conflict.', 'err')
     },
     [patchIntakeLead, showToast]
+  )
+
+  const openConflictMemo = useCallback(() => {
+    const lead = conflictModal.lead
+    const result = conflictModal.result
+    if (!lead || !result) return
+    const now = new Date().toISOString()
+    const exportedBy = staff[0]?.full_name ?? 'Demo staff'
+    const last = lead.conflict_check_last_run
+    const rows = last ? memoRowsFromLastRun(last) : memoRowsFromLiveResult(lead, result)
+    const html = buildDemoConflictMemoHtml({
+      lead,
+      checkRunAtIso: last?.runAt ?? now,
+      checkRunByLabel: last?.runByLabel ?? exportedBy,
+      memoGeneratedAtIso: now,
+      memoExportedByLabel: exportedBy,
+      draftReviewerNote: confirmNote.trim() || undefined,
+      rows,
+    })
+    if (!openDemoConflictMemoHtml(html)) {
+      showToast('Allow pop-ups to open the conflict memo, then try again.', 'err')
+    }
+  }, [conflictModal.lead, conflictModal.result, staff, confirmNote, showToast])
+
+  const openLastConflictMemoForLead = useCallback(
+    (lead: DemoIntakeLead) => {
+      const last = lead.conflict_check_last_run
+      if (!last) return
+      const now = new Date().toISOString()
+      const exportedBy = staff[0]?.full_name ?? 'Demo staff'
+      const html = buildDemoConflictMemoHtml({
+        lead,
+        checkRunAtIso: last.runAt,
+        checkRunByLabel: last.runByLabel,
+        memoGeneratedAtIso: now,
+        memoExportedByLabel: exportedBy,
+        rows: memoRowsFromLastRun(last),
+      })
+      if (!openDemoConflictMemoHtml(html)) {
+        showToast('Allow pop-ups to open the conflict memo, then try again.', 'err')
+      }
+    },
+    [staff, showToast],
   )
 
   useEffect(() => {
@@ -360,49 +414,69 @@ export default function DemoIntakesPage() {
                       </div>
                     </td>
                     <td style={{ padding: '14px', verticalAlign: 'top', fontSize: 12 }}>
-                      {(() => {
-                        const ccs: DemoConflictCheckStatus = lead.conflict_check_status ?? 'pending'
-                        if (ccs === 'pending') {
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+                        {(() => {
+                          const ccs: DemoConflictCheckStatus = lead.conflict_check_status ?? 'pending'
+                          if (ccs === 'pending') {
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => handleRunCheck(lead)}
+                                style={{
+                                  padding: '6px 10px',
+                                  borderRadius: 6,
+                                  border: '1px solid #b45309',
+                                  background: '#fff8e6',
+                                  color: '#b45309',
+                                  fontWeight: 800,
+                                  fontSize: 12,
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                Run Conflict Check
+                              </button>
+                            )
+                          }
+                          if (ccs === 'clear') {
+                            return (
+                              <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: 4, background: '#e8f5f0', color: '#2f855a', fontWeight: 800, fontSize: 12 }}>
+                                &#10003; Clear
+                              </span>
+                            )
+                          }
+                          if (ccs === 'flagged') {
+                            return (
+                              <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: 4, background: '#fee', color: '#c0152f', fontWeight: 800, fontSize: 12 }}>
+                                &#9888; Conflict Found
+                              </span>
+                            )
+                          }
                           return (
-                            <button
-                              type="button"
-                              onClick={() => handleRunCheck(lead)}
-                              style={{
-                                padding: '6px 10px',
-                                borderRadius: 6,
-                                border: '1px solid #b45309',
-                                background: '#fff8e6',
-                                color: '#b45309',
-                                fontWeight: 800,
-                                fontSize: 12,
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              Run Conflict Check
-                            </button>
-                          )
-                        }
-                        if (ccs === 'clear') {
-                          return (
-                            <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: 4, background: '#e8f5f0', color: '#2f855a', fontWeight: 800, fontSize: 12 }}>
-                              &#10003; Clear
+                            <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: 4, background: '#f5f5f5', color: '#627c71', fontWeight: 800, fontSize: 12 }}>
+                              Confirmed Clear
                             </span>
                           )
-                        }
-                        if (ccs === 'flagged') {
-                          return (
-                            <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: 4, background: '#fee', color: '#c0152f', fontWeight: 800, fontSize: 12 }}>
-                              &#9888; Conflict Found
-                            </span>
-                          )
-                        }
-                        return (
-                          <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: 4, background: '#f5f5f5', color: '#627c71', fontWeight: 800, fontSize: 12 }}>
-                            Confirmed Clear
-                          </span>
-                        )
-                      })()}
+                        })()}
+                        {lead.conflict_check_last_run ? (
+                          <button
+                            type="button"
+                            onClick={() => openLastConflictMemoForLead(lead)}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(94,82,64,0.28)',
+                              background: 'white',
+                              color: '#134252',
+                              fontWeight: 700,
+                              fontSize: 11,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Open last check memo
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                     <td style={{ padding: '14px', verticalAlign: 'top', fontSize: 12 }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -596,7 +670,23 @@ export default function DemoIntakesPage() {
                   No hits on primary or related party names, property / development hints, or overlapping intakes (demo
                   fuzzy match). This intake is clear to proceed from a system perspective — staff should still confirm.
                 </p>
-                <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={openConflictMemo}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(94,82,64,0.35)',
+                      background: 'white',
+                      color: '#134252',
+                      fontWeight: 800,
+                      fontSize: 14,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Open conflict memo
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleMarkClear(conflictModal.lead!.id)}
@@ -716,6 +806,22 @@ export default function DemoIntakesPage() {
                 />
 
                 <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={openConflictMemo}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(94,82,64,0.35)',
+                      background: 'white',
+                      color: '#134252',
+                      fontWeight: 800,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Open conflict memo
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleConfirmNoConflict(conflictModal.lead!.id, confirmNote)}

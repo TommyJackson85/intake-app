@@ -5,6 +5,7 @@ import type { DemoIntakeDemoDelivery, DemoIntakeSnapshot, DemoMatter, DemoPartyT
 import {
   DEMO_BUYER_TYPE_OPTIONS,
   DEMO_TRANSACTION_ROLE_OPTIONS,
+  parseAliasesFromMultiline,
   parseRelatedPartiesFromMultiline,
 } from '@/lib/demo/demoIntakeFlow'
 import { useDemoStore } from '@/lib/demo/store'
@@ -33,6 +34,8 @@ type FormValues = {
   county: string
   targetClosingDate: string
   notes: string
+  /** One per line — parsed into `DemoIntakeSnapshot.clientAliases` */
+  clientAliasesLines: string
   /** One per line: Name or Name, Role — parsed into `DemoIntakeSnapshot.relatedParties` */
   relatedPartiesLines: string
 }
@@ -74,6 +77,11 @@ const leadFieldRows: FieldRow[] = [
   { key: 'clientName', label: 'Client name', type: 'text' },
   { key: 'clientEmail', label: 'Client email', type: 'email' },
   { key: 'clientPhone', label: 'Client phone', type: 'tel' },
+  {
+    key: 'clientAliasesLines',
+    label: 'Also known as / aliases (optional — one per line)',
+    type: 'textarea',
+  },
 ]
 
 const tailFieldRows: FieldRow[] = [
@@ -117,6 +125,7 @@ function transactionRoleSummary(v: FormValues): string {
 
 function toIntakeSnapshot(values: FormValues): DemoIntakeSnapshot {
   const relatedParties = parseRelatedPartiesFromMultiline(values.relatedPartiesLines)
+  const clientAliases = parseAliasesFromMultiline(values.clientAliasesLines)
   return {
     clientName: values.clientName,
     clientEmail: values.clientEmail,
@@ -127,11 +136,12 @@ function toIntakeSnapshot(values: FormValues): DemoIntakeSnapshot {
       values.transactionRole === 'buyer' || values.transactionRole === 'both' ? values.buyerType : undefined,
     matterType: values.matterType,
     propertyAddress: values.propertyAddress,
-    developmentOrBuildingName: values.developmentOrBuildingName.trim() || undefined,
+    developmentOrBuildingName: values.developmentOrBuildingName || undefined,
     propertyType: values.propertyType,
     county: values.county,
     targetClosingDate: values.targetClosingDate,
     notes: values.notes,
+    ...(clientAliases.length > 0 ? { clientAliases } : {}),
     ...(relatedParties.length > 0 ? { relatedParties } : {}),
   }
 }
@@ -198,6 +208,7 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
     county: '',
     targetClosingDate: '',
     notes: '',
+    clientAliasesLines: '',
     relatedPartiesLines: '',
   })
 
@@ -223,6 +234,7 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
       transactionRoleOther: '',
       buyerType: 'individual',
       developmentOrBuildingName: '',
+      clientAliasesLines: '',
       relatedPartiesLines: '',
     }))
   }, [isOpen, nextFileId])

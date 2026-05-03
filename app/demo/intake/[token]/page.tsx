@@ -6,7 +6,9 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   DEMO_BUYER_TYPE_OPTIONS,
   DEMO_TRANSACTION_ROLE_OPTIONS,
+  formatAliasesMultiline,
   formatRelatedPartiesMultiline,
+  parseAliasesFromMultiline,
   parseRelatedPartiesFromMultiline,
 } from '@/lib/demo/demoIntakeFlow'
 import type { DemoIntakeSnapshot, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
@@ -19,6 +21,10 @@ function normalizeSnapshot(s: DemoIntakeSnapshot): DemoIntakeSnapshot {
     transactionRoleOther: s.transactionRoleOther ?? '',
     propertyType: s.propertyType ?? 'Single-Family Home',
     developmentOrBuildingName: s.developmentOrBuildingName?.trim() ?? '',
+    clientAliases: (() => {
+      const ca = s.clientAliases?.map((a) => a.trim()).filter((a) => a.length > 0)
+      return ca && ca.length > 0 ? ca : undefined
+    })(),
     relatedParties: s.relatedParties?.filter((p) => (p.name?.trim() ?? '').length > 0) ?? undefined,
   }
 }
@@ -69,6 +75,7 @@ export default function DemoClientIntakePage() {
   const lead = useMemo(() => intakeLeads.find((l) => l.token === token), [intakeLeads, token])
 
   const [form, setForm] = useState<DemoIntakeSnapshot | null>(null)
+  const [clientAliasesLines, setClientAliasesLines] = useState('')
   const [relatedPartiesLines, setRelatedPartiesLines] = useState('')
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -76,6 +83,7 @@ export default function DemoClientIntakePage() {
     if (!lead) return
     const s = normalizeSnapshot(lead.submittedIntake ?? lead.intake)
     setForm(s)
+    setClientAliasesLines(formatAliasesMultiline(s.clientAliases))
     setRelatedPartiesLines(formatRelatedPartiesMultiline(s.relatedParties))
   }, [lead])
 
@@ -329,6 +337,30 @@ export default function DemoClientIntakePage() {
           {renderFields(tailFieldDefs)}
 
           <div>
+            <label htmlFor="cf-clientAliasesLines" style={{ fontSize: 12, color: '#627c71', fontWeight: 800 }}>
+              Also known as / aliases (optional — one per line)
+            </label>
+            <textarea
+              id="cf-clientAliasesLines"
+              value={clientAliasesLines}
+              readOnly={submitted}
+              onChange={(e) => setClientAliasesLines(e.target.value)}
+              rows={2}
+              placeholder="e.g. former married name, DBA"
+              style={{
+                width: '100%',
+                marginTop: 4,
+                padding: '10px 12px',
+                borderRadius: 6,
+                border: '1px solid rgba(94,82,64,0.22)',
+                background: submitted ? '#f4f4f0' : 'white',
+                color: '#134252',
+                resize: submitted ? 'none' : 'vertical',
+              }}
+            />
+          </div>
+
+          <div>
             <label htmlFor="cf-relatedPartiesLines" style={{ fontSize: 12, color: '#627c71', fontWeight: 800 }}>
               Related parties (optional — one per line: Name or Name, Role)
             </label>
@@ -371,9 +403,10 @@ export default function DemoClientIntakePage() {
               return
             }
             const relatedParties = parseRelatedPartiesFromMultiline(relatedPartiesLines)
+            const clientAliases = parseAliasesFromMultiline(clientAliasesLines)
             submitDemoIntakeLead(token, {
               ...form,
-              developmentOrBuildingName: form.developmentOrBuildingName?.trim() || undefined,
+              clientAliases: clientAliases.length > 0 ? clientAliases : undefined,
               relatedParties: relatedParties.length > 0 ? relatedParties : undefined,
             })
           }}

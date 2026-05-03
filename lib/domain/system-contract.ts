@@ -196,10 +196,13 @@ export const systemContract = {
       relationships: ['firmContext', 'matters', 'partiesAndContacts', 'compliance'],
       demo: {
         primaryTypes: ['`DemoIntakeLead`', '`DemoIntakeSnapshot` in `lib/demo/types.ts`'],
-        storeAndPersistence: ['`registerIntakeLead`, `submitDemoIntakeLead`, intake lead storage keys in `lib/demo/store.tsx`'],
+        storeAndPersistence: [
+          '`registerIntakeLead`, `submitDemoIntakeLead`, intake lead storage keys in `lib/demo/store.tsx` — only these paths should persist `intake` / `submittedIntake`; both run `normalizeIntakeSnapshotForPersist` in `lib/demo/demoIntakeFlow.ts`',
+        ],
         helpers: [
-          '`lib/demo/demoIntakeFlow.ts` (e.g. `effectiveIntakeSnapshot` for intake-derived names)',
-          '`app/demo/intakes/page.tsx` — staff Intake / Leads list: demo conflict check gate (modal, name matching, outcomes via `patchIntakeLead`); matching logic is page-local today, not a shared `lib/demo` module',
+          '`lib/demo/demoIntakeFlow.ts` — `effectiveIntakeSnapshot`, related-party parse/format, `normalizeIntakeSnapshotForPersist`',
+          '`lib/demo/demoConflictCheck.ts` — demo conflict matching (staff gate UI in `app/demo/intakes/page.tsx`)',
+          '`app/demo/intakes/page.tsx` — Intake / Leads list, conflict modal, outcomes via `patchIntakeLead`',
         ],
         notes:
           'Demo tokens are browser-local; not production security model. Client pseudo-form: `app/demo/intake/[token]/page.tsx` (submission only; no conflict UI there). Staff conflict review and “open as matter” readiness: `app/demo/intakes` (`app/demo/intakes/page.tsx`).',

@@ -23,3 +23,6 @@ jobs:
 
       - name: Run compliance checks
         run: npm run check:compliance
+
+      - name: Demo intake snapshot persist seam
+        run: npm run check:demo-intake-persist-seam

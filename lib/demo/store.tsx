@@ -33,7 +33,7 @@ import type {
   DemoCondoDiligenceRequiredDocument,
 } from '@/lib/demo/types'
 import { deriveMatterStatus } from '@/lib/demo-utils'
-import { findExistingDemoClient } from '@/lib/demo/demoIntakeFlow'
+import { findExistingDemoClient, normalizeIntakeSnapshotForPersist } from '@/lib/demo/demoIntakeFlow'
 import {
   appendDemoDocumentIfValid,
   mergeStoredDocumentsWithSeed,
@@ -100,7 +100,17 @@ type DemoContextType = {
   getIntakeLeadByToken: (token: string) => DemoIntakeLead | undefined
   patchIntakeLead: (
     leadId: string,
-    patch: Partial<Pick<DemoIntakeLead, 'linkedMatterFileId' | 'linkedClientId' | 'conflict_check_status' | 'conflict_check_completed_at' | 'conflict_check_note'>>
+    patch: Partial<
+      Pick<
+        DemoIntakeLead,
+        | 'linkedMatterFileId'
+        | 'linkedClientId'
+        | 'conflict_check_status'
+        | 'conflict_check_completed_at'
+        | 'conflict_check_note'
+        | 'conflict_check_last_run'
+      >
+    >
   ) => void
   createDemoClientIfNotExists: (input: {
     full_name: string
@@ -931,7 +941,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           emailBody: input.emailBody,
           intakeUrl: input.intakeUrl,
           demoDelivery: input.demoDelivery,
-          intake: input.intake,
+          intake: normalizeIntakeSnapshotForPersist(input.intake),
           status: 'pending_client',
           clientSubmittedAt: null,
           submittedIntake: null,
@@ -948,11 +958,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           const lead = prev.intakeLeads.find((l) => l.token === token)
           if (!lead) return prev
 
-          const normalizedIntake: DemoIntakeSnapshot = {
-            ...intake,
-            transactionRole: intake.transactionRole ?? 'buyer',
-            transactionRoleOther: intake.transactionRole === 'other' ? intake.transactionRoleOther ?? '' : '',
-          }
+          const normalizedIntake = normalizeIntakeSnapshotForPersist(intake)
           const buyerSide = normalizedIntake.transactionRole === 'buyer' || normalizedIntake.transactionRole === 'both'
 
           const intakeLeads = prev.intakeLeads.map((l) =>

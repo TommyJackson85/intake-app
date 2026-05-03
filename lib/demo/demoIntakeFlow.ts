@@ -51,6 +51,63 @@ export function formatRelatedPartiesMultiline(parties: DemoIntakeRelatedParty[] 
   return parties.map((p) => (p.roleLabel ? `${p.name}, ${p.roleLabel}` : p.name)).join('\n')
 }
 
+/** One alias per line; trim and drop empties (demo conflict intake field). */
+export function parseAliasesFromMultiline(raw: string): string[] {
+  return raw
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+}
+
+export function formatAliasesMultiline(aliases: string[] | undefined): string {
+  if (!aliases?.length) return ''
+  return aliases.join('\n')
+}
+
+/**
+ * Canonical persisted shape for `DemoIntakeLead.intake` and `submittedIntake`.
+ * Do not assign those fields directly: all demo writes must go through `registerIntakeLead` or `submitDemoIntakeLead`
+ * in `lib/demo/store.tsx`, which call this function. Does not parse multiline related-party text — use `parseRelatedPartiesFromMultiline` first.
+ */
+export function normalizeIntakeSnapshotForPersist(s: DemoIntakeSnapshot): DemoIntakeSnapshot {
+  const role = s.transactionRole ?? 'buyer'
+  const relatedPartiesRaw = s.relatedParties
+    ?.map((p) => {
+      const name = (p.name ?? '').trim()
+      if (!name) return null
+      const roleLabel = p.roleLabel?.trim()
+      const aliasList = p.aliases?.map((a) => a.trim()).filter((a) => a.length > 0)
+      return {
+        name,
+        ...(roleLabel ? { roleLabel } : {}),
+        ...(aliasList?.length ? { aliases: aliasList } : {}),
+      } satisfies DemoIntakeRelatedParty
+    })
+    .filter((p): p is DemoIntakeRelatedParty => p != null)
+  const relatedParties = relatedPartiesRaw && relatedPartiesRaw.length > 0 ? relatedPartiesRaw : undefined
+  const dev = (s.developmentOrBuildingName ?? '').trim()
+  const clientAliasesRaw = s.clientAliases?.map((a) => a.trim()).filter((a) => a.length > 0)
+  const clientAliases = clientAliasesRaw && clientAliasesRaw.length > 0 ? clientAliasesRaw : undefined
+
+  return {
+    clientName: s.clientName.trim(),
+    clientEmail: s.clientEmail.trim(),
+    clientPhone: s.clientPhone.trim(),
+    ...(clientAliases ? { clientAliases } : {}),
+    transactionRole: role,
+    transactionRoleOther: role === 'other' ? (s.transactionRoleOther ?? '').trim() : '',
+    buyerType: role === 'buyer' || role === 'both' ? s.buyerType : undefined,
+    matterType: s.matterType.trim(),
+    propertyAddress: s.propertyAddress.trim(),
+    propertyType: s.propertyType ?? 'Single-Family Home',
+    county: s.county.trim(),
+    targetClosingDate: s.targetClosingDate.trim(),
+    notes: s.notes.trim(),
+    developmentOrBuildingName: dev.length > 0 ? dev : undefined,
+    relatedParties,
+  }
+}
+
 /** Values for the demo  modal (all editable by the lawyer) */
 export type DemoNewMatterInitialValues = {
   matterType: string

@@ -7,6 +7,7 @@
     "backfill:password": "ts-node scripts/backfillPassword.ts",
     "build:compliance": "tsc -p tsconfig.scripts.json",
     "check:compliance": "npm run build:compliance && node dist-scripts/check-compliance.js",
+    "check:demo-intake-persist-seam": "bash scripts/check-demo-intake-persist-seam.sh",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
