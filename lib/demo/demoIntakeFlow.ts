@@ -3,6 +3,7 @@
  */
 import type {
   DemoClient,
+  DemoIntakeRelatedParty,
   DemoIntakeLead,
   DemoIntakeSnapshot,
   DemoPartyType,
@@ -27,6 +28,27 @@ export const DEMO_BUYER_TYPE_OPTIONS: { value: DemoPartyType; label: string }[] 
 /** Prefer submitted intake when present */
 export function effectiveIntakeSnapshot(lead: DemoIntakeLead): DemoIntakeSnapshot {
   return lead.submittedIntake ?? lead.intake
+}
+
+/** Parse optional "Name" or "Name, Role" lines from lawyer/client free text into structured related parties. */
+export function parseRelatedPartiesFromMultiline(raw: string): DemoIntakeRelatedParty[] {
+  return raw
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const idx = line.indexOf(',')
+      if (idx === -1) return { name: line }
+      const name = line.slice(0, idx).trim()
+      const roleLabel = line.slice(idx + 1).trim()
+      return { name, ...(roleLabel ? { roleLabel } : {}) }
+    })
+    .filter((p) => p.name.length > 0)
+}
+
+export function formatRelatedPartiesMultiline(parties: DemoIntakeRelatedParty[] | undefined): string {
+  if (!parties?.length) return ''
+  return parties.map((p) => (p.roleLabel ? `${p.name}, ${p.roleLabel}` : p.name)).join('\n')
 }
 
 /** Values for the demo  modal (all editable by the lawyer) */

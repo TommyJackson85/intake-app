@@ -3,7 +3,12 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { DEMO_BUYER_TYPE_OPTIONS, DEMO_TRANSACTION_ROLE_OPTIONS } from '@/lib/demo/demoIntakeFlow'
+import {
+  DEMO_BUYER_TYPE_OPTIONS,
+  DEMO_TRANSACTION_ROLE_OPTIONS,
+  formatRelatedPartiesMultiline,
+  parseRelatedPartiesFromMultiline,
+} from '@/lib/demo/demoIntakeFlow'
 import type { DemoIntakeSnapshot, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
 import { useDemoStore } from '@/lib/demo/store'
 
@@ -13,11 +18,13 @@ function normalizeSnapshot(s: DemoIntakeSnapshot): DemoIntakeSnapshot {
     transactionRole: s.transactionRole ?? 'buyer',
     transactionRoleOther: s.transactionRoleOther ?? '',
     propertyType: s.propertyType ?? 'Single-Family Home',
+    developmentOrBuildingName: s.developmentOrBuildingName?.trim() ?? '',
+    relatedParties: s.relatedParties?.filter((p) => (p.name?.trim() ?? '').length > 0) ?? undefined,
   }
 }
 
 type FieldDef = {
-  key: Exclude<keyof DemoIntakeSnapshot, 'transactionRole' | 'transactionRoleOther'>
+  key: Exclude<keyof DemoIntakeSnapshot, 'transactionRole' | 'transactionRoleOther' | 'relatedParties' | 'buyerType'>
   label: string
   kind: 'text' | 'email' | 'tel' | 'date' | 'select' | 'textarea'
   options?: string[]
@@ -43,6 +50,7 @@ const tailFieldDefs: FieldDef[] = [
     ],
   },
   { key: 'propertyAddress', label: 'Property address', kind: 'text' },
+  { key: 'developmentOrBuildingName', label: 'Development / building name (optional)', kind: 'text' },
   {
     key: 'propertyType',
     label: 'Property type',
@@ -61,11 +69,14 @@ export default function DemoClientIntakePage() {
   const lead = useMemo(() => intakeLeads.find((l) => l.token === token), [intakeLeads, token])
 
   const [form, setForm] = useState<DemoIntakeSnapshot | null>(null)
+  const [relatedPartiesLines, setRelatedPartiesLines] = useState('')
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!lead) return
-    setForm(normalizeSnapshot(lead.submittedIntake ?? lead.intake))
+    const s = normalizeSnapshot(lead.submittedIntake ?? lead.intake)
+    setForm(s)
+    setRelatedPartiesLines(formatRelatedPartiesMultiline(s.relatedParties))
   }, [lead])
 
   const submitted = lead?.status === 'submitted'
@@ -316,6 +327,30 @@ export default function DemoClientIntakePage() {
           )}
 
           {renderFields(tailFieldDefs)}
+
+          <div>
+            <label htmlFor="cf-relatedPartiesLines" style={{ fontSize: 12, color: '#627c71', fontWeight: 800 }}>
+              Related parties (optional — one per line: Name or Name, Role)
+            </label>
+            <textarea
+              id="cf-relatedPartiesLines"
+              value={relatedPartiesLines}
+              readOnly={submitted}
+              onChange={(e) => setRelatedPartiesLines(e.target.value)}
+              rows={3}
+              placeholder="e.g. Jane Doe, co-borrower"
+              style={{
+                width: '100%',
+                marginTop: 4,
+                padding: '10px 12px',
+                borderRadius: 6,
+                border: '1px solid rgba(94,82,64,0.22)',
+                background: submitted ? '#f4f4f0' : 'white',
+                color: '#134252',
+                resize: submitted ? 'none' : 'vertical',
+              }}
+            />
+          </div>
         </div>
 
         {submitError && (
@@ -335,7 +370,12 @@ export default function DemoClientIntakePage() {
               setSubmitError('Please select buyer type (Individual or Legal entity / trust).')
               return
             }
-            submitDemoIntakeLead(token, form)
+            const relatedParties = parseRelatedPartiesFromMultiline(relatedPartiesLines)
+            submitDemoIntakeLead(token, {
+              ...form,
+              developmentOrBuildingName: form.developmentOrBuildingName?.trim() || undefined,
+              relatedParties: relatedParties.length > 0 ? relatedParties : undefined,
+            })
           }}
           style={{
             width: '100%',

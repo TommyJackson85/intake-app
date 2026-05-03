@@ -2,7 +2,11 @@
 
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import type { DemoIntakeDemoDelivery, DemoIntakeSnapshot, DemoMatter, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
-import { DEMO_BUYER_TYPE_OPTIONS, DEMO_TRANSACTION_ROLE_OPTIONS } from '@/lib/demo/demoIntakeFlow'
+import {
+  DEMO_BUYER_TYPE_OPTIONS,
+  DEMO_TRANSACTION_ROLE_OPTIONS,
+  parseRelatedPartiesFromMultiline,
+} from '@/lib/demo/demoIntakeFlow'
 import { useDemoStore } from '@/lib/demo/store'
 import { isCondoDiligenceEligible } from '@/lib/demo/condoDiligence'
 
@@ -24,10 +28,13 @@ type FormValues = {
   buyerType: DemoPartyType
   matterType: string
   propertyAddress: string
+  developmentOrBuildingName: string
   propertyType: DemoMatter['property']['property_type']
   county: string
   targetClosingDate: string
   notes: string
+  /** One per line: Name or Name, Role — parsed into `DemoIntakeSnapshot.relatedParties` */
+  relatedPartiesLines: string
 }
 
 type DemoPayload = {
@@ -83,6 +90,7 @@ const tailFieldRows: FieldRow[] = [
     ],
   },
   { key: 'propertyAddress', label: 'Property address', type: 'text' },
+  { key: 'developmentOrBuildingName', label: 'Development / building name (optional)', type: 'text' },
   {
     key: 'propertyType',
     label: 'Property type',
@@ -92,6 +100,11 @@ const tailFieldRows: FieldRow[] = [
   { key: 'county', label: 'County', type: 'text' },
   { key: 'targetClosingDate', label: 'Target closing date', type: 'date' },
   { key: 'notes', label: 'Notes', type: 'textarea' },
+  {
+    key: 'relatedPartiesLines',
+    label: 'Related parties (optional — one per line: Name or Name, Role)',
+    type: 'textarea',
+  },
 ]
 
 function transactionRoleSummary(v: FormValues): string {
@@ -103,6 +116,7 @@ function transactionRoleSummary(v: FormValues): string {
 }
 
 function toIntakeSnapshot(values: FormValues): DemoIntakeSnapshot {
+  const relatedParties = parseRelatedPartiesFromMultiline(values.relatedPartiesLines)
   return {
     clientName: values.clientName,
     clientEmail: values.clientEmail,
@@ -113,10 +127,12 @@ function toIntakeSnapshot(values: FormValues): DemoIntakeSnapshot {
       values.transactionRole === 'buyer' || values.transactionRole === 'both' ? values.buyerType : undefined,
     matterType: values.matterType,
     propertyAddress: values.propertyAddress,
+    developmentOrBuildingName: values.developmentOrBuildingName.trim() || undefined,
     propertyType: values.propertyType,
     county: values.county,
     targetClosingDate: values.targetClosingDate,
     notes: values.notes,
+    ...(relatedParties.length > 0 ? { relatedParties } : {}),
   }
 }
 
@@ -177,10 +193,12 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
     buyerType: 'individual',
     matterType: 'Financed Residential Purchase',
     propertyAddress: '',
+    developmentOrBuildingName: '',
     propertyType: 'Single-Family Home',
     county: '',
     targetClosingDate: '',
     notes: '',
+    relatedPartiesLines: '',
   })
 
   const [emailSubject, setEmailSubject] = useState(DEFAULT_EMAIL_SUBJECT)
@@ -204,6 +222,8 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
       transactionRole: 'buyer',
       transactionRoleOther: '',
       buyerType: 'individual',
+      developmentOrBuildingName: '',
+      relatedPartiesLines: '',
     }))
   }, [isOpen, nextFileId])
 

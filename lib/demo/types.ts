@@ -218,6 +218,13 @@ export type DemoFirm = {
 /** Role in the transaction — drives where intake client name maps on  (buyer vs seller). */
 export type DemoTransactionRole = 'buyer' | 'seller' | 'both' | 'other'
 
+/** Optional related person on an intake (co-borrower, spouse, entity officer, etc.) — demo conflict + display only. */
+export type DemoIntakeRelatedParty = {
+  name: string
+  /** Short label for staff context, e.g. co-borrower, spouse */
+  roleLabel?: string
+}
+
 /** Lawyer-prefilled intake fields (secure form); separate from email recipient identity */
 export type DemoIntakeSnapshot = {
   clientName: string
@@ -229,12 +236,16 @@ export type DemoIntakeSnapshot = {
   transactionRoleOther: string
   matterType: string
   propertyAddress: string
+  /** Condo / HOA / development name — used for lightweight demo conflict matching */
+  developmentOrBuildingName?: string
   propertyType?: DemoMatter['property']['property_type']
   county: string
   targetClosingDate: string
   notes: string
   /** Purchaser is an individual vs legal entity/trust — used for FinCEN when buyer-side. */
   buyerType?: DemoPartyType
+  /** Additional names considered in demo conflict check (primary client remains `clientName`) */
+  relatedParties?: DemoIntakeRelatedParty[]
 }
 
 export type DemoConflictCheckStatus = 'pending' | 'clear' | 'flagged' | 'confirmed_no_conflict'

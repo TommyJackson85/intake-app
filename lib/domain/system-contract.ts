@@ -197,8 +197,12 @@ export const systemContract = {
       demo: {
         primaryTypes: ['`DemoIntakeLead`', '`DemoIntakeSnapshot` in `lib/demo/types.ts`'],
         storeAndPersistence: ['`registerIntakeLead`, `submitDemoIntakeLead`, intake lead storage keys in `lib/demo/store.tsx`'],
-        helpers: ['`lib/demo/demoIntakeFlow.ts`'],
-        notes: 'Demo tokens are browser-local; not production security model.',
+        helpers: [
+          '`lib/demo/demoIntakeFlow.ts` (e.g. `effectiveIntakeSnapshot` for intake-derived names)',
+          '`app/demo/intakes/page.tsx` — staff Intake / Leads list: demo conflict check gate (modal, name matching, outcomes via `patchIntakeLead`); matching logic is page-local today, not a shared `lib/demo` module',
+        ],
+        notes:
+          'Demo tokens are browser-local; not production security model. Client pseudo-form: `app/demo/intake/[token]/page.tsx` (submission only; no conflict UI there). Staff conflict review and “open as matter” readiness: `app/demo/intakes` (`app/demo/intakes/page.tsx`).',
       },
       live: {
         tablesOrRoutes: ['`leads`', '`app/api/dashboard/intakes/*`', '`app/api/intake/[token]/route.ts`'],
@@ -438,8 +442,13 @@ export const systemContract = {
     workflowStages: [
       {
         id: 'intake_capture',
-        description: 'Lead created, client completes intake, conflict check outcome.',
-        typicalDemoAnchors: ['`lib/demo/types.ts` (`DemoIntakeLead`)', '`app/demo/intake/[token]/page.tsx`'],
+        description:
+          'Lead created; client completes intake on the token page; staff runs the demo conflict check and records outcome on Intake / Leads (`patchIntakeLead`) before opening as matter.',
+        typicalDemoAnchors: [
+          '`lib/demo/types.ts` (`DemoIntakeLead`, conflict gate fields)',
+          '`app/demo/intake/[token]/page.tsx` — client-facing intake submission',
+          '`app/demo/intakes/page.tsx` — staff conflict check gate and lead list',
+        ],
       },
       {
         id: 'matter_opened',

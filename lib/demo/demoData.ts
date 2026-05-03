@@ -105,6 +105,8 @@ export const demoSeedData: DemoSeedData = {
         county: 'Orange County',
         targetClosingDate: '2026-06-01',
         notes: '',
+        /** Demo: matches seller name on seeded matter FL-2026-001 for related-party conflict exercise */
+        relatedParties: [{ name: 'Avery Bennett', roleLabel: 'related party (demo)' }],
       },
       status: 'pending_client',
       clientSubmittedAt: null,

@@ -2,58 +2,47 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { DemoIntakeLead, DemoClient, DemoMatter, DemoConflictCheckStatus } from '@/lib/demo/types'
+import type { DemoIntakeLead, DemoConflictCheckStatus } from '@/lib/demo/types'
 import {
   buildIntakeStarterDocuments,
   effectiveIntakeSnapshot,
   mapIntakeLeadToClientCreateInput,
   mapIntakeLeadToNewMatterInitialValues,
 } from '@/lib/demo/demoIntakeFlow'
+import {
+  canRunDemoConflictCheck,
+  DEMO_CONFLICT_REASON_LABEL,
+  runDemoConflictCheck,
+  type ConflictMatchReason,
+  type DemoConflictCheckResult,
+} from '@/lib/demo/demoConflictCheck'
 import { useDemoStore } from '@/lib/demo/store'
 import NewIntakeDemoModal from '@/app/demo/_components/NewIntakeDemoModal'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
 
-type ConflictResult = {
-  hasConflict: boolean
-  clientMatches: DemoClient[]
-  matterMatches: DemoMatter[]
-  intakeMatches: DemoIntakeLead[]
-}
-
-function runConflictCheck(
-  lead: DemoIntakeLead,
-  clients: DemoClient[],
-  matters: DemoMatter[],
-  allIntakeLeads: DemoIntakeLead[],
-): ConflictResult {
-  const normalise = (s: string) => s.toLowerCase().trim()
-  const intake = effectiveIntakeSnapshot(lead)
-  const searchName = normalise(intake.clientName?.trim() ?? '')
-
-  const clientMatches = clients.filter(c =>
-    !c.deletedAt &&
-    (normalise(c.full_name).includes(searchName) || searchName.includes(normalise(c.full_name)))
+function ConflictReasonBadges({ reasons }: { reasons: ConflictMatchReason[] }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+      {reasons.map((r) => (
+        <span
+          key={r}
+          style={{
+            display: 'inline-block',
+            padding: '2px 8px',
+            borderRadius: 999,
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: '0.02em',
+            background: 'rgba(94, 82, 64, 0.1)',
+            color: '#134252',
+            border: '1px solid rgba(94, 82, 64, 0.2)',
+          }}
+        >
+          {DEMO_CONFLICT_REASON_LABEL[r]}
+        </span>
+      ))}
+    </div>
   )
-
-  const matterMatches = matters.filter(m =>
-    !m.deletedAt &&
-    (normalise(m.buyer.name).includes(searchName) || searchName.includes(normalise(m.buyer.name)) ||
-     normalise(m.seller.name).includes(searchName) || searchName.includes(normalise(m.seller.name)))
-  )
-
-  const intakeMatches = allIntakeLeads.filter(i => {
-    if (i.id === lead.id) return false
-    const otherSnapshot = effectiveIntakeSnapshot(i)
-    const otherName = normalise(otherSnapshot.clientName?.trim() ?? '')
-    return otherName.includes(searchName) || searchName.includes(otherName)
-  })
-
-  return {
-    hasConflict: clientMatches.length > 0 || matterMatches.length > 0 || intakeMatches.length > 0,
-    clientMatches,
-    matterMatches,
-    intakeMatches,
-  }
 }
 
 function resolveIntakeUrl(lead: DemoIntakeLead, origin: string) {
@@ -71,7 +60,7 @@ export default function DemoIntakesPage() {
   const [conflictModal, setConflictModal] = useState<{
     open: boolean
     lead: DemoIntakeLead | null
-    result: ConflictResult | null
+    result: DemoConflictCheckResult | null
   }>({ open: false, lead: null, result: null })
   const [confirmNote, setConfirmNote] = useState('')
   const closeConflictModal = useCallback(() => {
@@ -95,12 +84,14 @@ export default function DemoIntakesPage() {
   const handleRunCheck = useCallback(
     (lead: DemoIntakeLead) => {
       const intake = effectiveIntakeSnapshot(lead)
-      const name = intake.clientName?.trim()
-      if (!name) {
-        showToast('No client name on this intake — cannot run conflict check.', 'err')
+      if (!canRunDemoConflictCheck(intake)) {
+        showToast(
+          'Add a primary client name, related party, property address (8+ chars), or development/building name to run a conflict check.',
+          'err',
+        )
         return
       }
-      const result = runConflictCheck(lead, clients, matters, intakeLeads)
+      const result = runDemoConflictCheck(lead, clients, matters, intakeLeads)
       setConflictModal({ open: true, lead, result })
       setConfirmNote('')
     },
@@ -319,12 +310,21 @@ export default function DemoIntakesPage() {
                       <div style={{ fontWeight: 800 }}>{intake.clientName || '—'}</div>
                       <div style={{ color: '#627c71', fontSize: '12px' }}>{intake.matterType}</div>
                       <div style={{ color: '#627c71', fontSize: '12px' }}>{intake.propertyAddress || '—'}</div>
+                      {intake.developmentOrBuildingName ? (
+                        <div style={{ color: '#627c71', fontSize: '12px' }}>Dev: {intake.developmentOrBuildingName}</div>
+                      ) : null}
                       <div style={{ color: '#627c71', fontSize: '12px' }}>
                         Role:{' '}
                         {intake.transactionRole === 'other'
                           ? intake.transactionRoleOther?.trim() || 'Other'
                           : intake.transactionRole}
                       </div>
+                      {(intake.relatedParties?.length ?? 0) > 0 ? (
+                        <div style={{ color: '#627c71', fontSize: '11px', marginTop: 4 }}>
+                          Related:{' '}
+                          {intake.relatedParties!.map((p) => (p.roleLabel ? `${p.name} (${p.roleLabel})` : p.name)).join('; ')}
+                        </div>
+                      ) : null}
                     </td>
                     <td style={{ padding: '14px', verticalAlign: 'top', wordBreak: 'break-all' }}>
                       <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#208096', fontWeight: 800, fontSize: 12 }}>
@@ -593,8 +593,8 @@ export default function DemoIntakesPage() {
                 </div>
                 <div style={{ borderTop: '1px solid rgba(94,82,64,0.15)', marginBottom: 16 }} />
                 <p style={{ color: '#134252', fontSize: 14, lineHeight: 1.6 }}>
-                  No existing clients, matters, or other intakes match &ldquo;{effectiveIntakeSnapshot(conflictModal.lead).clientName}&rdquo;.
-                  This intake is clear to proceed.
+                  No hits on primary or related party names, property / development hints, or overlapping intakes (demo
+                  fuzzy match). This intake is clear to proceed from a system perspective — staff should still confirm.
                 </p>
                 <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
                   <button
@@ -638,7 +638,7 @@ export default function DemoIntakesPage() {
                 </div>
                 <div style={{ borderTop: '1px solid rgba(94,82,64,0.15)', marginBottom: 16 }} />
                 <p style={{ color: '#134252', fontSize: 14, lineHeight: 1.6, margin: '0 0 12px' }}>
-                  &ldquo;{effectiveIntakeSnapshot(conflictModal.lead).clientName}&rdquo; matches existing records:
+                  Possible overlap with existing demo records (names, roles, property — see match reasons on each row):
                 </p>
 
                 {conflictModal.result.clientMatches.length > 0 && (
@@ -646,12 +646,13 @@ export default function DemoIntakesPage() {
                     <div style={{ fontWeight: 800, fontSize: 13, color: '#134252', marginBottom: 6 }}>
                       Existing Clients:
                     </div>
-                    {conflictModal.result.clientMatches.map((c) => (
+                    {conflictModal.result.clientMatches.map(({ client: c, reasons }) => (
                       <div key={c.id} style={{ padding: '8px 12px', background: '#fff5f5', borderRadius: 6, marginBottom: 6, fontSize: 13 }}>
                         <strong>{c.full_name}</strong> — {c.email}
                         {c.linked_matter_ids.length > 0 && (
                           <span style={{ color: '#627c71' }}> ({c.linked_matter_ids.length} linked matter{c.linked_matter_ids.length !== 1 ? 's' : ''})</span>
                         )}
+                        <ConflictReasonBadges reasons={reasons} />
                       </div>
                     ))}
                   </div>
@@ -662,10 +663,11 @@ export default function DemoIntakesPage() {
                     <div style={{ fontWeight: 800, fontSize: 13, color: '#134252', marginBottom: 6 }}>
                       Existing Matters:
                     </div>
-                    {conflictModal.result.matterMatches.map((m) => (
+                    {conflictModal.result.matterMatches.map(({ matter: m, reasons }) => (
                       <div key={m.id} style={{ padding: '8px 12px', background: '#fff5f5', borderRadius: 6, marginBottom: 6, fontSize: 13 }}>
                         <strong>{m.file_id}</strong> — {m.buyer.name} / {m.seller.name}
                         <div style={{ color: '#627c71', fontSize: 12 }}>{m.property.address}</div>
+                        <ConflictReasonBadges reasons={reasons} />
                       </div>
                     ))}
                   </div>
@@ -676,7 +678,7 @@ export default function DemoIntakesPage() {
                     <p style={{ fontWeight: 600, color: '#92400e', marginBottom: 6, fontSize: 13, margin: '0 0 6px' }}>
                       Other Pending Intakes:
                     </p>
-                    {conflictModal.result.intakeMatches.map((i) => (
+                    {conflictModal.result.intakeMatches.map(({ lead: i, reasons }) => (
                       <div key={i.id} style={{
                         padding: '8px 12px',
                         backgroundColor: '#fef3c7',
@@ -685,9 +687,10 @@ export default function DemoIntakesPage() {
                         fontSize: 13,
                       }}>
                         <span style={{ fontWeight: 600 }}>{effectiveIntakeSnapshot(i).clientName}</span>
-                        {' '}&mdash; {i.id} submitted {new Date(i.createdAt).toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {' '}&mdash; {i.fileReference} · {new Date(i.createdAt).toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' })}
                         <br />
                         <span style={{ color: '#6b7280' }}>{effectiveIntakeSnapshot(i).propertyAddress} &mdash; {effectiveIntakeSnapshot(i).matterType}</span>
+                        <ConflictReasonBadges reasons={reasons} />
                       </div>
                     ))}
                   </div>
