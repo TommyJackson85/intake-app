@@ -20,6 +20,13 @@ navToggle?.addEventListener("click", () => {
 
 navLinks.forEach((link) => link.addEventListener("click", closeNavigation));
 
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && navigation?.classList.contains("open")) {
+    closeNavigation();
+    navToggle?.focus();
+  }
+});
+
 window.addEventListener("resize", () => {
   if (window.innerWidth > 800) closeNavigation();
 });
