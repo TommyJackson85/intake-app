@@ -1,4 +1,10 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LawIntake (intake-app)
+
+Client intake for Florida real estate lawyers — Next.js app with firm dashboards, AML workflows, and compliance tooling.
+
+- **Live app:** [intake-app-dun.vercel.app](https://intake-app-dun.vercel.app)
+- **GitHub Pages:** [tommyjackson85.github.io/intake-app](https://tommyjackson85.github.io/intake-app/)
+- **Source:** [github.com/TommyJackson85/intake-app](https://github.com/TommyJackson85/intake-app)
 
 ## Getting Started
 
