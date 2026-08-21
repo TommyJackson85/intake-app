@@ -5,7 +5,7 @@ GDPR-compliant client intake for Florida real estate lawyers.
 - **Live app:** [intake-app-dun.vercel.app](https://intake-app-dun.vercel.app)
 - **Project page (GitHub Pages):** [tommyjackson85.github.io/intake-app](https://tommyjackson85.github.io/intake-app/)
 
-Static Pages content lives in [`site/`](./site/) and deploys via [`.github/workflows/github-pages.yml`](./.github/workflows/github-pages.yml).
+GitHub Pages serves from the repo root on `main` (`index.html`, `styles.css`, `main.js`). The same assets are mirrored under [`site/`](./site/) for the optional Actions workflow.
 
 ## Getting Started
 
