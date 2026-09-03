@@ -1,43 +1,38 @@
-# LawIntake (`intake-app`)
+# LawIntake
 
-GDPR-compliant client intake for Florida real estate lawyers.
+LawIntake is a client-intake and matter-management workspace for real estate law firms. It
+combines guided intake, matter details, documents, AML workflows, and a client portal in one
+Next.js application.
 
-- **Live app:** [intake-app-dun.vercel.app](https://intake-app-dun.vercel.app)
-- **Project page (GitHub Pages):** [tommyjackson85.github.io/intake-app](https://tommyjackson85.github.io/intake-app/)
+[Project site](https://tommyjackson85.github.io/intake-app/) ·
+[Live application](https://intake-app-dun.vercel.app/) ·
+[Interactive demo](https://intake-app-dun.vercel.app/demo)
 
-GitHub Pages serves from the repo root on `main` (`index.html`, `styles.css`, `main.js`). The same assets are mirrored under [`site/`](./site/) for the optional Actions workflow.
+## Local development
 
-## Getting Started
-
-First, run the development server:
+Install dependencies and start the development server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Useful checks:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run type-check
+npm test
+npm run check:compliance
+```
 
-## Learn More
+Environment setup and database instructions are available in
+[`docs/dev-setup.md`](docs/dev-setup.md).
 
-To learn more about Next.js, take a look at the following resources:
+## GitHub Pages
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The static project site is served from the repository root on `main` using `index.html`,
+`styles.css`, and `script.js`. It is intentionally separate from the server-backed Next.js
+application: GitHub Pages cannot run API routes, authentication, or database integrations, so the
+complete product remains hosted on Vercel.
