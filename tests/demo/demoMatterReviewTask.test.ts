@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest'
 import {
   appendDemoMatterReviewTaskIfValid,
   buildDemoMatterReviewTask,
+  condoDiligenceMattersListReviewTaskChipPresentation,
   defaultCondoDiligenceSummaryReviewTaskTitle,
   demoMatterReviewTaskStatusPresentation,
+  filterMattersWithActiveCondoDiligenceSummaryReviewTasks,
   formatCondoDiligenceActiveReviewTaskCountLabel,
   listActiveCondoDiligenceSummaryReviewTasks,
   listCondoDiligenceSummaryReviewTasks,
+  matterHasActiveCondoDiligenceSummaryReviewTasks,
   parseStoredDemoMatterReviewTasks,
   patchDemoMatterReviewTaskStatus,
 } from '@/lib/demo/demoMatterReviewTask'
@@ -114,6 +117,48 @@ describe('demoMatterReviewTask', () => {
     expect(formatCondoDiligenceActiveReviewTaskCountLabel(1)).toBe('1 condo review task')
     expect(formatCondoDiligenceActiveReviewTaskCountLabel(2)).toBe('2 condo review tasks')
     expect(formatCondoDiligenceActiveReviewTaskCountLabel(3)).toBe('3 condo review tasks')
+  })
+
+  it('builds matters-list chips and filters matters with active review tasks', () => {
+    const openOnly = buildDemoMatterReviewTask(
+      { ...base, id: 'open', status: 'open' },
+      { nowIso: () => '2026-09-04T12:00:00.000Z' },
+    )!
+    const withInReview = buildDemoMatterReviewTask(
+      { ...base, id: 'in-review', status: 'in_review' },
+      { nowIso: () => '2026-09-04T11:00:00.000Z' },
+    )!
+    const completed = buildDemoMatterReviewTask(
+      { ...base, id: 'done', status: 'completed' },
+      { nowIso: () => '2026-09-04T10:00:00.000Z' },
+    )!
+    const otherMatter = buildDemoMatterReviewTask(
+      { ...base, id: 'other', matter_id: 'matter-2', status: 'open' },
+      { nowIso: () => '2026-09-04T09:00:00.000Z' },
+    )!
+
+    expect(matterHasActiveCondoDiligenceSummaryReviewTasks([completed], 'matter-1')).toBe(false)
+    expect(matterHasActiveCondoDiligenceSummaryReviewTasks([openOnly, completed], 'matter-1')).toBe(true)
+
+    const openChip = condoDiligenceMattersListReviewTaskChipPresentation([openOnly, completed], 'matter-1')
+    expect(openChip?.compactLabel).toBe('Condo review · 1')
+    expect(openChip?.fullLabel).toBe('1 condo review task')
+    expect(openChip?.prioritizesInReview).toBe(false)
+
+    const inReviewChip = condoDiligenceMattersListReviewTaskChipPresentation(
+      [openOnly, withInReview, completed],
+      'matter-1',
+    )
+    expect(inReviewChip?.compactLabel).toBe('Condo review · in review')
+    expect(inReviewChip?.fullLabel).toBe('2 condo review tasks')
+    expect(inReviewChip?.prioritizesInReview).toBe(true)
+
+    expect(
+      filterMattersWithActiveCondoDiligenceSummaryReviewTasks(
+        [{ id: 'matter-1' }, { id: 'matter-2' }, { id: 'matter-3' }],
+        [openOnly, completed, otherMatter],
+      ).map((m) => m.id),
+    ).toEqual(['matter-1', 'matter-2'])
   })
 
   it('parses stored rows and drops invalid ones', () => {

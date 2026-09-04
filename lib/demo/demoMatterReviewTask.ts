@@ -144,6 +144,66 @@ export function formatCondoDiligenceActiveReviewTaskCountLabel(count: number): s
   return n === 1 ? '1 condo review task' : `${n} condo review tasks`
 }
 
+/** True when the matter has at least one open/in_review internal summary review task. */
+export function matterHasActiveCondoDiligenceSummaryReviewTasks(
+  tasks: DemoMatterReviewTask[],
+  matterId: string,
+): boolean {
+  return listActiveCondoDiligenceSummaryReviewTasks(tasks, matterId).length > 0
+}
+
+export type CondoDiligenceMattersListReviewTaskChip = {
+  /** Compact table chip text (e.g. `Condo review · 2` or `Condo review · in review`). */
+  compactLabel: string
+  /** Fuller label for title/tooltip (e.g. `2 condo review tasks`). */
+  fullLabel: string
+  bg: string
+  color: string
+  border: string
+  prioritizesInReview: boolean
+  activeCount: number
+}
+
+/**
+ * Matters-list chip for active Condo Diligence summary review tasks.
+ * Returns null when the matter has no open/in_review internal review tasks.
+ */
+export function condoDiligenceMattersListReviewTaskChipPresentation(
+  tasks: DemoMatterReviewTask[],
+  matterId: string,
+): CondoDiligenceMattersListReviewTaskChip | null {
+  const active = listActiveCondoDiligenceSummaryReviewTasks(tasks, matterId)
+  if (active.length === 0) return null
+
+  const prioritizesInReview = active.some((t) => t.status === 'in_review')
+  const fullLabel =
+    formatCondoDiligenceActiveReviewTaskCountLabel(active.length) ??
+    `${active.length} condo review tasks`
+  const tone = prioritizesInReview
+    ? demoMatterReviewTaskStatusPresentation('in_review')
+    : demoMatterReviewTaskStatusPresentation('open')
+
+  return {
+    compactLabel: prioritizesInReview
+      ? 'Condo review · in review'
+      : `Condo review · ${active.length}`,
+    fullLabel,
+    bg: tone.bg,
+    color: tone.color,
+    border: tone.border,
+    prioritizesInReview,
+    activeCount: active.length,
+  }
+}
+
+/** Matters that currently have open/in_review Condo Diligence summary review tasks. */
+export function filterMattersWithActiveCondoDiligenceSummaryReviewTasks<T extends { id: string }>(
+  matters: T[],
+  tasks: DemoMatterReviewTask[],
+): T[] {
+  return matters.filter((m) => matterHasActiveCondoDiligenceSummaryReviewTasks(tasks, m.id))
+}
+
 /** Parse persisted rows; drops invalid entries. */
 export function parseStoredDemoMatterReviewTasks(raw: unknown): DemoMatterReviewTask[] {
   if (!Array.isArray(raw)) return []
