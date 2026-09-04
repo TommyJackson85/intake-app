@@ -11,6 +11,10 @@ import DemoTimelineNotes from '@/components/demo/DemoTimelineNotes'
 import NewIntakeDemoModal from './_components/NewIntakeDemoModal'
 import SystemContractMapCard from './_components/SystemContractMapCard'
 import { getMatterPartyDisplayRows } from '@/lib/demo/matterPartyDisplay'
+import {
+  buildCondoDiligenceWorkQueueRows,
+  demoMatterReviewTaskStatusPresentation,
+} from '@/lib/demo/demoMatterReviewTask'
 
 function statusColor(status: DemoMatter['status']) {
   if (status === 'Closed/Post-Closing') return '#2f855a'
@@ -29,7 +33,7 @@ export default function DemoPage() {
 }
 
 function DemoPageContent() {
-  const { demoFirm, staff, matters, archivedMatters, updateMatterStatus } = useDemoStore()
+  const { demoFirm, staff, matters, archivedMatters, matterReviewTasks, updateMatterStatus } = useDemoStore()
   const [selectedMatterId, setSelectedMatterId] = useState(mattersDefault(matters))
   const [isNewMatterOpen, setIsNewMatterOpen] = useState(false)
   const [showDemoCreationDisabledBanner, setShowDemoCreationDisabledBanner] = useState(false)
@@ -86,6 +90,11 @@ function DemoPageContent() {
     const t = window.setTimeout(() => setShowDemoIntakeDisabledBanner(false), 8000)
     return () => window.clearTimeout(t)
   }, [showDemoIntakeDisabledBanner])
+
+  const condoDiligenceWorkQueue = useMemo(
+    () => buildCondoDiligenceWorkQueueRows(matters, matterReviewTasks),
+    [matters, matterReviewTasks],
+  )
 
   if (!selectedMatter) {
     return (
@@ -210,6 +219,155 @@ function DemoPageContent() {
             <div style={{ fontSize: '28px', fontWeight: 800, color: '#208096' }}>{stat.value}</div>
           </div>
         ))}
+      </div>
+
+      <div
+        style={{
+          background: 'white',
+          border: '1px solid rgba(94,82,64,0.2)',
+          borderRadius: 8,
+          padding: 16,
+          marginBottom: 18,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: 12,
+            alignItems: 'flex-start',
+            flexWrap: 'wrap',
+            marginBottom: 10,
+          }}
+        >
+          <div>
+            <h2 style={{ margin: '0 0 4px', fontSize: 18, color: '#134252' }}>Condo Diligence Work Queue</h2>
+            <p style={{ margin: 0, color: '#627c71', fontSize: 13, lineHeight: 1.45, maxWidth: '46rem' }}>
+              Internal triage for matters with open or in-review Condo Diligence summary review tasks. Not a
+              compliance determination or closing-readiness signal.
+            </p>
+          </div>
+          <Link
+            href="/demo/matters"
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              color: '#208096',
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Open matters list →
+          </Link>
+        </div>
+
+        {condoDiligenceWorkQueue.length === 0 ? (
+          <div style={{ color: '#627c71', fontSize: 13, fontWeight: 700, padding: '6px 0' }}>
+            No open condo review tasks right now.
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+              <thead>
+                <tr style={{ background: '#fcfcf9' }}>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12 }}>Matter</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12 }}>Review signal</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12 }}>Assignee</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12 }}>Due</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12 }}>Status</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12 }} />
+                </tr>
+              </thead>
+              <tbody>
+                {condoDiligenceWorkQueue.map((row) => {
+                  const assignee =
+                    staff.find((s) => s.id === row.primaryTask.assignee_id)?.full_name ??
+                    (row.primaryTask.assignee_id ? row.primaryTask.assignee_id : 'Unassigned')
+                  const statusPresent = demoMatterReviewTaskStatusPresentation(row.primaryTask.status)
+                  return (
+                    <tr
+                      key={row.matterId}
+                      onClick={() => setSelectedMatterId(row.matterId)}
+                      style={{
+                        borderTop: '1px solid rgba(94,82,64,0.12)',
+                        cursor: 'pointer',
+                        background: row.matterId === selectedMatter.id ? '#f7fbfc' : 'white',
+                      }}
+                    >
+                      <td style={{ padding: '12px', color: '#134252', fontWeight: 700, verticalAlign: 'top' }}>
+                        {row.fileId}
+                        <div style={{ color: '#627c71', fontWeight: 500, fontSize: 12, marginTop: 2 }}>
+                          {row.propertyAddress}
+                        </div>
+                        <div style={{ color: '#9aa8a1', fontWeight: 600, fontSize: 11, marginTop: 2 }}>
+                          {row.matterStatus}
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px', verticalAlign: 'top' }}>
+                        <span
+                          title={row.chip.fullLabel}
+                          style={{
+                            display: 'inline-block',
+                            padding: '3px 8px',
+                            borderRadius: 999,
+                            fontSize: 11,
+                            fontWeight: 800,
+                            background: row.chip.bg,
+                            color: row.chip.color,
+                            border: `1px solid ${row.chip.border}`,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {row.chip.compactLabel}
+                        </span>
+                        <div style={{ color: '#627c71', fontSize: 11, fontWeight: 700, marginTop: 4 }}>
+                          {row.chip.fullLabel}
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px', color: '#134252', fontSize: 13, fontWeight: 700, verticalAlign: 'top' }}>
+                        {assignee}
+                      </td>
+                      <td style={{ padding: '12px', color: '#627c71', fontSize: 13, fontWeight: 700, verticalAlign: 'top' }}>
+                        {row.primaryTask.due_date || 'None'}
+                      </td>
+                      <td style={{ padding: '12px', verticalAlign: 'top' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '3px 8px',
+                            borderRadius: 999,
+                            fontSize: 11,
+                            fontWeight: 800,
+                            background: statusPresent.bg,
+                            color: statusPresent.color,
+                            border: `1px solid ${statusPresent.border}`,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {statusPresent.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px', whiteSpace: 'nowrap', verticalAlign: 'top' }}>
+                        <Link
+                          href={`/demo/matters?matter=${encodeURIComponent(row.fileId)}`}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            color: '#208096',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          Open workspace →
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr', gap: '20px' }}>

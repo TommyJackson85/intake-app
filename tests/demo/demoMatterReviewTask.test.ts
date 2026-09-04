@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   appendDemoMatterReviewTaskIfValid,
+  buildCondoDiligenceWorkQueueRows,
   buildDemoMatterReviewTask,
   condoDiligenceMattersListReviewTaskChipPresentation,
   defaultCondoDiligenceSummaryReviewTaskTitle,
@@ -159,6 +160,70 @@ describe('demoMatterReviewTask', () => {
         [openOnly, completed, otherMatter],
       ).map((m) => m.id),
     ).toEqual(['matter-1', 'matter-2'])
+  })
+
+  it('builds dashboard work-queue rows sorted by in-review then due date', () => {
+    const matters = [
+      {
+        id: 'matter-a',
+        file_id: 'FL-200',
+        status: 'Title Search',
+        property: { address: '200 A St' },
+      },
+      {
+        id: 'matter-b',
+        file_id: 'FL-100',
+        status: 'Intake',
+        property: { address: '100 B Ave' },
+      },
+      {
+        id: 'matter-c',
+        file_id: 'FL-300',
+        status: 'Intake',
+        property: { address: '300 C Rd' },
+      },
+    ]
+    const tasks = [
+      buildDemoMatterReviewTask(
+        {
+          matter_id: 'matter-a',
+          title: 'Open later due',
+          linked_document_id: 'd1',
+          status: 'open',
+          due_date: '2026-09-20',
+          id: 't-a',
+        },
+        { nowIso: () => '2026-09-04T10:00:00.000Z' },
+      )!,
+      buildDemoMatterReviewTask(
+        {
+          matter_id: 'matter-b',
+          title: 'In review sooner due',
+          linked_document_id: 'd2',
+          status: 'in_review',
+          due_date: '2026-09-10',
+          assignee_id: 'staff-1',
+          id: 't-b',
+        },
+        { nowIso: () => '2026-09-04T11:00:00.000Z' },
+      )!,
+      buildDemoMatterReviewTask(
+        {
+          matter_id: 'matter-c',
+          title: 'Completed only',
+          linked_document_id: 'd3',
+          status: 'completed',
+          id: 't-c',
+        },
+        { nowIso: () => '2026-09-04T12:00:00.000Z' },
+      )!,
+    ]
+
+    const rows = buildCondoDiligenceWorkQueueRows(matters, tasks)
+    expect(rows.map((r) => r.matterId)).toEqual(['matter-b', 'matter-a'])
+    expect(rows[0]?.chip.compactLabel).toBe('Condo review · in review')
+    expect(rows[0]?.primaryTask.assignee_id).toBe('staff-1')
+    expect(rows[1]?.chip.fullLabel).toBe('1 condo review task')
   })
 
   it('parses stored rows and drops invalid ones', () => {

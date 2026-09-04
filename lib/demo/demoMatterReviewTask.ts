@@ -204,6 +204,79 @@ export function filterMattersWithActiveCondoDiligenceSummaryReviewTasks<T extend
   return matters.filter((m) => matterHasActiveCondoDiligenceSummaryReviewTasks(tasks, m.id))
 }
 
+export type CondoDiligenceWorkQueueMatterInput = {
+  id: string
+  file_id: string
+  status: string
+  property: { address: string }
+  key_dates?: { closing_date?: string }
+}
+
+export type CondoDiligenceWorkQueueRow = {
+  matterId: string
+  fileId: string
+  propertyAddress: string
+  matterStatus: string
+  activeCount: number
+  chip: CondoDiligenceMattersListReviewTaskChip
+  /** Representative active task for compact assignee/due/status display. */
+  primaryTask: DemoMatterReviewTask
+}
+
+function dueDateSortKey(dueDate: string | null): number {
+  if (!dueDate?.trim()) return Number.POSITIVE_INFINITY
+  const t = new Date(dueDate).getTime()
+  return Number.isFinite(t) ? t : Number.POSITIVE_INFINITY
+}
+
+function pickPrimaryActiveReviewTask(tasks: DemoMatterReviewTask[]): DemoMatterReviewTask {
+  return [...tasks].sort((a, b) => {
+    const aInReview = a.status === 'in_review' ? 0 : 1
+    const bInReview = b.status === 'in_review' ? 0 : 1
+    if (aInReview !== bInReview) return aInReview - bInReview
+    const dueCmp = dueDateSortKey(a.due_date) - dueDateSortKey(b.due_date)
+    if (dueCmp !== 0) return dueCmp
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })[0]!
+}
+
+/**
+ * Compact dashboard triage rows for matters with active Condo Diligence summary review tasks.
+ * Read-only derivation — does not mutate tasks or imply compliance/closing readiness.
+ */
+export function buildCondoDiligenceWorkQueueRows(
+  matters: CondoDiligenceWorkQueueMatterInput[],
+  tasks: DemoMatterReviewTask[],
+): CondoDiligenceWorkQueueRow[] {
+  const queuedMatters = filterMattersWithActiveCondoDiligenceSummaryReviewTasks(matters, tasks)
+  const rows: CondoDiligenceWorkQueueRow[] = []
+
+  for (const matter of queuedMatters) {
+    const active = listActiveCondoDiligenceSummaryReviewTasks(tasks, matter.id)
+    const chip = condoDiligenceMattersListReviewTaskChipPresentation(tasks, matter.id)
+    if (active.length === 0 || !chip) continue
+    const primaryTask = pickPrimaryActiveReviewTask(active)
+    rows.push({
+      matterId: matter.id,
+      fileId: matter.file_id,
+      propertyAddress: matter.property.address,
+      matterStatus: matter.status,
+      activeCount: active.length,
+      chip,
+      primaryTask,
+    })
+  }
+
+  return rows.sort((a, b) => {
+    const aInReview = a.chip.prioritizesInReview ? 0 : 1
+    const bInReview = b.chip.prioritizesInReview ? 0 : 1
+    if (aInReview !== bInReview) return aInReview - bInReview
+    const dueCmp = dueDateSortKey(a.primaryTask.due_date) - dueDateSortKey(b.primaryTask.due_date)
+    if (dueCmp !== 0) return dueCmp
+    return a.fileId.localeCompare(b.fileId)
+  })
+}
+
 /** Parse persisted rows; drops invalid entries. */
 export function parseStoredDemoMatterReviewTasks(raw: unknown): DemoMatterReviewTask[] {
   if (!Array.isArray(raw)) return []
