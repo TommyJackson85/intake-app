@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import type { DemoDocument, DemoDocumentRequest, DemoStaffProfile, DemoMatter } from '@/lib/demo/types'
 import {
   isEngagementLetterDocument,
@@ -53,6 +53,12 @@ export default function DocumentPreviewModal({
       window.document.body.style.overflow = prevOverflow
     }
   }, [previewDocument, onClose])
+
+  const [summaryCopyStatus, setSummaryCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
+
+  useEffect(() => {
+    setSummaryCopyStatus('idle')
+  }, [previewDocument?.id])
 
   if (!previewDocument) return null
 
@@ -120,10 +126,7 @@ export default function DocumentPreviewModal({
   })
   const isEngagementLetter = isEngagementLetterDocument(previewDocument)
   const isCondoInternalSummary = isCondoDiligenceInternalSummaryDocument(previewDocument)
-  const condoSummaryContent =
-    previewDocument.generatedInternalSummary?.content?.trim() ||
-    previewDocument.description?.trim() ||
-    ''
+  const condoSummaryContent = previewDocument.generatedInternalSummary?.content?.trim() || ''
   const engagementPreview = resolveEngagementLetterPreview({
     dateLabel: previewDocument.document_date ?? 'Not specified',
     matterType: matter?.matter_type ?? 'Real estate matter',
@@ -310,13 +313,80 @@ export default function DocumentPreviewModal({
             }}
           >
             <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginBottom: 8 }}>
-              Demo preview
+              {isCondoInternalSummary ? 'Internal Condo Diligence Summary' : 'Demo preview'}
             </div>
             <div style={{ fontSize: 12, color: '#627c71', marginBottom: 12 }}>
               {isCondoInternalSummary
-                ? 'Internal generated text snapshot. Not shared to the client portal.'
+                ? 'Saved immutable snapshot. Not regenerated from current matter data. Not shared to the client portal.'
                 : 'Simulated first-page preview. No real file stored.'}
             </div>
+            {isCondoInternalSummary ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!condoSummaryContent) {
+                      setSummaryCopyStatus('failed')
+                      window.setTimeout(() => setSummaryCopyStatus('idle'), 2000)
+                      return
+                    }
+                    try {
+                      await navigator.clipboard.writeText(condoSummaryContent)
+                      setSummaryCopyStatus('copied')
+                      window.setTimeout(() => setSummaryCopyStatus('idle'), 2000)
+                    } catch {
+                      setSummaryCopyStatus('failed')
+                      window.setTimeout(() => setSummaryCopyStatus('idle'), 2500)
+                    }
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    border: '1px solid rgba(94,82,64,0.25)',
+                    background: '#fff',
+                    fontWeight: 800,
+                    fontSize: 11,
+                    color: '#134252',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {summaryCopyStatus === 'copied'
+                    ? 'Copied'
+                    : summaryCopyStatus === 'failed'
+                      ? 'Copy failed'
+                      : 'Copy summary'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700')
+                    if (!printWindow) return
+                    const escaped = condoSummaryContent
+                      .replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                    printWindow.document.write(
+                      `<!doctype html><html><head><title>Internal Condo Diligence Summary</title><style>body{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;white-space:pre-wrap;padding:24px;color:#134252;line-height:1.45}</style></head><body><h1 style="font-family:system-ui,sans-serif;font-size:16px">Internal Condo Diligence Summary</h1><p style="font-family:system-ui,sans-serif;font-size:12px;color:#627c71">Internal only — lawyer review required. Immutable saved snapshot.</p><pre>${escaped || 'No summary content stored on this draft.'}</pre></body></html>`,
+                    )
+                    printWindow.document.close()
+                    printWindow.focus()
+                    printWindow.print()
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    border: '1px solid rgba(94,82,64,0.25)',
+                    background: '#fff',
+                    fontWeight: 800,
+                    fontSize: 11,
+                    color: '#134252',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Print / Save as PDF
+                </button>
+              </div>
+            ) : null}
             <div
               style={{
                 background: 'white',
@@ -330,17 +400,20 @@ export default function DocumentPreviewModal({
             >
               {isCondoInternalSummary ? (
                 <>
-                  <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8, letterSpacing: '0.04em' }}>
-                    INTERNAL DILIGENCE SUMMARY — LAWYER REVIEW REQUIRED
+                  <div style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', marginBottom: 8 }}>
+                    Internal Condo Diligence Summary
                   </div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>
-                    {previewDocument.name}
+                  <div style={{ fontSize: 12, color: '#4b5563', marginBottom: 6 }}>
+                    Matter: {matterLabel}
                   </div>
-                  <div style={{ fontSize: 12, color: '#4b5563', marginBottom: 10 }}>
-                    Visibility: internal · Matter: {matterLabel} · Generated:{' '}
+                  <div style={{ fontSize: 12, color: '#4b5563', marginBottom: 6 }}>
+                    Generated:{' '}
                     {previewDocument.generatedInternalSummary?.generatedAt
                       ? formatDemoDateTime(previewDocument.generatedInternalSummary.generatedAt)
                       : formatDemoDateTime(previewDocument.uploaded_at)}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#4b5563', marginBottom: 10 }}>
+                    Visibility: internal only
                   </div>
                   <div
                     style={{
@@ -354,7 +427,8 @@ export default function DocumentPreviewModal({
                       fontWeight: 700,
                     }}
                   >
-                    Internal lawyer work product only. Not a client-facing compliance certificate.
+                    Internal lawyer work product only. Not a client-facing compliance certificate. Content is the
+                    immutable saved snapshot.
                   </div>
                   <pre
                     style={{
@@ -487,7 +561,8 @@ export default function DocumentPreviewModal({
               )}
             </div>
           </div>
-          <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            {isCondoInternalSummary ? null : (
             <button
               type="button"
               onClick={() => window.alert('PDF downloads are disabled in demo mode.')}
@@ -504,6 +579,7 @@ export default function DocumentPreviewModal({
             >
               Download PDF (disabled in demo mode)
             </button>
+            )}
           </div>
         </div>
       </div>

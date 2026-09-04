@@ -1427,5 +1427,28 @@ describe('condoDiligence', () => {
         }),
       ).toBeNull()
     })
+
+    it('identifies saved drafts by metadata without treating ordinary uploads as summaries', () => {
+      expect(
+        isCondoDiligenceInternalSummaryDocument({
+          name: 'HUD-1.pdf',
+          document_subtype: null,
+          generatedInternalSummary: undefined,
+        }),
+      ).toBe(false)
+      expect(
+        isCondoDiligenceInternalSummaryDocument({
+          name: 'Internal Condo Diligence Summary — 2026-09-04 15:30',
+          document_subtype: CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE,
+          generatedInternalSummary: {
+            generatedType: 'condo_diligence_internal_summary',
+            generatedAt: '2026-09-04T15:30:00.000Z',
+            sourceMatterId: matterId,
+            content: 'SNAPSHOT ONLY',
+            visibility: 'internal',
+          },
+        }),
+      ).toBe(true)
+    })
   })
 })
