@@ -50,6 +50,8 @@ import {
   buildDefaultCondoDiligence,
   deriveCondoDiligenceMatterStatusFromChecklist,
   isCondoDiligenceEligible,
+  normalizeCondoEstoppelReview,
+  parseDemoCondoEstoppelReview,
 } from '@/lib/demo/condoDiligence'
 
 type DemoContextType = {
@@ -253,6 +255,8 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
     findings.push({ id, text })
   }
 
+  const estoppelReview = parseDemoCondoEstoppelReview(o.estoppelReview)
+
   return {
     applicable: o.applicable,
     status: o.status,
@@ -260,6 +264,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
     findings,
     notes: o.notes,
     updated_at: o.updated_at.trim(),
+    ...(estoppelReview ? { estoppelReview } : {}),
   }
 }
 
@@ -1595,10 +1600,19 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           const definedEntries = Object.fromEntries(
             Object.entries(patch).filter(([, v]) => v !== undefined),
           ) as Partial<DemoCondoDiligence>
+          const { estoppelReview: estoppelPatch, ...restPatch } = definedEntries
           const nextBase: DemoCondoDiligence = {
             ...existing,
-            ...definedEntries,
+            ...restPatch,
             updated_at: new Date().toISOString(),
+          }
+          if ('estoppelReview' in definedEntries) {
+            nextBase.estoppelReview = estoppelPatch
+              ? {
+                  ...normalizeCondoEstoppelReview(existing.estoppelReview),
+                  ...estoppelPatch,
+                }
+              : undefined
           }
           const shouldDeriveMatterStatus =
             'requiredDocuments' in definedEntries || 'findings' in definedEntries

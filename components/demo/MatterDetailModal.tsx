@@ -5,6 +5,10 @@ import { useDemoStore } from '@/lib/demo/store'
 import type {
   DemoCondoDiligenceDocStatus,
   DemoCondoDiligenceMatterStatus,
+  DemoCondoEstoppelReview,
+  DemoCondoEstoppelReviewStatus,
+  DemoCondoEstoppelSpecialAssessmentStatus,
+  DemoCondoEstoppelViolationOrLienStatus,
   DemoMatter,
   DemoMatterStatus,
 } from '@/lib/demo/types'
@@ -16,11 +20,14 @@ import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
 import {
   condoDiligenceMatterStatusPresentation,
+  condoEstoppelDueDateWarning,
+  condoEstoppelReviewStatusPresentation,
   condoRequiredDocMatchesLinkageHaystack,
   condoRequiredDocDerivedStatusPresentation,
   deriveCondoRequiredDocumentStatus,
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
+  normalizeCondoEstoppelReview,
   syncRequiredDocumentsFromDerivedLinkage,
 } from '@/lib/demo/condoDiligence'
 
@@ -1202,6 +1209,280 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       })}
                     </div>
                   </div>
+
+                  {(() => {
+                    const estoppelReview = normalizeCondoEstoppelReview(condoDiligence.estoppelReview)
+                    const estoppelStatusPresent = condoEstoppelReviewStatusPresentation(estoppelReview.reviewStatus)
+                    const estoppelDueWarning = condoEstoppelDueDateWarning(estoppelReview.dueDate)
+                    const estoppelLinkedDocuments = matterDocuments.filter((d) => {
+                      if (d.deletedAt) return false
+                      const haystack = [d.name, d.document_subtype ?? '', d.description ?? '', d.category]
+                        .filter(Boolean)
+                        .join(' ')
+                        .toLowerCase()
+                      return condoRequiredDocMatchesLinkageHaystack(haystack, 'estoppel')
+                    })
+                    const estoppelLinkedRequests = matterDocumentRequests.filter((r) => {
+                      const haystack = [r.title, r.description ?? '', r.category].filter(Boolean).join(' ').toLowerCase()
+                      return condoRequiredDocMatchesLinkageHaystack(haystack, 'estoppel')
+                    })
+                    const patchEstoppel = (patch: Partial<DemoCondoEstoppelReview>) => {
+                      patchCondoDiligence(matterId, {
+                        estoppelReview: { ...estoppelReview, ...patch },
+                      })
+                    }
+                    const fieldLabel: React.CSSProperties = {
+                      display: 'block',
+                      fontSize: 12,
+                      color: '#627c71',
+                      fontWeight: 800,
+                      marginBottom: 4,
+                    }
+                    const fieldInput: React.CSSProperties = {
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(94,82,64,0.22)',
+                      fontSize: 13,
+                      color: '#134252',
+                      boxSizing: 'border-box',
+                    }
+                    return (
+                      <div
+                        style={{
+                          border: '1px solid rgba(94,82,64,0.12)',
+                          borderRadius: 8,
+                          padding: 14,
+                          background: 'white',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>Estoppel Review</div>
+                            <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '36rem' }}>
+                              Structured practice notes for the Estoppel checklist item. Does not replace document requests,
+                              linkage badges, or saved checklist status.
+                            </div>
+                          </div>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '5px 10px',
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 900,
+                              background: estoppelStatusPresent.bg,
+                              color: estoppelStatusPresent.color,
+                              border: `1px solid ${estoppelStatusPresent.border}`,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {estoppelStatusPresent.label}
+                          </span>
+                        </div>
+
+                        {estoppelDueWarning && (
+                          <div
+                            role="status"
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: 8,
+                              border:
+                                estoppelDueWarning.kind === 'overdue'
+                                  ? '1px solid rgba(185,28,28,0.35)'
+                                  : '1px solid rgba(240,180,41,0.45)',
+                              background: estoppelDueWarning.kind === 'overdue' ? '#fee2e2' : '#fff8e6',
+                              color: estoppelDueWarning.kind === 'overdue' ? '#7f1d1d' : '#b45309',
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            Due-date attention: {estoppelDueWarning.label}
+                            {estoppelReview.dueDate ? ` (${estoppelReview.dueDate})` : ''}. Demo reminder only — not a legal
+                            deadline determination.
+                          </div>
+                        )}
+
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                            gap: 10,
+                          }}
+                        >
+                          <label>
+                            <span style={fieldLabel}>Request date</span>
+                            <input
+                              type="date"
+                              value={estoppelReview.requestDate}
+                              onChange={(e) => patchEstoppel({ requestDate: e.target.value })}
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Due date</span>
+                            <input
+                              type="date"
+                              value={estoppelReview.dueDate}
+                              onChange={(e) => patchEstoppel({ dueDate: e.target.value })}
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Received date</span>
+                            <input
+                              type="date"
+                              value={estoppelReview.receivedDate}
+                              onChange={(e) => patchEstoppel({ receivedDate: e.target.value })}
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Amount due</span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.01"
+                              value={estoppelReview.amountDue ?? ''}
+                              onChange={(e) => {
+                                const raw = e.target.value.trim()
+                                if (!raw) {
+                                  patchEstoppel({ amountDue: null })
+                                  return
+                                }
+                                const n = Number(raw)
+                                if (Number.isFinite(n)) patchEstoppel({ amountDue: n })
+                              }}
+                              placeholder="Optional"
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Regular assessment amount</span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.01"
+                              value={estoppelReview.regularAssessmentAmount ?? ''}
+                              onChange={(e) => {
+                                const raw = e.target.value.trim()
+                                if (!raw) {
+                                  patchEstoppel({ regularAssessmentAmount: null })
+                                  return
+                                }
+                                const n = Number(raw)
+                                if (Number.isFinite(n)) patchEstoppel({ regularAssessmentAmount: n })
+                              }}
+                              placeholder="Optional"
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Special assessment</span>
+                            <select
+                              value={estoppelReview.specialAssessmentStatus}
+                              onChange={(e) =>
+                                patchEstoppel({
+                                  specialAssessmentStatus: e.target.value as DemoCondoEstoppelSpecialAssessmentStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="none">None disclosed</option>
+                              <option value="disclosed">Disclosed</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Violations / liens</span>
+                            <select
+                              value={estoppelReview.violationOrLienStatus}
+                              onChange={(e) =>
+                                patchEstoppel({
+                                  violationOrLienStatus: e.target.value as DemoCondoEstoppelViolationOrLienStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="none">None disclosed</option>
+                              <option value="disclosed">Disclosed</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Review status</span>
+                            <select
+                              value={estoppelReview.reviewStatus}
+                              onChange={(e) =>
+                                patchEstoppel({
+                                  reviewStatus: e.target.value as DemoCondoEstoppelReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="not_started">Not started</option>
+                              <option value="requested">Requested</option>
+                              <option value="received">Received</option>
+                              <option value="reviewed">Reviewed</option>
+                              <option value="issue_found">Issue found</option>
+                            </select>
+                          </label>
+                        </div>
+
+                        <label style={{ display: 'block' }}>
+                          <span style={fieldLabel}>Estoppel notes</span>
+                          <textarea
+                            value={estoppelReview.notes}
+                            onChange={(e) => patchEstoppel({ notes: e.target.value })}
+                            rows={3}
+                            placeholder="Internal estoppel review notes (demo)"
+                            style={{ ...fieldInput, resize: 'vertical' }}
+                          />
+                        </label>
+
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 900, color: '#134252', marginBottom: 6 }}>
+                            Linked Estoppel documents &amp; requests
+                          </div>
+                          <div style={{ fontSize: 11, color: '#627c71', marginBottom: 8, lineHeight: 1.4 }}>
+                            Read-only matches from this matter using the same Estoppel checklist linkage rules.
+                          </div>
+                          {estoppelLinkedDocuments.length === 0 && estoppelLinkedRequests.length === 0 ? (
+                            <div style={{ fontSize: 13, color: '#627c71' }}>
+                              No matching Estoppel documents or requests linked yet.
+                            </div>
+                          ) : (
+                            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {estoppelLinkedDocuments.map((d) => (
+                                <li key={d.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Document:</strong> {d.name}
+                                  {d.document_subtype ? ` · ${d.document_subtype}` : ''}
+                                </li>
+                              ))}
+                              {estoppelLinkedRequests.map((r) => (
+                                <li key={r.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Request ({r.status}):</strong> {r.title}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   <div style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: 8, padding: 14, background: 'white' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>

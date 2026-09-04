@@ -8,6 +8,10 @@ import type {
   DemoCondoDiligenceFinding,
   DemoCondoDiligenceMatterStatus,
   DemoCondoDiligenceRequiredDocument,
+  DemoCondoEstoppelReview,
+  DemoCondoEstoppelReviewStatus,
+  DemoCondoEstoppelSpecialAssessmentStatus,
+  DemoCondoEstoppelViolationOrLienStatus,
   DemoDocument,
   DemoDocumentRequest,
   DemoMatter,
@@ -298,11 +302,166 @@ export function deriveCondoDiligenceMatterStatusFromChecklist(input: {
 }
 
 /** True when a condo diligence row is still in first-run/default state for guidance UI. */
-export function isCondoDiligenceUntouched(input: Pick<DemoCondoDiligence, 'status' | 'requiredDocuments' | 'findings' | 'notes'>): boolean {
+export function isCondoDiligenceUntouched(
+  input: Pick<DemoCondoDiligence, 'status' | 'requiredDocuments' | 'findings' | 'notes'> & {
+    estoppelReview?: DemoCondoEstoppelReview | null
+  },
+): boolean {
   const notesEmpty = input.notes.trim() === ''
   const noFindings = input.findings.length === 0 || input.findings.every((f) => f.text.trim() === '')
   const allOutstanding = input.requiredDocuments.length > 0 && input.requiredDocuments.every((d) => d.status === 'outstanding')
-  return input.status === 'not_started' && notesEmpty && noFindings && allOutstanding
+  const estoppelUntouched = isCondoEstoppelReviewUntouched(input.estoppelReview)
+  return input.status === 'not_started' && notesEmpty && noFindings && allOutstanding && estoppelUntouched
+}
+
+/** Default empty structured estoppel review for newly seeded diligence rows. */
+export function buildDefaultCondoEstoppelReview(): DemoCondoEstoppelReview {
+  return {
+    requestDate: '',
+    dueDate: '',
+    receivedDate: '',
+    amountDue: null,
+    regularAssessmentAmount: null,
+    specialAssessmentStatus: 'unknown',
+    violationOrLienStatus: 'unknown',
+    reviewStatus: 'not_started',
+    notes: '',
+  }
+}
+
+export function normalizeCondoEstoppelReview(
+  input?: Partial<DemoCondoEstoppelReview> | null,
+): DemoCondoEstoppelReview {
+  return {
+    ...buildDefaultCondoEstoppelReview(),
+    ...(input ?? {}),
+  }
+}
+
+function isYmdDateString(value: unknown): value is string {
+  return typeof value === 'string' && (/^\d{4}-\d{2}-\d{2}$/.test(value.trim()) || value.trim() === '')
+}
+
+function parseOptionalMoney(value: unknown): number | null | undefined {
+  if (value === null) return null
+  if (value === undefined) return undefined
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
+  return value
+}
+
+function isSpecialAssessmentStatus(value: unknown): value is DemoCondoEstoppelSpecialAssessmentStatus {
+  return value === 'unknown' || value === 'none' || value === 'disclosed'
+}
+
+function isViolationOrLienStatus(value: unknown): value is DemoCondoEstoppelViolationOrLienStatus {
+  return value === 'unknown' || value === 'none' || value === 'disclosed'
+}
+
+function isEstoppelReviewStatus(value: unknown): value is DemoCondoEstoppelReviewStatus {
+  return (
+    value === 'not_started' ||
+    value === 'requested' ||
+    value === 'received' ||
+    value === 'reviewed' ||
+    value === 'issue_found'
+  )
+}
+
+/**
+ * Parse optional persisted `estoppelReview`. Missing/invalid object → undefined (older rows).
+ * Partial valid objects are filled with defaults for missing fields.
+ */
+export function parseDemoCondoEstoppelReview(raw: unknown): DemoCondoEstoppelReview | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const o = raw as Record<string, unknown>
+  const base = buildDefaultCondoEstoppelReview()
+
+  const requestDate = isYmdDateString(o.requestDate) ? o.requestDate.trim() : base.requestDate
+  const dueDate = isYmdDateString(o.dueDate) ? o.dueDate.trim() : base.dueDate
+  const receivedDate = isYmdDateString(o.receivedDate) ? o.receivedDate.trim() : base.receivedDate
+  const amountDueParsed = parseOptionalMoney(o.amountDue)
+  const regularParsed = parseOptionalMoney(o.regularAssessmentAmount)
+
+  return {
+    requestDate,
+    dueDate,
+    receivedDate,
+    amountDue: amountDueParsed === undefined ? base.amountDue : amountDueParsed,
+    regularAssessmentAmount: regularParsed === undefined ? base.regularAssessmentAmount : regularParsed,
+    specialAssessmentStatus: isSpecialAssessmentStatus(o.specialAssessmentStatus)
+      ? o.specialAssessmentStatus
+      : base.specialAssessmentStatus,
+    violationOrLienStatus: isViolationOrLienStatus(o.violationOrLienStatus)
+      ? o.violationOrLienStatus
+      : base.violationOrLienStatus,
+    reviewStatus: isEstoppelReviewStatus(o.reviewStatus) ? o.reviewStatus : base.reviewStatus,
+    notes: typeof o.notes === 'string' ? o.notes : base.notes,
+  }
+}
+
+export function isCondoEstoppelReviewUntouched(input?: DemoCondoEstoppelReview | null): boolean {
+  if (!input) return true
+  const d = normalizeCondoEstoppelReview(input)
+  return (
+    d.requestDate === '' &&
+    d.dueDate === '' &&
+    d.receivedDate === '' &&
+    d.amountDue === null &&
+    d.regularAssessmentAmount === null &&
+    d.specialAssessmentStatus === 'unknown' &&
+    d.violationOrLienStatus === 'unknown' &&
+    d.reviewStatus === 'not_started' &&
+    d.notes.trim() === ''
+  )
+}
+
+export function condoEstoppelReviewStatusPresentation(status: DemoCondoEstoppelReviewStatus): {
+  label: string
+  bg: string
+  color: string
+  border: string
+} {
+  switch (status) {
+    case 'issue_found':
+      return { label: 'Issue found', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    case 'reviewed':
+      return { label: 'Reviewed', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'received':
+      return { label: 'Received', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.25)' }
+    case 'requested':
+      return { label: 'Requested', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    default:
+      return { label: 'Not started', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+/**
+ * Read-only due-date warning for lawyer attention (demo). Not a statutory compliance determination.
+ * `due_soon` when due within `soonDays` (default 3), including today.
+ */
+export function condoEstoppelDueDateWarning(
+  dueDate: string,
+  options?: { now?: Date; soonDays?: number },
+): { kind: 'overdue' | 'due_soon'; label: string; diffDays: number } | null {
+  const trimmed = dueDate.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null
+  const due = new Date(`${trimmed}T00:00:00`)
+  if (Number.isNaN(due.getTime())) return null
+
+  const now = options?.now ?? new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffDays = Math.floor((due.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+  const soonDays = options?.soonDays ?? 3
+
+  if (diffDays < 0) {
+    return { kind: 'overdue', label: `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`, diffDays }
+  }
+  if (diffDays <= soonDays) {
+    if (diffDays === 0) return { kind: 'due_soon', label: 'Due today', diffDays }
+    return { kind: 'due_soon', label: `Due in ${diffDays} day${diffDays === 1 ? '' : 's'}`, diffDays }
+  }
+  return null
 }
 
 type MatterEligibilityInput = {
@@ -404,5 +563,6 @@ export function buildDefaultCondoDiligence(options?: BuildDefaultCondoDiligenceO
     notes: '',
     updated_at,
     status: deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments, findings }),
+    estoppelReview: buildDefaultCondoEstoppelReview(),
   }
 }

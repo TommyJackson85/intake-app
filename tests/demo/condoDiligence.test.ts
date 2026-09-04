@@ -3,15 +3,21 @@ import {
   CORE_CONDO_DILIGENCE_DOC_PACK_IDS,
   ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS,
   buildDefaultCondoDiligence,
+  buildDefaultCondoEstoppelReview,
   condoDiligenceMatterStatusPresentation,
+  condoEstoppelDueDateWarning,
+  condoEstoppelReviewStatusPresentation,
   condoRequiredDocMatchesLinkageHaystack,
   condoRequiredDocSavedStatusAfterLinkedSync,
   deriveCondoDiligenceMatterStatusFromChecklist,
   deriveCondoRequiredDocumentStatus,
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
+  isCondoEstoppelReviewUntouched,
   isCondoOrCoopMatter,
   isFloridaPropertyAddress,
+  normalizeCondoEstoppelReview,
+  parseDemoCondoEstoppelReview,
   syncRequiredDocumentsFromDerivedLinkage,
 } from '@/lib/demo/condoDiligence'
 import type { DemoCondoDiligence, DemoMatter } from '@/lib/demo/types'
@@ -544,6 +550,8 @@ describe('condoDiligence', () => {
         ...CORE_CONDO_DILIGENCE_DOC_PACK_IDS,
       ])
       expect(d.requiredDocuments.every((x) => x.status === 'outstanding')).toBe(true)
+      expect(d.estoppelReview).toEqual(buildDefaultCondoEstoppelReview())
+      expect(isCondoEstoppelReviewUntouched(d.estoppelReview)).toBe(true)
     })
 
     it('keeps the original six rows and adds exactly seven new core doc-pack rows without duplicates', () => {
@@ -583,6 +591,97 @@ describe('condoDiligence', () => {
       expect(d.requiredDocuments.find((x) => x.id === 'management_association_contacts')?.label).toBe(
         'Management & association contacts',
       )
+    })
+  })
+
+  describe('estoppelReview', () => {
+    it('parses missing or invalid estoppelReview as undefined for older persisted rows', () => {
+      expect(parseDemoCondoEstoppelReview(undefined)).toBeUndefined()
+      expect(parseDemoCondoEstoppelReview(null)).toBeUndefined()
+      expect(parseDemoCondoEstoppelReview('nope')).toBeUndefined()
+      expect(parseDemoCondoEstoppelReview([])).toBeUndefined()
+    })
+
+    it('fills defaults for partial valid estoppelReview objects', () => {
+      expect(
+        parseDemoCondoEstoppelReview({
+          requestDate: '2026-05-01',
+          amountDue: 450.5,
+          reviewStatus: 'requested',
+        }),
+      ).toEqual({
+        ...buildDefaultCondoEstoppelReview(),
+        requestDate: '2026-05-01',
+        amountDue: 450.5,
+        reviewStatus: 'requested',
+      })
+    })
+
+    it('normalizeCondoEstoppelReview merges onto defaults', () => {
+      expect(normalizeCondoEstoppelReview(undefined)).toEqual(buildDefaultCondoEstoppelReview())
+      expect(normalizeCondoEstoppelReview({ notes: 'Wire instructions pending' })).toEqual({
+        ...buildDefaultCondoEstoppelReview(),
+        notes: 'Wire instructions pending',
+      })
+    })
+
+    it('marks diligence as touched when estoppel review has progress', () => {
+      const base = buildDefaultCondoDiligence({ nowIso: () => '2026-04-27T12:00:00.000Z' })
+      expect(isCondoDiligenceUntouched(base)).toBe(true)
+      expect(
+        isCondoDiligenceUntouched({
+          ...base,
+          estoppelReview: {
+            ...buildDefaultCondoEstoppelReview(),
+            reviewStatus: 'requested',
+            requestDate: '2026-05-01',
+          },
+        }),
+      ).toBe(false)
+    })
+
+    it('keeps older six-row saved checklists without estoppelReview loadable and untouched', () => {
+      const older: DemoCondoDiligence = {
+        applicable: true,
+        status: 'not_started',
+        notes: '',
+        findings: [],
+        updated_at: '2026-01-01T00:00:00.000Z',
+        requiredDocuments: ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS.map((id) => ({
+          id,
+          label: id,
+          status: 'outstanding' as const,
+          detail: null,
+        })),
+      }
+      expect(older.estoppelReview).toBeUndefined()
+      expect(isCondoDiligenceUntouched(older)).toBe(true)
+      expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments: older.requiredDocuments, findings: [] })).toBe(
+        'not_started',
+      )
+    })
+
+    it('derives due-date warnings without changing checklist matter-status rules', () => {
+      const now = new Date('2026-05-10T12:00:00')
+      expect(condoEstoppelDueDateWarning('2026-05-01', { now })?.kind).toBe('overdue')
+      expect(condoEstoppelDueDateWarning('2026-05-11', { now })?.kind).toBe('due_soon')
+      expect(condoEstoppelDueDateWarning('2026-05-10', { now })?.label).toBe('Due today')
+      expect(condoEstoppelDueDateWarning('2026-06-01', { now })).toBeNull()
+      expect(condoEstoppelDueDateWarning('', { now })).toBeNull()
+
+      const checklist = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' }).requiredDocuments
+      expect(
+        deriveCondoDiligenceMatterStatusFromChecklist({
+          requiredDocuments: checklist,
+          findings: [],
+        }),
+      ).toBe('not_started')
+      expect(condoEstoppelReviewStatusPresentation('issue_found').label).toBe('Issue found')
+    })
+
+    it('does not change estoppel document linkage matching', () => {
+      expect(condoRequiredDocMatchesLinkageHaystack('Condo Estoppel Certificate.pdf', 'estoppel')).toBe(true)
+      expect(condoRequiredDocMatchesLinkageHaystack('Association financial statements', 'estoppel')).toBe(false)
     })
   })
 })

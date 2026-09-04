@@ -196,6 +196,31 @@ export type DemoCondoDiligenceFinding = {
   text: string
 }
 
+/** Structured estoppel review (demo) — complements the Estoppel checklist row. */
+export type DemoCondoEstoppelSpecialAssessmentStatus = 'unknown' | 'none' | 'disclosed'
+export type DemoCondoEstoppelViolationOrLienStatus = 'unknown' | 'none' | 'disclosed'
+export type DemoCondoEstoppelReviewStatus =
+  | 'not_started'
+  | 'requested'
+  | 'received'
+  | 'reviewed'
+  | 'issue_found'
+
+export type DemoCondoEstoppelReview = {
+  /** YYYY-MM-DD when set; empty string when unset. */
+  requestDate: string
+  /** YYYY-MM-DD when set; empty string when unset. */
+  dueDate: string
+  /** YYYY-MM-DD when set; empty string when unset. */
+  receivedDate: string
+  amountDue: number | null
+  regularAssessmentAmount: number | null
+  specialAssessmentStatus: DemoCondoEstoppelSpecialAssessmentStatus
+  violationOrLienStatus: DemoCondoEstoppelViolationOrLienStatus
+  reviewStatus: DemoCondoEstoppelReviewStatus
+  notes: string
+}
+
 export type DemoCondoDiligence = {
   applicable: boolean
   status: DemoCondoDiligenceMatterStatus
@@ -203,6 +228,8 @@ export type DemoCondoDiligence = {
   findings: DemoCondoDiligenceFinding[]
   notes: string
   updated_at: string
+  /** Optional structured estoppel fields; absent on older persisted demo rows. */
+  estoppelReview?: DemoCondoEstoppelReview
 }
 
 export type DemoFirm = {
