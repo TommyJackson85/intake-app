@@ -3,12 +3,15 @@ import {
   CORE_CONDO_DILIGENCE_DOC_PACK_IDS,
   ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS,
   buildCondoDiligenceOperationalSummary,
+  buildDefaultCondoAssociationFinancialReview,
   buildDefaultCondoDiligence,
   buildDefaultCondoEstoppelReview,
   buildDefaultCondoSirsMilestoneReview,
   condoDiligenceMatterStatusPresentation,
   condoEstoppelDueDateWarning,
   condoEstoppelReviewStatusPresentation,
+  condoFinancialDocReviewStatusPresentation,
+  condoFinancialRiskLevelPresentation,
   condoRequiredDocMatchesLinkageHaystack,
   condoRequiredDocSavedStatusAfterLinkedSync,
   condoSirsApplicabilityPresentation,
@@ -18,14 +21,17 @@ import {
   deriveCondoDiligenceMatterStatusFromChecklist,
   deriveCondoRequiredDocumentStatus,
   formatCondoDiligenceSummaryTargetDate,
+  isCondoAssociationFinancialReviewUntouched,
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
   isCondoEstoppelReviewUntouched,
   isCondoOrCoopMatter,
   isCondoSirsMilestoneReviewUntouched,
   isFloridaPropertyAddress,
+  normalizeCondoAssociationFinancialReview,
   normalizeCondoEstoppelReview,
   normalizeCondoSirsMilestoneReview,
+  parseDemoCondoAssociationFinancialReview,
   parseDemoCondoEstoppelReview,
   parseDemoCondoSirsMilestoneReview,
   syncRequiredDocumentsFromDerivedLinkage,
@@ -564,6 +570,8 @@ describe('condoDiligence', () => {
       expect(isCondoEstoppelReviewUntouched(d.estoppelReview)).toBe(true)
       expect(d.sirsMilestoneReview).toEqual(buildDefaultCondoSirsMilestoneReview())
       expect(isCondoSirsMilestoneReviewUntouched(d.sirsMilestoneReview)).toBe(true)
+      expect(d.associationFinancialReview).toEqual(buildDefaultCondoAssociationFinancialReview())
+      expect(isCondoAssociationFinancialReviewUntouched(d.associationFinancialReview)).toBe(true)
     })
 
     it('keeps the original six rows and adds exactly seven new core doc-pack rows without duplicates', () => {
@@ -786,6 +794,104 @@ describe('condoDiligence', () => {
       )
       expect(condoRequiredDocMatchesLinkageHaystack('SIRS / reserve study package', 'sirs_reserve_study')).toBe(true)
       expect(condoRequiredDocMatchesLinkageHaystack('SIRS / reserve study package', 'milestone_inspection_summary')).toBe(false)
+    })
+  })
+
+  describe('associationFinancialReview', () => {
+    it('parses missing or invalid associationFinancialReview as undefined for older persisted rows', () => {
+      expect(parseDemoCondoAssociationFinancialReview(undefined)).toBeUndefined()
+      expect(parseDemoCondoAssociationFinancialReview(null)).toBeUndefined()
+      expect(parseDemoCondoAssociationFinancialReview('nope')).toBeUndefined()
+      expect(parseDemoCondoAssociationFinancialReview([])).toBeUndefined()
+    })
+
+    it('fills defaults for partial valid associationFinancialReview objects', () => {
+      expect(
+        parseDemoCondoAssociationFinancialReview({
+          duesAmount: 625.5,
+          duesFrequency: 'monthly',
+          financialRiskLevel: 'medium',
+          specialAssessmentStatus: 'proposed_or_pending',
+        }),
+      ).toEqual({
+        ...buildDefaultCondoAssociationFinancialReview(),
+        duesAmount: 625.5,
+        duesFrequency: 'monthly',
+        financialRiskLevel: 'medium',
+        specialAssessmentStatus: 'proposed_or_pending',
+      })
+    })
+
+    it('normalizeCondoAssociationFinancialReview merges onto defaults', () => {
+      expect(normalizeCondoAssociationFinancialReview(undefined)).toEqual(buildDefaultCondoAssociationFinancialReview())
+      expect(normalizeCondoAssociationFinancialReview({ notes: 'Budget shortfall noted' })).toEqual({
+        ...buildDefaultCondoAssociationFinancialReview(),
+        notes: 'Budget shortfall noted',
+      })
+    })
+
+    it('marks diligence as touched when association financial review has progress', () => {
+      const base = buildDefaultCondoDiligence({ nowIso: () => '2026-04-27T12:00:00.000Z' })
+      expect(isCondoDiligenceUntouched(base)).toBe(true)
+      expect(
+        isCondoDiligenceUntouched({
+          ...base,
+          associationFinancialReview: {
+            ...buildDefaultCondoAssociationFinancialReview(),
+            budgetReviewStatus: 'reviewed',
+            financialRiskLevel: 'low',
+          },
+        }),
+      ).toBe(false)
+    })
+
+    it('keeps older saved checklists without associationFinancialReview loadable and untouched', () => {
+      const older: DemoCondoDiligence = {
+        applicable: true,
+        status: 'not_started',
+        notes: '',
+        findings: [],
+        updated_at: '2026-01-01T00:00:00.000Z',
+        requiredDocuments: ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS.map((id) => ({
+          id,
+          label: id,
+          status: 'outstanding' as const,
+          detail: null,
+        })),
+      }
+      expect(older.associationFinancialReview).toBeUndefined()
+      expect(isCondoDiligenceUntouched(older)).toBe(true)
+      expect(isCondoAssociationFinancialReviewUntouched(older.associationFinancialReview)).toBe(true)
+      expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments: older.requiredDocuments, findings: [] })).toBe(
+        'not_started',
+      )
+    })
+
+    it('presentation helpers stay operational and do not change matter-status derivation', () => {
+      expect(condoFinancialDocReviewStatusPresentation('issue_found').label).toBe('Issue found')
+      expect(condoFinancialRiskLevelPresentation('high').label).toBe('High')
+
+      const checklist = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' }).requiredDocuments
+      expect(
+        deriveCondoDiligenceMatterStatusFromChecklist({
+          requiredDocuments: checklist,
+          findings: [],
+        }),
+      ).toBe('not_started')
+    })
+
+    it('does not change association financial document linkage matching', () => {
+      expect(condoRequiredDocMatchesLinkageHaystack('Current operating budget 2026', 'current_budget')).toBe(true)
+      expect(
+        condoRequiredDocMatchesLinkageHaystack('Association financial statements FY2025', 'association_financial_statements'),
+      ).toBe(true)
+      expect(
+        condoRequiredDocMatchesLinkageHaystack('reserve schedule / funding detail', 'reserve_schedule_funding_detail'),
+      ).toBe(true)
+      expect(
+        condoRequiredDocMatchesLinkageHaystack('special assessment notice schedule', 'special_assessment_notice_schedule'),
+      ).toBe(true)
+      expect(condoRequiredDocMatchesLinkageHaystack('Condo Estoppel Certificate.pdf', 'current_budget')).toBe(false)
     })
   })
 

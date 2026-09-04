@@ -3,15 +3,23 @@
  * Maps to `systemContract.domains.compliance` (condo slice) — implementation detail, not the contract file itself.
  */
 import type {
+  DemoCondoAssociationFinancialReview,
+  DemoCondoAssociationLoanStatus,
+  DemoCondoAssociationSpecialAssessmentStatus,
+  DemoCondoDelinquencyConcern,
   DemoCondoDiligence,
   DemoCondoDiligenceDocStatus,
   DemoCondoDiligenceFinding,
   DemoCondoDiligenceMatterStatus,
   DemoCondoDiligenceRequiredDocument,
+  DemoCondoDuesFrequency,
   DemoCondoEstoppelReview,
   DemoCondoEstoppelReviewStatus,
   DemoCondoEstoppelSpecialAssessmentStatus,
   DemoCondoEstoppelViolationOrLienStatus,
+  DemoCondoFinancialDocReviewStatus,
+  DemoCondoFinancialRiskLevel,
+  DemoCondoReserveFundingStatus,
   DemoCondoSirsApplicability,
   DemoCondoSirsDocumentStatus,
   DemoCondoSirsMilestoneReview,
@@ -311,6 +319,7 @@ export function isCondoDiligenceUntouched(
   input: Pick<DemoCondoDiligence, 'status' | 'requiredDocuments' | 'findings' | 'notes'> & {
     estoppelReview?: DemoCondoEstoppelReview | null
     sirsMilestoneReview?: DemoCondoSirsMilestoneReview | null
+    associationFinancialReview?: DemoCondoAssociationFinancialReview | null
   },
 ): boolean {
   const notesEmpty = input.notes.trim() === ''
@@ -318,13 +327,15 @@ export function isCondoDiligenceUntouched(
   const allOutstanding = input.requiredDocuments.length > 0 && input.requiredDocuments.every((d) => d.status === 'outstanding')
   const estoppelUntouched = isCondoEstoppelReviewUntouched(input.estoppelReview)
   const sirsUntouched = isCondoSirsMilestoneReviewUntouched(input.sirsMilestoneReview)
+  const financialUntouched = isCondoAssociationFinancialReviewUntouched(input.associationFinancialReview)
   return (
     input.status === 'not_started' &&
     notesEmpty &&
     noFindings &&
     allOutstanding &&
     estoppelUntouched &&
-    sirsUntouched
+    sirsUntouched &&
+    financialUntouched
   )
 }
 
@@ -647,6 +658,199 @@ export function condoSirsRiskLevelPresentation(level: DemoCondoSirsRiskLevel): {
       return { label: 'Moderate', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
     case 'elevated':
       return { label: 'Elevated', bg: '#ffedd5', color: '#c2410c', border: 'rgba(194,65,12,0.35)' }
+    case 'high':
+      return { label: 'High', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    default:
+      return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+/** Default empty structured association financial review for newly seeded diligence rows. */
+export function buildDefaultCondoAssociationFinancialReview(): DemoCondoAssociationFinancialReview {
+  return {
+    budgetReviewStatus: 'not_started',
+    financialStatementsReviewStatus: 'not_started',
+    reserveScheduleReviewStatus: 'not_started',
+    duesAmount: null,
+    duesFrequency: 'unknown',
+    specialAssessmentStatus: 'unknown',
+    specialAssessmentAmount: null,
+    associationLoanOrLineOfCreditStatus: 'unknown',
+    delinquencyConcern: 'unknown',
+    reserveFundingStatus: 'unknown',
+    financialRiskLevel: 'unknown',
+    notes: '',
+  }
+}
+
+export function normalizeCondoAssociationFinancialReview(
+  input?: Partial<DemoCondoAssociationFinancialReview> | null,
+): DemoCondoAssociationFinancialReview {
+  return {
+    ...buildDefaultCondoAssociationFinancialReview(),
+    ...(input ?? {}),
+  }
+}
+
+function isFinancialDocReviewStatus(value: unknown): value is DemoCondoFinancialDocReviewStatus {
+  return (
+    value === 'not_started' ||
+    value === 'requested' ||
+    value === 'received' ||
+    value === 'reviewed' ||
+    value === 'issue_found'
+  )
+}
+
+function isDuesFrequency(value: unknown): value is DemoCondoDuesFrequency {
+  return (
+    value === 'unknown' ||
+    value === 'monthly' ||
+    value === 'quarterly' ||
+    value === 'annual' ||
+    value === 'other'
+  )
+}
+
+function isAssociationSpecialAssessmentStatus(
+  value: unknown,
+): value is DemoCondoAssociationSpecialAssessmentStatus {
+  return (
+    value === 'unknown' ||
+    value === 'none_disclosed' ||
+    value === 'proposed_or_pending' ||
+    value === 'active' ||
+    value === 'paid_or_resolved'
+  )
+}
+
+function isAssociationLoanStatus(value: unknown): value is DemoCondoAssociationLoanStatus {
+  return value === 'unknown' || value === 'none_disclosed' || value === 'disclosed'
+}
+
+function isDelinquencyConcern(value: unknown): value is DemoCondoDelinquencyConcern {
+  return value === 'unknown' || value === 'none_noted' || value === 'possible' || value === 'material'
+}
+
+function isReserveFundingStatus(value: unknown): value is DemoCondoReserveFundingStatus {
+  return (
+    value === 'unknown' ||
+    value === 'appears_adequate' ||
+    value === 'possible_shortfall' ||
+    value === 'material_shortfall'
+  )
+}
+
+function isFinancialRiskLevel(value: unknown): value is DemoCondoFinancialRiskLevel {
+  return (
+    value === 'unknown' ||
+    value === 'none' ||
+    value === 'low' ||
+    value === 'medium' ||
+    value === 'high'
+  )
+}
+
+/**
+ * Parse optional persisted `associationFinancialReview`. Missing/invalid object → undefined (older rows).
+ * Partial valid objects are filled with defaults for missing fields.
+ */
+export function parseDemoCondoAssociationFinancialReview(
+  raw: unknown,
+): DemoCondoAssociationFinancialReview | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const o = raw as Record<string, unknown>
+  const base = buildDefaultCondoAssociationFinancialReview()
+  const duesParsed = parseOptionalMoney(o.duesAmount)
+  const specialAmtParsed = parseOptionalMoney(o.specialAssessmentAmount)
+
+  return {
+    budgetReviewStatus: isFinancialDocReviewStatus(o.budgetReviewStatus)
+      ? o.budgetReviewStatus
+      : base.budgetReviewStatus,
+    financialStatementsReviewStatus: isFinancialDocReviewStatus(o.financialStatementsReviewStatus)
+      ? o.financialStatementsReviewStatus
+      : base.financialStatementsReviewStatus,
+    reserveScheduleReviewStatus: isFinancialDocReviewStatus(o.reserveScheduleReviewStatus)
+      ? o.reserveScheduleReviewStatus
+      : base.reserveScheduleReviewStatus,
+    duesAmount: duesParsed === undefined ? base.duesAmount : duesParsed,
+    duesFrequency: isDuesFrequency(o.duesFrequency) ? o.duesFrequency : base.duesFrequency,
+    specialAssessmentStatus: isAssociationSpecialAssessmentStatus(o.specialAssessmentStatus)
+      ? o.specialAssessmentStatus
+      : base.specialAssessmentStatus,
+    specialAssessmentAmount: specialAmtParsed === undefined ? base.specialAssessmentAmount : specialAmtParsed,
+    associationLoanOrLineOfCreditStatus: isAssociationLoanStatus(o.associationLoanOrLineOfCreditStatus)
+      ? o.associationLoanOrLineOfCreditStatus
+      : base.associationLoanOrLineOfCreditStatus,
+    delinquencyConcern: isDelinquencyConcern(o.delinquencyConcern)
+      ? o.delinquencyConcern
+      : base.delinquencyConcern,
+    reserveFundingStatus: isReserveFundingStatus(o.reserveFundingStatus)
+      ? o.reserveFundingStatus
+      : base.reserveFundingStatus,
+    financialRiskLevel: isFinancialRiskLevel(o.financialRiskLevel)
+      ? o.financialRiskLevel
+      : base.financialRiskLevel,
+    notes: typeof o.notes === 'string' ? o.notes : base.notes,
+  }
+}
+
+export function isCondoAssociationFinancialReviewUntouched(
+  input?: DemoCondoAssociationFinancialReview | null,
+): boolean {
+  if (!input) return true
+  const d = normalizeCondoAssociationFinancialReview(input)
+  return (
+    d.budgetReviewStatus === 'not_started' &&
+    d.financialStatementsReviewStatus === 'not_started' &&
+    d.reserveScheduleReviewStatus === 'not_started' &&
+    d.duesAmount === null &&
+    d.duesFrequency === 'unknown' &&
+    d.specialAssessmentStatus === 'unknown' &&
+    d.specialAssessmentAmount === null &&
+    d.associationLoanOrLineOfCreditStatus === 'unknown' &&
+    d.delinquencyConcern === 'unknown' &&
+    d.reserveFundingStatus === 'unknown' &&
+    d.financialRiskLevel === 'unknown' &&
+    d.notes.trim() === ''
+  )
+}
+
+export function condoFinancialDocReviewStatusPresentation(status: DemoCondoFinancialDocReviewStatus): {
+  label: string
+  bg: string
+  color: string
+  border: string
+} {
+  switch (status) {
+    case 'issue_found':
+      return { label: 'Issue found', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    case 'reviewed':
+      return { label: 'Reviewed', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'received':
+      return { label: 'Received', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.25)' }
+    case 'requested':
+      return { label: 'Requested', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    default:
+      return { label: 'Not started', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoFinancialRiskLevelPresentation(level: DemoCondoFinancialRiskLevel): {
+  label: string
+  bg: string
+  color: string
+  border: string
+} {
+  switch (level) {
+    case 'none':
+      return { label: 'None noted', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'low':
+      return { label: 'Low', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'medium':
+      return { label: 'Medium', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
     case 'high':
       return { label: 'High', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
     default:
@@ -1055,5 +1259,6 @@ export function buildDefaultCondoDiligence(options?: BuildDefaultCondoDiligenceO
     status: deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments, findings }),
     estoppelReview: buildDefaultCondoEstoppelReview(),
     sirsMilestoneReview: buildDefaultCondoSirsMilestoneReview(),
+    associationFinancialReview: buildDefaultCondoAssociationFinancialReview(),
   }
 }

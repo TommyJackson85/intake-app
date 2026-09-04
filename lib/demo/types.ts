@@ -253,6 +253,45 @@ export type DemoCondoSirsMilestoneReview = {
   notes: string
 }
 
+/** Structured association financial review (demo) — complements budget / financials checklist rows. */
+export type DemoCondoFinancialDocReviewStatus =
+  | 'not_started'
+  | 'requested'
+  | 'received'
+  | 'reviewed'
+  | 'issue_found'
+export type DemoCondoDuesFrequency = 'unknown' | 'monthly' | 'quarterly' | 'annual' | 'other'
+export type DemoCondoAssociationSpecialAssessmentStatus =
+  | 'unknown'
+  | 'none_disclosed'
+  | 'proposed_or_pending'
+  | 'active'
+  | 'paid_or_resolved'
+export type DemoCondoAssociationLoanStatus = 'unknown' | 'none_disclosed' | 'disclosed'
+export type DemoCondoDelinquencyConcern = 'unknown' | 'none_noted' | 'possible' | 'material'
+export type DemoCondoReserveFundingStatus =
+  | 'unknown'
+  | 'appears_adequate'
+  | 'possible_shortfall'
+  | 'material_shortfall'
+export type DemoCondoFinancialRiskLevel = 'unknown' | 'none' | 'low' | 'medium' | 'high'
+
+export type DemoCondoAssociationFinancialReview = {
+  budgetReviewStatus: DemoCondoFinancialDocReviewStatus
+  financialStatementsReviewStatus: DemoCondoFinancialDocReviewStatus
+  reserveScheduleReviewStatus: DemoCondoFinancialDocReviewStatus
+  duesAmount: number | null
+  duesFrequency: DemoCondoDuesFrequency
+  /** Richer than Estoppel's special-assessment enum — association financial picture only. */
+  specialAssessmentStatus: DemoCondoAssociationSpecialAssessmentStatus
+  specialAssessmentAmount: number | null
+  associationLoanOrLineOfCreditStatus: DemoCondoAssociationLoanStatus
+  delinquencyConcern: DemoCondoDelinquencyConcern
+  reserveFundingStatus: DemoCondoReserveFundingStatus
+  financialRiskLevel: DemoCondoFinancialRiskLevel
+  notes: string
+}
+
 export type DemoCondoDiligence = {
   applicable: boolean
   status: DemoCondoDiligenceMatterStatus
@@ -264,6 +303,8 @@ export type DemoCondoDiligence = {
   estoppelReview?: DemoCondoEstoppelReview
   /** Optional structured SIRS / Milestone fields; absent on older persisted demo rows. */
   sirsMilestoneReview?: DemoCondoSirsMilestoneReview
+  /** Optional structured association financial fields; absent on older persisted demo rows. */
+  associationFinancialReview?: DemoCondoAssociationFinancialReview
 }
 
 export type DemoFirm = {
