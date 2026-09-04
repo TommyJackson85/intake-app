@@ -1615,6 +1615,213 @@ export function listCondoDiligenceInternalSummaryDocuments<T extends DemoDocumen
     .sort((a, b) => condoDiligenceInternalSummarySortTime(b) - condoDiligenceInternalSummarySortTime(a))
 }
 
+export type CondoDiligenceParsedSummarySection = {
+  title: string
+  lines: string[]
+}
+
+export type CondoDiligenceParsedSummaryPlainText = {
+  preambleLines: string[]
+  sections: CondoDiligenceParsedSummarySection[]
+}
+
+export type CondoDiligenceSummaryChangeKind = 'added' | 'removed' | 'changed'
+
+export type CondoDiligenceSummaryLineChange = {
+  kind: CondoDiligenceSummaryChangeKind
+  label: string
+  earlierValue?: string
+  newerValue?: string
+}
+
+export type CondoDiligenceSummarySectionChanges = {
+  sectionTitle: string
+  changes: CondoDiligenceSummaryLineChange[]
+}
+
+export type CondoDiligenceSummaryComparison = {
+  earlierSnapshotId: string
+  newerSnapshotId: string
+  compactSummary: {
+    sectionsChanged: number
+    linesAdded: number
+    linesRemoved: number
+    linesChanged: number
+    unchanged: boolean
+  }
+  sectionChanges: CondoDiligenceSummarySectionChanges[]
+  disclaimer: string
+}
+
+const SUMMARY_COMPARE_DISCLAIMER =
+  'Internal lawyer comparison of two saved snapshots only. Factual text differences — not a compliance determination, risk-resolution finding, or closing recommendation. Neither snapshot is regenerated from current matter state.'
+
+function normalizeSummaryContentLine(raw: string): string {
+  return raw.replace(/^\s*-\s*/, '').trim()
+}
+
+/**
+ * Parses immutable saved Internal Condo Diligence Summary plain text into preamble + `##` sections.
+ * Does not regenerate from live matter state.
+ */
+export function parseCondoDiligenceInternalSummaryPlainText(
+  content: string,
+): CondoDiligenceParsedSummaryPlainText {
+  const lines = content.replace(/\r\n/g, '\n').split('\n')
+  const preambleLines: string[] = []
+  const sections: CondoDiligenceParsedSummarySection[] = []
+  let current: CondoDiligenceParsedSummarySection | null = null
+
+  for (const raw of lines) {
+    const heading = raw.match(/^##\s+(.+?)\s*$/)
+    if (heading) {
+      current = { title: heading[1].trim(), lines: [] }
+      sections.push(current)
+      continue
+    }
+    const normalized = normalizeSummaryContentLine(raw)
+    if (!normalized) continue
+    if (current) current.lines.push(normalized)
+    else preambleLines.push(normalized)
+  }
+
+  return { preambleLines, sections }
+}
+
+function parseLabeledSummaryLine(line: string): { label: string; value: string } | null {
+  const idx = line.indexOf(':')
+  if (idx <= 0) return null
+  const label = line.slice(0, idx).trim()
+  const value = line.slice(idx + 1).trim()
+  if (!label) return null
+  return { label, value }
+}
+
+function compareSummarySectionLines(
+  earlierLines: string[],
+  newerLines: string[],
+): CondoDiligenceSummaryLineChange[] {
+  const earlierLabeled = new Map<string, string>()
+  const newerLabeled = new Map<string, string>()
+  const earlierUnlabeled: string[] = []
+  const newerUnlabeled: string[] = []
+
+  for (const line of earlierLines) {
+    const parsed = parseLabeledSummaryLine(line)
+    if (parsed && !earlierLabeled.has(parsed.label)) earlierLabeled.set(parsed.label, parsed.value)
+    else if (parsed) earlierUnlabeled.push(line)
+    else earlierUnlabeled.push(line)
+  }
+  for (const line of newerLines) {
+    const parsed = parseLabeledSummaryLine(line)
+    if (parsed && !newerLabeled.has(parsed.label)) newerLabeled.set(parsed.label, parsed.value)
+    else if (parsed) newerUnlabeled.push(line)
+    else newerUnlabeled.push(line)
+  }
+
+  const changes: CondoDiligenceSummaryLineChange[] = []
+  const labels = new Set([...earlierLabeled.keys(), ...newerLabeled.keys()])
+  const sortedLabels = [...labels].sort((a, b) => a.localeCompare(b))
+
+  for (const label of sortedLabels) {
+    const earlierValue = earlierLabeled.get(label)
+    const newerValue = newerLabeled.get(label)
+    if (earlierValue === undefined && newerValue !== undefined) {
+      changes.push({ kind: 'added', label, newerValue })
+    } else if (earlierValue !== undefined && newerValue === undefined) {
+      changes.push({ kind: 'removed', label, earlierValue })
+    } else if (earlierValue !== undefined && newerValue !== undefined && earlierValue !== newerValue) {
+      changes.push({ kind: 'changed', label, earlierValue, newerValue })
+    }
+  }
+
+  const earlierBag = new Map<string, number>()
+  for (const line of earlierUnlabeled) {
+    earlierBag.set(line, (earlierBag.get(line) ?? 0) + 1)
+  }
+  for (const line of newerUnlabeled) {
+    const count = earlierBag.get(line) ?? 0
+    if (count > 0) earlierBag.set(line, count - 1)
+    else changes.push({ kind: 'added', label: line, newerValue: line })
+  }
+  for (const [line, count] of earlierBag) {
+    for (let i = 0; i < count; i += 1) {
+      changes.push({ kind: 'removed', label: line, earlierValue: line })
+    }
+  }
+
+  return changes
+}
+
+/**
+ * Factual text comparison of two immutable saved summary snapshots.
+ * Does not regenerate reports or infer legal conclusions.
+ */
+export function compareCondoDiligenceInternalSummaryPlainText(input: {
+  earlierContent: string
+  newerContent: string
+  earlierSnapshotId?: string
+  newerSnapshotId?: string
+}): CondoDiligenceSummaryComparison {
+  const earlier = parseCondoDiligenceInternalSummaryPlainText(input.earlierContent)
+  const newer = parseCondoDiligenceInternalSummaryPlainText(input.newerContent)
+
+  const earlierByTitle = new Map(earlier.sections.map((s) => [s.title, s.lines]))
+  const newerByTitle = new Map(newer.sections.map((s) => [s.title, s.lines]))
+
+  const titleOrder: string[] = []
+  const seen = new Set<string>()
+  for (const s of newer.sections) {
+    if (!seen.has(s.title)) {
+      seen.add(s.title)
+      titleOrder.push(s.title)
+    }
+  }
+  for (const s of earlier.sections) {
+    if (!seen.has(s.title)) {
+      seen.add(s.title)
+      titleOrder.push(s.title)
+    }
+  }
+
+  const sectionChanges: CondoDiligenceSummarySectionChanges[] = []
+
+  const preambleChanges = compareSummarySectionLines(earlier.preambleLines, newer.preambleLines)
+  if (preambleChanges.length > 0) {
+    sectionChanges.push({ sectionTitle: 'Header', changes: preambleChanges })
+  }
+
+  for (const title of titleOrder) {
+    const changes = compareSummarySectionLines(earlierByTitle.get(title) ?? [], newerByTitle.get(title) ?? [])
+    if (changes.length > 0) sectionChanges.push({ sectionTitle: title, changes })
+  }
+
+  let linesAdded = 0
+  let linesRemoved = 0
+  let linesChanged = 0
+  for (const section of sectionChanges) {
+    for (const change of section.changes) {
+      if (change.kind === 'added') linesAdded += 1
+      else if (change.kind === 'removed') linesRemoved += 1
+      else linesChanged += 1
+    }
+  }
+
+  return {
+    earlierSnapshotId: input.earlierSnapshotId ?? '',
+    newerSnapshotId: input.newerSnapshotId ?? '',
+    compactSummary: {
+      sectionsChanged: sectionChanges.length,
+      linesAdded,
+      linesRemoved,
+      linesChanged,
+      unchanged: sectionChanges.length === 0,
+    },
+    sectionChanges,
+    disclaimer: SUMMARY_COMPARE_DISCLAIMER,
+  }
+}
+
 /**
  * Builds an `AddDemoDocumentInput` snapshot of the current Internal Diligence Summary.
  * Immutable content lives in `generatedInternalSummary.content` (and a short description).

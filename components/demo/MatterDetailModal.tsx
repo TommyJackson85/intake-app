@@ -37,6 +37,7 @@ import { displayOrFallback, parseOtherPartyInfo } from '@/lib/demo/matterPartyDi
 import DemoFinCENTab from '@/components/demo/DemoFinCENTab'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
+import CondoDiligenceSummaryCompareModal from '@/app/demo/_components/CondoDiligenceSummaryCompareModal'
 import {
   buildCondoDiligenceInternalReport,
   buildCondoDiligenceOperationalSummary,
@@ -245,6 +246,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   >('idle')
   const [condoReportSavedDocId, setCondoReportSavedDocId] = useState<string | null>(null)
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null)
+  const [compareSummariesOpen, setCompareSummariesOpen] = useState(false)
   const condoReportSaveLockRef = React.useRef(false)
 
   const matterId = matter?.id ?? ''
@@ -971,6 +973,38 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       portal.
                     </div>
                   </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+                    <button
+                      type="button"
+                      disabled={condoSummaryHistory.length < 2}
+                      onClick={() => {
+                        if (condoSummaryHistory.length < 2) return
+                        setCompareSummariesOpen(true)
+                      }}
+                      title={
+                        condoSummaryHistory.length < 2
+                          ? 'Save at least two internal summaries to compare snapshots.'
+                          : 'Compare two saved internal summaries'
+                      }
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: '1px solid rgba(94,82,64,0.25)',
+                        background: condoSummaryHistory.length < 2 ? '#f5f5f5' : '#fff',
+                        fontWeight: 800,
+                        fontSize: 11,
+                        color: condoSummaryHistory.length < 2 ? '#9aa8a1' : '#134252',
+                        cursor: condoSummaryHistory.length < 2 ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      Compare summaries
+                    </button>
+                    {condoSummaryHistory.length < 2 ? (
+                      <span style={{ fontSize: 12, color: '#627c71' }}>
+                        Save at least two internal summaries to compare snapshots.
+                      </span>
+                    ) : null}
+                  </div>
                   {condoSummaryHistory.length === 0 ? (
                     <div style={{ color: '#627c71', fontSize: 13 }}>
                       No saved internal summaries yet. Save one from the Condo Diligence tab.
@@ -1135,6 +1169,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                     : null
                 }
                 onClose={() => setPreviewDocumentId(null)}
+              />
+              <CondoDiligenceSummaryCompareModal
+                open={compareSummariesOpen}
+                snapshots={condoSummaryHistory}
+                onClose={() => setCompareSummariesOpen(false)}
               />
             </div>
           )}

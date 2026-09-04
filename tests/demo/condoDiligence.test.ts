@@ -8,6 +8,8 @@ import {
   CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE,
   isCondoDiligenceInternalSummaryDocument,
   listCondoDiligenceInternalSummaryDocuments,
+  parseCondoDiligenceInternalSummaryPlainText,
+  compareCondoDiligenceInternalSummaryPlainText,
   buildDefaultCondoAssociationFinancialReview,
   buildDefaultCondoAssociationRecordsGovernanceReview,
   buildDefaultCondoDiligence,
@@ -1525,6 +1527,97 @@ describe('condoDiligence', () => {
           },
         ]),
       ).toEqual([])
+    })
+  })
+
+  describe('compareCondoDiligenceInternalSummaryPlainText', () => {
+    const earlierContent = [
+      'Internal Diligence Summary — Lawyer Review Required',
+      'Internal lawyer work product only.',
+      'Matter: FL-100',
+      'Generated: 2026-09-01 10:00',
+      '',
+      '## Estoppel review',
+      '- Review status: Pending',
+      '- Amount due: $100',
+      '',
+      '## Financial review',
+      '- Financial risk: Medium',
+      '- Notes: —',
+    ].join('\n')
+
+    const newerContent = [
+      'Internal Diligence Summary — Lawyer Review Required',
+      'Internal lawyer work product only.',
+      'Matter: FL-100',
+      'Generated: 2026-09-04 15:30',
+      '',
+      '## Estoppel review',
+      '- Review status: Cleared',
+      '- Amount due: $50',
+      '- Violations / liens: none',
+      '',
+      '## Financial review',
+      '- Financial risk: Medium',
+      '- Notes: —',
+    ].join('\n')
+
+    it('parses ## sections and preamble from saved plain text', () => {
+      const parsed = parseCondoDiligenceInternalSummaryPlainText(earlierContent)
+      expect(parsed.preambleLines[0]).toContain('Internal Diligence Summary')
+      expect(parsed.sections.map((s) => s.title)).toEqual(['Estoppel review', 'Financial review'])
+      expect(parsed.sections[0].lines).toContain('Review status: Pending')
+    })
+
+    it('reports labeled line changes grouped by section without regenerating content', () => {
+      const comparison = compareCondoDiligenceInternalSummaryPlainText({
+        earlierContent,
+        newerContent,
+        earlierSnapshotId: 'earlier',
+        newerSnapshotId: 'newer',
+      })
+      expect(comparison.earlierSnapshotId).toBe('earlier')
+      expect(comparison.newerSnapshotId).toBe('newer')
+      expect(comparison.compactSummary.unchanged).toBe(false)
+      expect(comparison.compactSummary.linesChanged).toBeGreaterThanOrEqual(2)
+      expect(comparison.compactSummary.linesAdded).toBeGreaterThanOrEqual(1)
+      expect(comparison.disclaimer).toMatch(/not a compliance determination/i)
+
+      const estoppel = comparison.sectionChanges.find((s) => s.sectionTitle === 'Estoppel review')
+      expect(estoppel).toBeTruthy()
+      expect(estoppel?.changes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            kind: 'changed',
+            label: 'Review status',
+            earlierValue: 'Pending',
+            newerValue: 'Cleared',
+          }),
+          expect.objectContaining({
+            kind: 'added',
+            label: 'Violations / liens',
+            newerValue: 'none',
+          }),
+        ]),
+      )
+
+      const financial = comparison.sectionChanges.find((s) => s.sectionTitle === 'Financial review')
+      expect(financial).toBeUndefined()
+    })
+
+    it('returns unchanged when snapshot text is identical', () => {
+      const comparison = compareCondoDiligenceInternalSummaryPlainText({
+        earlierContent,
+        newerContent: earlierContent,
+      })
+      expect(comparison.compactSummary).toEqual({
+        sectionsChanged: 0,
+        linesAdded: 0,
+        linesRemoved: 0,
+        linesChanged: 0,
+        unchanged: true,
+      })
+      expect(comparison.sectionChanges).toEqual([])
     })
   })
 })
