@@ -350,6 +350,97 @@ export function filterCondoDiligenceWorkQueueRows(
   return rows.filter((row) => isCondoDiligenceWorkQueueDueSoon(row.primaryTask.due_date, now, withinDays))
 }
 
+export type CondoDiligenceDueSoonAttentionKind = 'overdue' | 'due_soon'
+
+export type CondoDiligenceDueSoonAttention = {
+  kind: CondoDiligenceDueSoonAttentionKind
+  /** Compact UI label: `Overdue` or `Due soon`. */
+  label: string
+  bg: string
+  color: string
+  border: string
+}
+
+/** Due-attention presentation for a due date relative to explicit `now` (not a legal deadline). */
+export function condoDiligenceReviewTaskDueAttentionPresentation(
+  dueDate: string | null | undefined,
+  now: Date,
+  withinDays = 7,
+): CondoDiligenceDueSoonAttention | null {
+  if (!isCondoDiligenceWorkQueueDueSoon(dueDate, now, withinDays)) return null
+  const dueKey = parseCondoDiligenceWorkQueueDueDateKey(dueDate)
+  const todayKey = toCondoDiligenceWorkQueueDateKey(now)
+  if (!dueKey || !todayKey) return null
+  if (dueKey < todayKey) {
+    return {
+      kind: 'overdue',
+      label: 'Overdue',
+      bg: '#fee2e2',
+      color: '#991b1b',
+      border: 'rgba(185,28,28,0.35)',
+    }
+  }
+  return {
+    kind: 'due_soon',
+    label: 'Due soon',
+    bg: '#fff4d6',
+    color: '#b45309',
+    border: 'rgba(240,180,41,0.35)',
+  }
+}
+
+export function isCondoDiligenceWorkQueueRowDueSoon(
+  row: Pick<CondoDiligenceWorkQueueRow, 'primaryTask'>,
+  now: Date,
+  withinDays = 7,
+): boolean {
+  return isCondoDiligenceWorkQueueDueSoon(row.primaryTask.due_date, now, withinDays)
+}
+
+/** Count of work-queue rows whose prioritized active task is due soon. */
+export function countCondoDiligenceWorkQueueDueSoon(
+  rows: CondoDiligenceWorkQueueRow[],
+  now: Date,
+  withinDays = 7,
+): number {
+  return rows.filter((row) => isCondoDiligenceWorkQueueRowDueSoon(row, now, withinDays)).length
+}
+
+/** Neutral header copy: `1 due soon` / `N due soon`. */
+export function formatCondoDiligenceDueSoonCountLabel(count: number): string | null {
+  if (!Number.isFinite(count) || count < 1) return null
+  const n = Math.floor(count)
+  return n === 1 ? '1 due soon' : `${n} due soon`
+}
+
+/** True when any active internal review task for the matter is due soon. */
+export function matterHasDueSoonCondoDiligenceSummaryReviewTask(
+  tasks: DemoMatterReviewTask[],
+  matterId: string,
+  now: Date,
+  withinDays = 7,
+): boolean {
+  return listActiveCondoDiligenceSummaryReviewTasks(tasks, matterId).some((t) =>
+    isCondoDiligenceWorkQueueDueSoon(t.due_date, now, withinDays),
+  )
+}
+
+/** Strongest due-attention among active tasks for a matter (overdue wins over due soon). */
+export function condoDiligenceMatterDueAttentionPresentation(
+  tasks: DemoMatterReviewTask[],
+  matterId: string,
+  now: Date,
+  withinDays = 7,
+): CondoDiligenceDueSoonAttention | null {
+  let best: CondoDiligenceDueSoonAttention | null = null
+  for (const task of listActiveCondoDiligenceSummaryReviewTasks(tasks, matterId)) {
+    const attention = condoDiligenceReviewTaskDueAttentionPresentation(task.due_date, now, withinDays)
+    if (!attention) continue
+    if (!best || (attention.kind === 'overdue' && best.kind !== 'overdue')) best = attention
+  }
+  return best
+}
+
 /** Parse persisted rows; drops invalid entries. */
 export function parseStoredDemoMatterReviewTasks(raw: unknown): DemoMatterReviewTask[] {
   if (!Array.isArray(raw)) return []

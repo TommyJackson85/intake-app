@@ -13,8 +13,11 @@ import SystemContractMapCard from './_components/SystemContractMapCard'
 import { getMatterPartyDisplayRows } from '@/lib/demo/matterPartyDisplay'
 import {
   buildCondoDiligenceWorkQueueRows,
+  condoDiligenceReviewTaskDueAttentionPresentation,
+  countCondoDiligenceWorkQueueDueSoon,
   demoMatterReviewTaskStatusPresentation,
   filterCondoDiligenceWorkQueueRows,
+  formatCondoDiligenceDueSoonCountLabel,
   type CondoDiligenceWorkQueueViewFilter,
 } from '@/lib/demo/demoMatterReviewTask'
 
@@ -100,13 +103,18 @@ function DemoPageContent() {
     () => buildCondoDiligenceWorkQueueRows(matters, matterReviewTasks),
     [matters, matterReviewTasks],
   )
+  const workQueueNow = useMemo(() => new Date(), [matters, matterReviewTasks])
   const visibleCondoDiligenceWorkQueue = useMemo(
     () =>
       filterCondoDiligenceWorkQueueRows(condoDiligenceWorkQueue, workQueueFilter, {
-        now: new Date(),
+        now: workQueueNow,
         currentStaffId: demoCurrentStaffId,
       }),
-    [condoDiligenceWorkQueue, workQueueFilter, demoCurrentStaffId],
+    [condoDiligenceWorkQueue, workQueueFilter, demoCurrentStaffId, workQueueNow],
+  )
+  const workQueueDueSoonCountLabel = useMemo(
+    () => formatCondoDiligenceDueSoonCountLabel(countCondoDiligenceWorkQueueDueSoon(condoDiligenceWorkQueue, workQueueNow)),
+    [condoDiligenceWorkQueue, workQueueNow],
   )
 
   if (!selectedMatter) {
@@ -259,6 +267,25 @@ function DemoPageContent() {
               Internal triage for matters with open or in-review Condo Diligence summary review tasks. Not a
               compliance determination or closing-readiness signal.
             </p>
+            {workQueueDueSoonCountLabel ? (
+              <div style={{ marginTop: 8 }}>
+                <span
+                  title="Due soon includes overdue tasks and tasks due in the next 7 days. Not a legal or closing deadline."
+                  style={{
+                    display: 'inline-block',
+                    padding: '3px 8px',
+                    borderRadius: 999,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    background: '#fff4d6',
+                    color: '#b45309',
+                    border: '1px solid rgba(240,180,41,0.35)',
+                  }}
+                >
+                  {workQueueDueSoonCountLabel}
+                </span>
+              </div>
+            ) : null}
           </div>
           <Link
             href="/demo/matters"
@@ -372,6 +399,10 @@ function DemoPageContent() {
                     staff.find((s) => s.id === row.primaryTask.assignee_id)?.full_name ??
                     (row.primaryTask.assignee_id ? row.primaryTask.assignee_id : 'Unassigned')
                   const statusPresent = demoMatterReviewTaskStatusPresentation(row.primaryTask.status)
+                  const dueAttention = condoDiligenceReviewTaskDueAttentionPresentation(
+                    row.primaryTask.due_date,
+                    workQueueNow,
+                  )
                   return (
                     <tr
                       key={row.matterId}
@@ -416,7 +447,26 @@ function DemoPageContent() {
                         {assignee}
                       </td>
                       <td style={{ padding: '12px', color: '#627c71', fontSize: 13, fontWeight: 700, verticalAlign: 'top' }}>
-                        {row.primaryTask.due_date || 'None'}
+                        <div>{row.primaryTask.due_date || 'None'}</div>
+                        {dueAttention ? (
+                          <span
+                            title="Internal task timing only — not a statutory, legal, or closing deadline."
+                            style={{
+                              display: 'inline-block',
+                              marginTop: 4,
+                              padding: '2px 6px',
+                              borderRadius: 999,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              background: dueAttention.bg,
+                              color: dueAttention.color,
+                              border: `1px solid ${dueAttention.border}`,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {dueAttention.label}
+                          </span>
+                        ) : null}
                       </td>
                       <td style={{ padding: '12px', verticalAlign: 'top' }}>
                         <span

@@ -3,16 +3,21 @@ import {
   appendDemoMatterReviewTaskIfValid,
   buildCondoDiligenceWorkQueueRows,
   buildDemoMatterReviewTask,
+  condoDiligenceMatterDueAttentionPresentation,
   condoDiligenceMattersListReviewTaskChipPresentation,
+  condoDiligenceReviewTaskDueAttentionPresentation,
+  countCondoDiligenceWorkQueueDueSoon,
   defaultCondoDiligenceSummaryReviewTaskTitle,
   demoMatterReviewTaskStatusPresentation,
   filterCondoDiligenceWorkQueueRows,
   filterMattersWithActiveCondoDiligenceSummaryReviewTasks,
   formatCondoDiligenceActiveReviewTaskCountLabel,
+  formatCondoDiligenceDueSoonCountLabel,
   isCondoDiligenceWorkQueueDueSoon,
   listActiveCondoDiligenceSummaryReviewTasks,
   listCondoDiligenceSummaryReviewTasks,
   matterHasActiveCondoDiligenceSummaryReviewTasks,
+  matterHasDueSoonCondoDiligenceSummaryReviewTask,
   parseStoredDemoMatterReviewTasks,
   patchDemoMatterReviewTaskStatus,
 } from '@/lib/demo/demoMatterReviewTask'
@@ -290,6 +295,16 @@ describe('demoMatterReviewTask', () => {
       'm1',
     ])
     expect(filterCondoDiligenceWorkQueueRows(rows, 'all_active')).toHaveLength(4)
+
+    expect(countCondoDiligenceWorkQueueDueSoon(rows, now)).toBe(2)
+    expect(formatCondoDiligenceDueSoonCountLabel(2)).toBe('2 due soon')
+    expect(formatCondoDiligenceDueSoonCountLabel(1)).toBe('1 due soon')
+    expect(formatCondoDiligenceDueSoonCountLabel(0)).toBeNull()
+    expect(condoDiligenceReviewTaskDueAttentionPresentation('2026-09-01', now)?.kind).toBe('overdue')
+    expect(condoDiligenceReviewTaskDueAttentionPresentation('2026-09-04', now)?.label).toBe('Due soon')
+    expect(matterHasDueSoonCondoDiligenceSummaryReviewTask(tasks, 'm1', now)).toBe(true)
+    expect(matterHasDueSoonCondoDiligenceSummaryReviewTask(tasks, 'm3', now)).toBe(false)
+    expect(condoDiligenceMatterDueAttentionPresentation(tasks, 'm2', now)?.kind).toBe('overdue')
   })
 
   it('parses stored rows and drops invalid ones', () => {

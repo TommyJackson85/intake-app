@@ -8,6 +8,7 @@ import MatterDetailModal from '@/components/demo/MatterDetailModal'
 import type { DemoCondoDiligenceMatterStatus, DemoMatter } from '@/lib/demo/types'
 import { condoDiligenceMatterStatusPresentation, isCondoDiligenceEligible } from '@/lib/demo/condoDiligence'
 import {
+  condoDiligenceMatterDueAttentionPresentation,
   condoDiligenceMattersListReviewTaskChipPresentation,
   filterMattersWithActiveCondoDiligenceSummaryReviewTasks,
 } from '@/lib/demo/demoMatterReviewTask'
@@ -224,6 +225,11 @@ function DemoMattersContent() {
                       matterReviewTasks,
                       m.id,
                     )
+                    const reviewDueAttention = condoDiligenceMatterDueAttentionPresentation(
+                      matterReviewTasks,
+                      m.id,
+                      new Date(),
+                    )
                     const condoNeedsAttention = condoEligible && condoStatus !== 'cleared'
                     const fincenNeedsAttention = isFincenEligibleMatter(m) && (m.fincen?.completedFields ?? 0) < 111
                     const complianceInitialTab: MatterDetailInitialTab | undefined = condoNeedsAttention
@@ -273,26 +279,46 @@ function DemoMattersContent() {
                               </span>
                             )}
                             {reviewTaskChip && (
-                              <span
-                                title={`${reviewTaskChip.fullLabel} (internal triage — not a compliance determination)`}
-                                aria-label={reviewTaskChip.fullLabel}
-                                style={{
-                                  display: 'inline-block',
-                                  padding: '3px 8px',
-                                  borderRadius: '999px',
-                                  fontSize: '11px',
-                                  fontWeight: 800,
-                                  letterSpacing: '0.02em',
-                                  background: reviewTaskChip.bg,
-                                  color: reviewTaskChip.color,
-                                  border: `1px solid ${reviewTaskChip.border}`,
-                                }}
-                              >
-                                <span className="condo-review-chip-compact">{reviewTaskChip.compactLabel}</span>
-                                <span className="condo-review-chip-full" style={{ display: 'none' }}>
-                                  {reviewTaskChip.fullLabel}
+                              <>
+                                <span
+                                  title={`${reviewTaskChip.fullLabel} (internal triage — not a compliance determination)`}
+                                  aria-label={reviewTaskChip.fullLabel}
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '3px 8px',
+                                    borderRadius: '999px',
+                                    fontSize: '11px',
+                                    fontWeight: 800,
+                                    letterSpacing: '0.02em',
+                                    background: reviewTaskChip.bg,
+                                    color: reviewTaskChip.color,
+                                    border: `1px solid ${reviewTaskChip.border}`,
+                                  }}
+                                >
+                                  <span className="condo-review-chip-compact">{reviewTaskChip.compactLabel}</span>
+                                  <span className="condo-review-chip-full" style={{ display: 'none' }}>
+                                    {reviewTaskChip.fullLabel}
+                                  </span>
                                 </span>
-                              </span>
+                                {reviewDueAttention ? (
+                                  <span
+                                    title="Internal task timing only — not a statutory, legal, or closing deadline."
+                                    style={{
+                                      display: 'inline-block',
+                                      padding: '3px 8px',
+                                      borderRadius: '999px',
+                                      fontSize: '11px',
+                                      fontWeight: 800,
+                                      letterSpacing: '0.02em',
+                                      background: reviewDueAttention.bg,
+                                      color: reviewDueAttention.color,
+                                      border: `1px solid ${reviewDueAttention.border}`,
+                                    }}
+                                  >
+                                    {reviewDueAttention.label}
+                                  </span>
+                                ) : null}
+                              </>
                             )}
                           </div>
                         </td>
