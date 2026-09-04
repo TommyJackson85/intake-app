@@ -35,6 +35,7 @@ import type {
   DemoDocumentRequest,
   DemoMatter,
 } from '@/lib/demo/types'
+import type { AddDemoDocumentInput } from '@/lib/demo/demoDocument'
 
 /** Label + pill colors for matter-level condo diligence status (lists + modal). */
 export function condoDiligenceMatterStatusPresentation(status: DemoCondoDiligenceMatterStatus): {
@@ -1580,6 +1581,62 @@ export function buildCondoDiligenceInternalReport(input: {
     matterStatusLabel,
     sections,
     plainText,
+  }
+}
+
+export const CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE = 'Condo diligence internal summary'
+
+export function isCondoDiligenceInternalSummaryDocument(
+  document: Pick<DemoDocument, 'document_subtype' | 'generatedInternalSummary' | 'name'>,
+): boolean {
+  if (document.generatedInternalSummary?.generatedType === 'condo_diligence_internal_summary') return true
+  const subtype = (document.document_subtype ?? '').toLowerCase()
+  if (subtype.includes('condo diligence internal summary')) return true
+  return document.name.toLowerCase().includes('internal condo diligence summary')
+}
+
+/**
+ * Builds an `AddDemoDocumentInput` snapshot of the current Internal Diligence Summary.
+ * Immutable content lives in `generatedInternalSummary.content` (and a short description).
+ */
+export function buildCondoDiligenceSummaryDraftDocumentInput(input: {
+  matterId: string
+  uploadedByStaffId: string
+  report: Pick<CondoDiligenceInternalReport, 'title' | 'plainText' | 'generatedAtLabel' | 'matterLabel'>
+  /** ISO timestamp for metadata + uploaded_at when provided. */
+  generatedAtIso?: string
+  id?: string
+}): AddDemoDocumentInput | null {
+  const matter_id = input.matterId.trim()
+  const uploaded_by_staff_id = input.uploadedByStaffId.trim()
+  if (!matter_id || !uploaded_by_staff_id) return null
+  const content = input.report.plainText.trim()
+  if (!content) return null
+
+  const generatedAt = input.generatedAtIso?.trim() || new Date().toISOString()
+  const stamp = input.report.generatedAtLabel.trim() || formatReportGeneratedAt(new Date(generatedAt))
+  const name = `Internal Condo Diligence Summary — ${stamp}`
+
+  return {
+    matter_id,
+    name,
+    category: 'Compliance',
+    document_subtype: CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE,
+    description:
+      'Internal lawyer work product snapshot — not shared to the client portal. Lawyer review required. Not a compliance certificate.',
+    document_date: stamp.slice(0, 10),
+    source: 'Condo Diligence (demo) — internal',
+    status: 'draft',
+    uploaded_by_staff_id,
+    uploaded_at: generatedAt,
+    ...(input.id ? { id: input.id } : {}),
+    generatedInternalSummary: {
+      generatedType: 'condo_diligence_internal_summary',
+      generatedAt,
+      sourceMatterId: matter_id,
+      content,
+      visibility: 'internal',
+    },
   }
 }
 

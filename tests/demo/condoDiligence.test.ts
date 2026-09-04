@@ -4,6 +4,9 @@ import {
   ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS,
   buildCondoDiligenceInternalReport,
   buildCondoDiligenceOperationalSummary,
+  buildCondoDiligenceSummaryDraftDocumentInput,
+  CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE,
+  isCondoDiligenceInternalSummaryDocument,
   buildDefaultCondoAssociationFinancialReview,
   buildDefaultCondoAssociationRecordsGovernanceReview,
   buildDefaultCondoDiligence,
@@ -1360,6 +1363,69 @@ describe('condoDiligence', () => {
       buildCondoDiligenceInternalReport({ matterId, condo, now })
       expect(buildCondoDiligenceOperationalSummary({ matterId, condo, now }).nextAction).toBe(before)
       expect(before).toBe('Request the Estoppel certificate.')
+    })
+  })
+
+  describe('buildCondoDiligenceSummaryDraftDocumentInput', () => {
+    const matterId = 'm-draft'
+    const now = new Date('2026-09-04T15:30:00')
+
+    it('builds an internal Compliance draft with immutable summary metadata', () => {
+      const condo = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' })
+      const report = buildCondoDiligenceInternalReport({
+        matterId,
+        condo,
+        matterLabel: 'FL-200 · Test Address, FL',
+        now,
+      })
+      const draft = buildCondoDiligenceSummaryDraftDocumentInput({
+        matterId,
+        uploadedByStaffId: 'staff-1',
+        report,
+        generatedAtIso: '2026-09-04T15:30:00.000Z',
+        id: 'doc-summary-1',
+      })
+      expect(draft).not.toBeNull()
+      expect(draft?.category).toBe('Compliance')
+      expect(draft?.status).toBe('draft')
+      expect(draft?.document_subtype).toBe(CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE)
+      expect(draft?.name).toContain('Internal Condo Diligence Summary')
+      expect(draft?.name).toContain('2026-09-04 15:30')
+      expect(draft?.source).toContain('internal')
+      expect(draft?.generatedInternalSummary).toEqual({
+        generatedType: 'condo_diligence_internal_summary',
+        generatedAt: '2026-09-04T15:30:00.000Z',
+        sourceMatterId: matterId,
+        content: report.plainText,
+        visibility: 'internal',
+      })
+      expect(isCondoDiligenceInternalSummaryDocument({
+        name: draft!.name,
+        document_subtype: draft!.document_subtype ?? null,
+        generatedInternalSummary: draft!.generatedInternalSummary,
+      })).toBe(true)
+    })
+
+    it('returns null when staff or content is missing', () => {
+      const report = buildCondoDiligenceInternalReport({
+        matterId,
+        condo: buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' }),
+        now,
+      })
+      expect(
+        buildCondoDiligenceSummaryDraftDocumentInput({
+          matterId,
+          uploadedByStaffId: '',
+          report,
+        }),
+      ).toBeNull()
+      expect(
+        buildCondoDiligenceSummaryDraftDocumentInput({
+          matterId,
+          uploadedByStaffId: 'staff-1',
+          report: { ...report, plainText: '   ' },
+        }),
+      ).toBeNull()
     })
   })
 })

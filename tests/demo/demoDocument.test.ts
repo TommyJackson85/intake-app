@@ -41,6 +41,26 @@ describe('buildDemoDocument', () => {
     expect(doc?.uploaded_at).toBe('2020-01-01T00:00:00.000Z')
   })
 
+  it('passes through optional generatedInternalSummary metadata', () => {
+    const meta = {
+      generatedType: 'condo_diligence_internal_summary' as const,
+      generatedAt: '2026-09-04T15:30:00.000Z',
+      sourceMatterId: 'matter-1',
+      content: 'Internal Diligence Summary — Lawyer Review Required',
+      visibility: 'internal' as const,
+    }
+    const doc = buildDemoDocument(
+      {
+        ...base,
+        category: 'Compliance',
+        document_subtype: 'Condo diligence internal summary',
+        generatedInternalSummary: meta,
+      },
+      { idFactory: () => 'doc-summary' },
+    )
+    expect(doc?.generatedInternalSummary).toEqual(meta)
+  })
+
   it('trims matter_id and name', () => {
     const doc = buildDemoDocument(
       {

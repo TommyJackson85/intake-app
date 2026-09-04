@@ -40,6 +40,7 @@ import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentMo
 import {
   buildCondoDiligenceInternalReport,
   buildCondoDiligenceOperationalSummary,
+  buildCondoDiligenceSummaryDraftDocumentInput,
   condoDiligenceMatterStatusPresentation,
   condoEstoppelDueDateWarning,
   condoEstoppelReviewStatusPresentation,
@@ -61,6 +62,7 @@ import {
   normalizeCondoSirsMilestoneReview,
   syncRequiredDocumentsFromDerivedLinkage,
 } from '@/lib/demo/condoDiligence'
+import DocumentPreviewModal from '@/app/demo/_components/DocumentPreviewModal'
 
 type MatterDetailModalProps = {
   matter: DemoMatter | null
@@ -224,6 +226,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     documents,
     documentRequests,
     staff,
+    matters,
+    addDemoDocument,
     addDemoDocumentRequest,
     getMatterById,
     getArchivedMatterById,
@@ -234,6 +238,12 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   const [activeTab, setActiveTab] = useState<MatterDetailTab>('Overview')
   const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)
   const [condoReportCopyStatus, setCondoReportCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [condoReportSaveStatus, setCondoReportSaveStatus] = useState<
+    'idle' | 'saving' | 'saved' | 'failed'
+  >('idle')
+  const [condoReportSavedDocId, setCondoReportSavedDocId] = useState<string | null>(null)
+  const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null)
+  const condoReportSaveLockRef = React.useRef(false)
 
   const matterId = matter?.id ?? ''
   const effectiveMatter: DemoMatter | null =
@@ -981,6 +991,27 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', color: '#627c71', fontSize: '12px', fontWeight: 800 }}>
                           <div>Uploaded: {new Date(doc.uploaded_at).toLocaleString()}</div>
                           <div>By: {uploadedBy}</div>
+                          {doc.generatedInternalSummary?.visibility === 'internal' ? (
+                            <div>Internal only</div>
+                          ) : null}
+                        </div>
+                        <div style={{ marginTop: 10 }}>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDocumentId(doc.id)}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              background: '#fff',
+                              fontWeight: 800,
+                              fontSize: 11,
+                              color: '#134252',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            View
+                          </button>
                         </div>
                       </div>
                     )
@@ -990,6 +1021,19 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                 isOpen={isAddDocumentOpen}
                 onClose={() => setIsAddDocumentOpen(false)}
                 preferredMatterId={effectiveMatter.id}
+              />
+              <DocumentPreviewModal
+                previewDocument={
+                  previewDocumentId ? matterDocuments.find((d) => d.id === previewDocumentId) ?? null : null
+                }
+                matters={matters}
+                staff={staff}
+                fulfilledRequest={
+                  previewDocumentId
+                    ? documentRequests.find((r) => r.fulfilled_document_id === previewDocumentId) ?? null
+                    : null
+                }
+                onClose={() => setPreviewDocumentId(null)}
               />
             </div>
           )}
@@ -1218,6 +1262,55 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                           <button
                             type="button"
+                            disabled={condoReportSaveStatus === 'saving'}
+                            onClick={() => {
+                              if (!condoInternalReport || !effectiveMatter) return
+                              if (condoReportSaveLockRef.current || condoReportSaveStatus === 'saving') return
+                              condoReportSaveLockRef.current = true
+                              setCondoReportSaveStatus('saving')
+                              const staffId = staff[0]?.id ?? ''
+                              const draftInput = buildCondoDiligenceSummaryDraftDocumentInput({
+                                matterId: effectiveMatter.id,
+                                uploadedByStaffId: staffId,
+                                report: condoInternalReport,
+                              })
+                              if (!draftInput) {
+                                setCondoReportSaveStatus('failed')
+                                condoReportSaveLockRef.current = false
+                                window.setTimeout(() => setCondoReportSaveStatus('idle'), 2500)
+                                return
+                              }
+                              const draftId = `doc-condo-summary-${Date.now()}`
+                              addDemoDocument({ ...draftInput, id: draftId })
+                              setCondoReportSavedDocId(draftId)
+                              setCondoReportSaveStatus('saved')
+                              window.setTimeout(() => {
+                                setCondoReportSaveStatus('idle')
+                                condoReportSaveLockRef.current = false
+                              }, 2500)
+                            }}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              background: condoReportSaveStatus === 'saving' ? '#f0f0f0' : '#134252',
+                              fontWeight: 800,
+                              fontSize: 11,
+                              color: condoReportSaveStatus === 'saving' ? '#627c71' : '#fff',
+                              cursor: condoReportSaveStatus === 'saving' ? 'not-allowed' : 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {condoReportSaveStatus === 'saving'
+                              ? 'Saving…'
+                              : condoReportSaveStatus === 'saved'
+                                ? 'Saved'
+                                : condoReportSaveStatus === 'failed'
+                                  ? 'Save failed'
+                                  : 'Save as internal draft'}
+                          </button>
+                          <button
+                            type="button"
                             onClick={async () => {
                               try {
                                 await navigator.clipboard.writeText(condoInternalReport.plainText)
@@ -1278,6 +1371,46 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           </button>
                         </div>
                       </div>
+                      {condoReportSaveStatus === 'saved' && (
+                        <div
+                          role="status"
+                          style={{
+                            marginBottom: 10,
+                            padding: '8px 10px',
+                            borderRadius: 8,
+                            border: '1px solid rgba(47,133,90,0.35)',
+                            background: '#e8f5f0',
+                            color: '#166534',
+                            fontSize: 12,
+                            fontWeight: 800,
+                          }}
+                        >
+                          Internal draft saved to this matter’s Documents (not shared to the client portal).
+                          {condoReportSavedDocId ? (
+                            <>
+                              {' '}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab('Documents')
+                                  setPreviewDocumentId(condoReportSavedDocId)
+                                }}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  padding: 0,
+                                  color: '#134252',
+                                  fontWeight: 900,
+                                  textDecoration: 'underline',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                View saved draft
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                      )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {condoInternalReport.sections.map((section) => (
                           <div key={section.title}>
