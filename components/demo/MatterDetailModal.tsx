@@ -38,6 +38,7 @@ import DemoFinCENTab from '@/components/demo/DemoFinCENTab'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
 import {
+  buildCondoDiligenceInternalReport,
   buildCondoDiligenceOperationalSummary,
   condoDiligenceMatterStatusPresentation,
   condoEstoppelDueDateWarning,
@@ -232,6 +233,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   } = useDemoStore()
   const [activeTab, setActiveTab] = useState<MatterDetailTab>('Overview')
   const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)
+  const [condoReportCopyStatus, setCondoReportCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
 
   const matterId = matter?.id ?? ''
   const effectiveMatter: DemoMatter | null =
@@ -332,6 +334,20 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
       condo: condoDiligence,
       documents: matterDocuments,
       documentRequests: matterDocumentRequests,
+    })
+  }, [condoDiligence, effectiveMatter, matterDocuments, matterDocumentRequests])
+
+  const condoInternalReport = useMemo(() => {
+    if (!condoDiligence || !effectiveMatter) return null
+    const matterLabel = [effectiveMatter.file_id, effectiveMatter.property?.address]
+      .filter((v) => typeof v === 'string' && v.trim())
+      .join(' · ')
+    return buildCondoDiligenceInternalReport({
+      matterId: effectiveMatter.id,
+      condo: condoDiligence,
+      documents: matterDocuments,
+      documentRequests: matterDocumentRequests,
+      matterLabel,
     })
   }, [condoDiligence, effectiveMatter, matterDocuments, matterDocumentRequests])
 
@@ -1164,6 +1180,128 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           )}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {condoInternalReport && (
+                    <div
+                      id="condo-internal-diligence-report"
+                      style={{
+                        border: '1px solid rgba(94,82,64,0.12)',
+                        borderRadius: 8,
+                        padding: 14,
+                        background: 'white',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'flex-start',
+                          justifyContent: 'space-between',
+                          gap: 10,
+                          marginBottom: 8,
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                            {condoInternalReport.title}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '40rem' }}>
+                            {condoInternalReport.disclaimer}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#627c71', marginTop: 4 }}>
+                            {condoInternalReport.matterLabel} · Generated {condoInternalReport.generatedAtLabel} · Status:{' '}
+                            {condoInternalReport.matterStatusLabel}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(condoInternalReport.plainText)
+                                setCondoReportCopyStatus('copied')
+                                window.setTimeout(() => setCondoReportCopyStatus('idle'), 2000)
+                              } catch {
+                                setCondoReportCopyStatus('failed')
+                                window.setTimeout(() => setCondoReportCopyStatus('idle'), 2500)
+                              }
+                            }}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              background: '#fff',
+                              fontWeight: 800,
+                              fontSize: 11,
+                              color: '#134252',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {condoReportCopyStatus === 'copied'
+                              ? 'Copied'
+                              : condoReportCopyStatus === 'failed'
+                                ? 'Copy failed'
+                                : 'Copy report'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700')
+                              if (!printWindow) return
+                              const escaped = condoInternalReport.plainText
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                              printWindow.document.write(
+                                `<!doctype html><html><head><title>${condoInternalReport.title}</title><style>body{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;white-space:pre-wrap;padding:24px;color:#134252;line-height:1.45} h1{font-size:16px}</style></head><body><pre>${escaped}</pre></body></html>`,
+                              )
+                              printWindow.document.close()
+                              printWindow.focus()
+                              printWindow.print()
+                            }}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              background: '#fff',
+                              fontWeight: 800,
+                              fontSize: 11,
+                              color: '#134252',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Print
+                          </button>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {condoInternalReport.sections.map((section) => (
+                          <div key={section.title}>
+                            <div style={{ fontSize: 12, fontWeight: 900, color: '#134252', marginBottom: 4 }}>
+                              {section.title}
+                            </div>
+                            <ul
+                              style={{
+                                margin: 0,
+                                paddingLeft: 18,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 2,
+                              }}
+                            >
+                              {section.lines.map((line) => (
+                                <li key={`${section.title}-${line}`} style={{ fontSize: 12, color: '#134252' }}>
+                                  {line}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 

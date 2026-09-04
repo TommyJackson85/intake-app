@@ -1321,6 +1321,268 @@ export function buildCondoDiligenceOperationalSummary(input: {
   }
 }
 
+export type CondoDiligenceInternalReportSection = {
+  title: string
+  lines: string[]
+}
+
+export type CondoDiligenceInternalReport = {
+  title: string
+  disclaimer: string
+  generatedAtLabel: string
+  matterLabel: string
+  matterStatusLabel: string
+  sections: CondoDiligenceInternalReportSection[]
+  /** Full plain-text body for clipboard / print (includes title + disclaimer). */
+  plainText: string
+}
+
+function moneyOrDash(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return '—'
+  return `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+}
+
+function nonEmptyOrDash(value: string): string {
+  const t = value.trim()
+  return t ? t : '—'
+}
+
+function formatReportGeneratedAt(now: Date): string {
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  const hh = String(now.getHours()).padStart(2, '0')
+  const mm = String(now.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${d} ${hh}:${mm}`
+}
+
+function collectCondoEvidenceLinks(input: {
+  matterId: string
+  requiredDocuments: readonly DemoCondoDiligenceRequiredDocument[]
+  documents: DeriveCondoRequiredDocumentStatusInput['documents']
+  documentRequests: Array<
+    Pick<DemoDocumentRequest, 'matter_id' | 'title' | 'description' | 'category' | 'status'>
+  >
+}): { evidenceLines: string[]; openRequestLines: string[] } {
+  const evidenceLines: string[] = []
+  const openRequestLines: string[] = []
+  const seenDocKeys = new Set<string>()
+  const seenReqKeys = new Set<string>()
+
+  const matterDocs = input.documents.filter((d) => d.matter_id === input.matterId && !d.deletedAt)
+  const matterReqs = input.documentRequests.filter((r) => r.matter_id === input.matterId)
+
+  for (const row of input.requiredDocuments) {
+    for (const d of matterDocs) {
+      if (!condoRequiredDocMatchesLinkageHaystack(demoDocLinkageHaystack(d), row.id)) continue
+      const key = `${d.name}|${d.document_subtype ?? ''}|${row.id}`
+      if (seenDocKeys.has(key)) continue
+      seenDocKeys.add(key)
+      evidenceLines.push(`${row.label}: ${d.name}${d.document_subtype ? ` (${d.document_subtype})` : ''}`)
+    }
+    for (const r of matterReqs) {
+      if (r.status !== 'open') continue
+      if (!condoRequiredDocMatchesLinkageHaystack(demoRequestLinkageHaystack(r), row.id)) continue
+      const reqKey = `${r.title}|${row.id}`
+      if (seenReqKeys.has(reqKey)) continue
+      seenReqKeys.add(reqKey)
+      openRequestLines.push(`${row.label}: ${r.title} (open)`)
+    }
+  }
+
+  for (const r of matterReqs) {
+    if (r.status !== 'open') continue
+    if (openRequestLines.some((line) => line.includes(`: ${r.title} (`))) continue
+    openRequestLines.push(`General: ${r.title} (open)`)
+  }
+
+  return { evidenceLines, openRequestLines }
+}
+
+/**
+ * Read-only internal diligence report for lawyer copy/print.
+ * Derives from existing condo diligence + linkage — does not persist and is not a compliance certificate.
+ */
+export function buildCondoDiligenceInternalReport(input: {
+  matterId: string
+  condo: DemoCondoDiligence | null | undefined
+  documents?: DeriveCondoRequiredDocumentStatusInput['documents']
+  documentRequests?: Array<
+    Pick<DemoDocumentRequest, 'matter_id' | 'title' | 'description' | 'category' | 'status'>
+  >
+  /** Optional matter label (file id / address) for the report header. */
+  matterLabel?: string
+  now?: Date
+}): CondoDiligenceInternalReport {
+  const now = input.now ?? new Date()
+  const documents = input.documents ?? []
+  const documentRequests = input.documentRequests ?? []
+  const condo = input.condo
+  const requiredDocuments = condo?.requiredDocuments ?? []
+  const findings = condo?.findings ?? []
+
+  const operational = buildCondoDiligenceOperationalSummary({
+    matterId: input.matterId,
+    condo,
+    documents,
+    documentRequests,
+    now,
+  })
+
+  const matterStatusLabel = condo
+    ? condoDiligenceMatterStatusPresentation(condo.status).label
+    : 'Not available'
+  const matterLabel = (input.matterLabel ?? '').trim() || `Matter ${input.matterId}`
+
+  const documentRows = requiredDocuments.map((doc) => {
+    const derived = deriveCondoRequiredDocumentStatus({
+      matterId: input.matterId,
+      condoDocId: doc.id,
+      storedStatus: doc.status,
+      documents,
+      documentRequests,
+    })
+    return `${doc.label}: ${derived}`
+  })
+
+  const estoppel = condo?.estoppelReview
+    ? normalizeCondoEstoppelReview(condo.estoppelReview)
+    : normalizeCondoEstoppelReview(undefined)
+  const sirs = condo?.sirsMilestoneReview
+    ? normalizeCondoSirsMilestoneReview(condo.sirsMilestoneReview)
+    : normalizeCondoSirsMilestoneReview(undefined)
+  const financial = condo?.associationFinancialReview
+    ? normalizeCondoAssociationFinancialReview(condo.associationFinancialReview)
+    : normalizeCondoAssociationFinancialReview(undefined)
+  const governance = condo?.associationRecordsGovernanceReview
+    ? normalizeCondoAssociationRecordsGovernanceReview(condo.associationRecordsGovernanceReview)
+    : normalizeCondoAssociationRecordsGovernanceReview(undefined)
+
+  const estoppelLines = [
+    `Review status: ${condoEstoppelReviewStatusPresentation(estoppel.reviewStatus).label}`,
+    `Operational label: ${operational.estoppelStatusLabel}`,
+    ...(operational.estoppelAttention ? [`Attention: ${operational.estoppelAttention}`] : []),
+    `Request date: ${nonEmptyOrDash(estoppel.requestDate)}`,
+    `Due date: ${nonEmptyOrDash(estoppel.dueDate)}`,
+    `Received date: ${nonEmptyOrDash(estoppel.receivedDate)}`,
+    `Amount due: ${moneyOrDash(estoppel.amountDue)}`,
+    `Regular assessment: ${moneyOrDash(estoppel.regularAssessmentAmount)}`,
+    `Special assessment: ${estoppel.specialAssessmentStatus}`,
+    `Violations / liens: ${estoppel.violationOrLienStatus}`,
+    `Notes: ${nonEmptyOrDash(estoppel.notes)}`,
+  ]
+
+  const sirsLines = [
+    `Applicability: ${condoSirsApplicabilityPresentation(sirs.applicability).label}`,
+    `Document status: ${condoSirsDocumentStatusPresentation(sirs.documentStatus).label}`,
+    `Completion date: ${nonEmptyOrDash(sirs.completionDate)}`,
+    `Result: ${condoSirsResultPresentation(sirs.result).label}`,
+    `Reserve risk: ${condoSirsRiskLevelPresentation(sirs.reserveRiskLevel).label}`,
+    `Structural risk: ${condoSirsRiskLevelPresentation(sirs.structuralRiskLevel).label}`,
+    `Notes: ${nonEmptyOrDash(sirs.notes)}`,
+  ]
+
+  const financialLines = [
+    `Budget review: ${condoFinancialDocReviewStatusPresentation(financial.budgetReviewStatus).label}`,
+    `Financial statements review: ${condoFinancialDocReviewStatusPresentation(financial.financialStatementsReviewStatus).label}`,
+    `Reserve schedule review: ${condoFinancialDocReviewStatusPresentation(financial.reserveScheduleReviewStatus).label}`,
+    `Dues: ${moneyOrDash(financial.duesAmount)} (${financial.duesFrequency})`,
+    `Special assessment: ${financial.specialAssessmentStatus} · ${moneyOrDash(financial.specialAssessmentAmount)}`,
+    `Loan / LOC: ${financial.associationLoanOrLineOfCreditStatus}`,
+    `Delinquency: ${financial.delinquencyConcern}`,
+    `Reserve funding: ${financial.reserveFundingStatus}`,
+    `Financial risk: ${condoFinancialRiskLevelPresentation(financial.financialRiskLevel).label}`,
+    `Notes: ${nonEmptyOrDash(financial.notes)}`,
+  ]
+
+  const governanceLines = [
+    `Governing documents: ${condoFinancialDocReviewStatusPresentation(governance.governingDocumentsReviewStatus).label}`,
+    `Restrictions review: ${condoFinancialDocReviewStatusPresentation(governance.restrictionsReviewStatus).label}`,
+    `Insurance review: ${condoFinancialDocReviewStatusPresentation(governance.insuranceReviewStatus).label}`,
+    `Board minutes review: ${condoFinancialDocReviewStatusPresentation(governance.boardMinutesReviewStatus).label}`,
+    `Rental restrictions: ${governance.rentalRestrictionStatus}`,
+    `Buyer approval: ${governance.buyerApprovalStatus}`,
+    `Insurance concern: ${condoGovernanceConcernLevelPresentation(governance.insuranceConcernLevel).label}`,
+    `Litigation / DBPR: ${governance.litigationOrDbprStatus}`,
+    `Records access: ${governance.recordsAccessStatus}`,
+    `Governance concern: ${condoGovernanceConcernLevelPresentation(governance.governanceConcernLevel).label}`,
+    `Management contact: ${nonEmptyOrDash(governance.managementContactName)} · ${nonEmptyOrDash(governance.managementContactEmail)} · ${nonEmptyOrDash(governance.managementContactPhone)}`,
+    `Notes: ${nonEmptyOrDash(governance.notes)}`,
+  ]
+
+  const findingLines =
+    findings.length === 0
+      ? ['No findings recorded']
+      : findings.map((f, i) => `${i + 1}. ${nonEmptyOrDash(f.text)}`)
+
+  const { evidenceLines, openRequestLines } = collectCondoEvidenceLinks({
+    matterId: input.matterId,
+    requiredDocuments,
+    documents,
+    documentRequests,
+  })
+
+  const title = 'Internal Diligence Summary — Lawyer Review Required'
+  const disclaimer =
+    'Internal lawyer work product only. Not a client-facing compliance certificate, solvency opinion, or closing-readiness determination.'
+
+  const sections: CondoDiligenceInternalReportSection[] = [
+    {
+      title: 'Document pack status',
+      lines: [
+        operational.documentsLine,
+        `Matter diligence status: ${matterStatusLabel}`,
+        `Next operational action: ${operational.nextAction}`,
+        ...(documentRows.length > 0 ? documentRows : ['No required-document rows']),
+      ],
+    },
+    { title: 'Estoppel review', lines: estoppelLines },
+    { title: 'Structural / SIRS review', lines: sirsLines },
+    { title: 'Financial review', lines: financialLines },
+    { title: 'Records / governance review', lines: governanceLines },
+    { title: 'Open findings', lines: findingLines },
+    {
+      title: 'Open requests',
+      lines: openRequestLines.length > 0 ? openRequestLines : ['No open document requests'],
+    },
+    {
+      title: 'Evidence links',
+      lines: evidenceLines.length > 0 ? evidenceLines : ['No matching linked documents'],
+    },
+    {
+      title: 'Lawyer notes',
+      lines: [
+        `Matter notes: ${nonEmptyOrDash(condo?.notes ?? '')}`,
+        `Estoppel notes: ${nonEmptyOrDash(estoppel.notes)}`,
+        `SIRS / Milestone notes: ${nonEmptyOrDash(sirs.notes)}`,
+        `Financial notes: ${nonEmptyOrDash(financial.notes)}`,
+        `Records / governance notes: ${nonEmptyOrDash(governance.notes)}`,
+      ],
+    },
+  ]
+
+  const plainText = [
+    title,
+    disclaimer,
+    `Matter: ${matterLabel}`,
+    `Generated: ${formatReportGeneratedAt(now)}`,
+    '',
+    ...sections.flatMap((section) => [`## ${section.title}`, ...section.lines.map((l) => `- ${l}`), '']),
+  ]
+    .join('\n')
+    .trimEnd()
+
+  return {
+    title,
+    disclaimer,
+    generatedAtLabel: formatReportGeneratedAt(now),
+    matterLabel,
+    matterStatusLabel,
+    sections,
+    plainText,
+  }
+}
+
 type MatterEligibilityInput = {
   matter_type: DemoMatter['matter_type']
   property: Pick<DemoMatter['property'], 'address' | 'property_type'> & { county?: DemoMatter['property']['county'] }
