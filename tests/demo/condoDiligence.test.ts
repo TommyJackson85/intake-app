@@ -18,6 +18,9 @@ import {
   buildDefaultCondoSirsMilestoneReview,
   condoDiligenceMatterStatusPresentation,
   condoDisclosurePackageCompletenessPresentation,
+  condoDisclosurePackageDeliveryMethodLabel,
+  condoDisclosurePackageRequestStatusPresentation,
+  condoDisclosurePackageTypeLabel,
   condoEstoppelDueDateWarning,
   condoEstoppelReviewStatusPresentation,
   condoFinancialDocReviewStatusPresentation,
@@ -1035,15 +1038,23 @@ describe('condoDiligence', () => {
       expect(
         parseDemoCondoDisclosurePackageReview({
           reviewStatus: 'received',
+          packageRequestStatus: 'requested',
+          packageType: 'resale',
+          deliveryMethod: 'email',
           packageCompletenessStatus: 'partial_or_incomplete',
           followUpNeeded: true,
+          missingItemsNotes: 'Need FAQ',
           notes: 'Need FAQ',
         }),
       ).toEqual({
         ...buildDefaultCondoDisclosurePackageReview(),
         reviewStatus: 'received',
+        packageRequestStatus: 'requested',
+        packageType: 'resale',
+        deliveryMethod: 'email',
         packageCompletenessStatus: 'partial_or_incomplete',
         followUpNeeded: true,
+        missingItemsNotes: 'Need FAQ',
         notes: 'Need FAQ',
       })
     })
@@ -1064,6 +1075,7 @@ describe('condoDiligence', () => {
           ...base,
           disclosurePackageReview: {
             ...buildDefaultCondoDisclosurePackageReview(),
+            packageRequestStatus: 'requested',
             reviewStatus: 'requested',
             followUpNeeded: true,
           },
@@ -1095,6 +1107,9 @@ describe('condoDiligence', () => {
       expect(condoDisclosurePackageCompletenessPresentation('lawyer_review_required').label).toBe(
         'Lawyer review required',
       )
+      expect(condoDisclosurePackageRequestStatusPresentation('requested').label).toBe('Requested')
+      expect(condoDisclosurePackageTypeLabel('resale')).toBe('Resale')
+      expect(condoDisclosurePackageDeliveryMethodLabel('email')).toBe('Email')
       const checklist = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' }).requiredDocuments
       expect(
         deriveCondoDiligenceMatterStatusFromChecklist({

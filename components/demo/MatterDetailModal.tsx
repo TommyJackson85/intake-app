@@ -12,7 +12,10 @@ import type {
   DemoCondoDiligenceDocStatus,
   DemoCondoDiligenceMatterStatus,
   DemoCondoDisclosurePackageCompleteness,
+  DemoCondoDisclosurePackageDeliveryMethod,
+  DemoCondoDisclosurePackageRequestStatus,
   DemoCondoDisclosurePackageReview,
+  DemoCondoDisclosurePackageType,
   DemoCondoDuesFrequency,
   DemoCondoEstoppelReview,
   DemoCondoEstoppelReviewStatus,
@@ -48,6 +51,9 @@ import {
   buildCondoDiligenceSummaryDraftDocumentInput,
   condoDiligenceMatterStatusPresentation,
   condoDisclosurePackageCompletenessPresentation,
+  condoDisclosurePackageDeliveryMethodLabel,
+  condoDisclosurePackageRequestStatusPresentation,
+  condoDisclosurePackageTypeLabel,
   condoEstoppelDueDateWarning,
   condoEstoppelReviewStatusPresentation,
   condoFinancialDocReviewStatusPresentation,
@@ -3765,6 +3771,9 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       condoDiligence.disclosurePackageReview,
                     )
                     const reviewPresent = condoFinancialDocReviewStatusPresentation(disclosureReview.reviewStatus)
+                    const requestPresent = condoDisclosurePackageRequestStatusPresentation(
+                      disclosureReview.packageRequestStatus,
+                    )
                     const completenessPresent = condoDisclosurePackageCompletenessPresentation(
                       disclosureReview.packageCompletenessStatus,
                     )
@@ -3836,7 +3845,10 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                     )
                     const showDisclosureAttention =
                       disclosureReview.followUpNeeded ||
+                      disclosureReview.missingItemsNotes.trim() !== '' ||
                       disclosureReview.reviewStatus === 'issue_found' ||
+                      disclosureReview.packageRequestStatus === 'requested' ||
+                      disclosureReview.packageRequestStatus === 'not_requested' ||
                       disclosureReview.packageCompletenessStatus === 'lawyer_review_required' ||
                       disclosureReview.packageCompletenessStatus === 'partial_or_incomplete' ||
                       disclosureReview.packageCompletenessStatus === 'not_received' ||
@@ -3879,6 +3891,21 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             </div>
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: requestPresent.bg,
+                                color: requestPresent.color,
+                                border: `1px solid ${requestPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Request: {requestPresent.label}
+                            </span>
                             <span
                               style={{
                                 display: 'inline-block',
@@ -3954,6 +3981,32 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           }}
                         >
                           <label>
+                            <span style={fieldLabel}>Package request status</span>
+                            <select
+                              value={disclosureReview.packageRequestStatus}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  packageRequestStatus: e.target.value as DemoCondoDisclosurePackageRequestStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="not_requested">Not requested</option>
+                              <option value="requested">Requested</option>
+                              <option value="received">Received</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Package requested date</span>
+                            <input
+                              type="date"
+                              value={disclosureReview.packageRequestedDate}
+                              onChange={(e) => patchDisclosure({ packageRequestedDate: e.target.value })}
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
                             <span style={fieldLabel}>Package review status</span>
                             <select
                               value={disclosureReview.reviewStatus}
@@ -3975,6 +4028,46 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                               onChange={(e) => patchDisclosure({ packageReceivedDate: e.target.value })}
                               style={fieldInput}
                             />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Package type</span>
+                            <select
+                              value={disclosureReview.packageType}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  packageType: e.target.value as DemoCondoDisclosurePackageType,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">{condoDisclosurePackageTypeLabel('unknown')}</option>
+                              <option value="resale">{condoDisclosurePackageTypeLabel('resale')}</option>
+                              <option value="new_construction">
+                                {condoDisclosurePackageTypeLabel('new_construction')}
+                              </option>
+                              <option value="other">{condoDisclosurePackageTypeLabel('other')}</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Delivery method</span>
+                            <select
+                              value={disclosureReview.deliveryMethod}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  deliveryMethod: e.target.value as DemoCondoDisclosurePackageDeliveryMethod,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">{condoDisclosurePackageDeliveryMethodLabel('unknown')}</option>
+                              <option value="email">{condoDisclosurePackageDeliveryMethodLabel('email')}</option>
+                              <option value="portal">{condoDisclosurePackageDeliveryMethodLabel('portal')}</option>
+                              <option value="mail">{condoDisclosurePackageDeliveryMethodLabel('mail')}</option>
+                              <option value="hand_delivery">
+                                {condoDisclosurePackageDeliveryMethodLabel('hand_delivery')}
+                              </option>
+                              <option value="other">{condoDisclosurePackageDeliveryMethodLabel('other')}</option>
+                            </select>
                           </label>
                           <label>
                             <span style={fieldLabel}>Package completeness</span>
@@ -4125,6 +4218,28 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             <span style={{ fontSize: 12, fontWeight: 800, color: '#627c71' }}>Follow-up needed</span>
                           </label>
                         </div>
+
+                        <label style={{ display: 'block' }}>
+                          <span style={fieldLabel}>Missing documents / follow-up items</span>
+                          <textarea
+                            value={disclosureReview.missingItemsNotes}
+                            onChange={(e) => patchDisclosure({ missingItemsNotes: e.target.value })}
+                            rows={2}
+                            placeholder="List missing package items or follow-ups (demo)"
+                            style={{ ...fieldInput, resize: 'vertical' }}
+                          />
+                        </label>
+
+                        <label style={{ display: 'block' }}>
+                          <span style={fieldLabel}>Optional package notes</span>
+                          <textarea
+                            value={disclosureReview.optionalPackageNotes}
+                            onChange={(e) => patchDisclosure({ optionalPackageNotes: e.target.value })}
+                            rows={2}
+                            placeholder="Optional package reference or context (demo)"
+                            style={{ ...fieldInput, resize: 'vertical' }}
+                          />
+                        </label>
 
                         <label style={{ display: 'block' }}>
                           <span style={fieldLabel}>Lawyer notes</span>

@@ -342,11 +342,40 @@ export type DemoCondoDisclosurePackageCompleteness =
   | 'appears_complete'
   | 'lawyer_review_required'
 
+/** Whether the disclosure package has been requested / received (operational only). */
+export type DemoCondoDisclosurePackageRequestStatus =
+  | 'unknown'
+  | 'not_requested'
+  | 'requested'
+  | 'received'
+
+/** Transaction/package context when known (operational label only). */
+export type DemoCondoDisclosurePackageType =
+  | 'unknown'
+  | 'resale'
+  | 'new_construction'
+  | 'other'
+
+/** How the package was delivered when known. */
+export type DemoCondoDisclosurePackageDeliveryMethod =
+  | 'unknown'
+  | 'email'
+  | 'portal'
+  | 'mail'
+  | 'hand_delivery'
+  | 'other'
+
 export type DemoCondoDisclosurePackageReview = {
   /** Overall lawyer review workflow status for the package. */
   reviewStatus: DemoCondoFinancialDocReviewStatus
+  /** Requested / received workflow status for the package itself. */
+  packageRequestStatus: DemoCondoDisclosurePackageRequestStatus
+  /** YYYY-MM-DD when set; empty string when unset. */
+  packageRequestedDate: string
   /** YYYY-MM-DD when set; empty string when unset. */
   packageReceivedDate: string
+  packageType: DemoCondoDisclosurePackageType
+  deliveryMethod: DemoCondoDisclosurePackageDeliveryMethod
   packageCompletenessStatus: DemoCondoDisclosurePackageCompleteness
   faqOrStatutoryQuestionsReviewStatus: DemoCondoFinancialDocReviewStatus
   governingDocsIncludedReviewStatus: DemoCondoFinancialDocReviewStatus
@@ -356,6 +385,10 @@ export type DemoCondoDisclosurePackageReview = {
   structuralOrSirsMaterialsStatus: DemoCondoFinancialDocReviewStatus
   estoppelIncludedStatus: DemoCondoFinancialDocReviewStatus
   followUpNeeded: boolean
+  /** Free-text missing documents / follow-up items (internal). */
+  missingItemsNotes: string
+  /** Optional package reference or other free-text package context. */
+  optionalPackageNotes: string
   packageConcernLevel: DemoCondoGovernanceConcernLevel
   notes: string
 }

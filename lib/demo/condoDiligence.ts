@@ -15,7 +15,10 @@ import type {
   DemoCondoDiligenceMatterStatus,
   DemoCondoDiligenceRequiredDocument,
   DemoCondoDisclosurePackageCompleteness,
+  DemoCondoDisclosurePackageDeliveryMethod,
+  DemoCondoDisclosurePackageRequestStatus,
   DemoCondoDisclosurePackageReview,
+  DemoCondoDisclosurePackageType,
   DemoCondoDuesFrequency,
   DemoCondoEstoppelReview,
   DemoCondoEstoppelReviewStatus,
@@ -1031,7 +1034,11 @@ export function condoGovernanceConcernLevelPresentation(level: DemoCondoGovernan
 export function buildDefaultCondoDisclosurePackageReview(): DemoCondoDisclosurePackageReview {
   return {
     reviewStatus: 'not_started',
+    packageRequestStatus: 'unknown',
+    packageRequestedDate: '',
     packageReceivedDate: '',
+    packageType: 'unknown',
+    deliveryMethod: 'unknown',
     packageCompletenessStatus: 'unknown',
     faqOrStatutoryQuestionsReviewStatus: 'not_started',
     governingDocsIncludedReviewStatus: 'not_started',
@@ -1041,6 +1048,8 @@ export function buildDefaultCondoDisclosurePackageReview(): DemoCondoDisclosureP
     structuralOrSirsMaterialsStatus: 'not_started',
     estoppelIncludedStatus: 'not_started',
     followUpNeeded: false,
+    missingItemsNotes: '',
+    optionalPackageNotes: '',
     packageConcernLevel: 'unknown',
     notes: '',
   }
@@ -1067,6 +1076,34 @@ function isDisclosurePackageCompleteness(
   )
 }
 
+function isDisclosurePackageRequestStatus(
+  value: unknown,
+): value is DemoCondoDisclosurePackageRequestStatus {
+  return (
+    value === 'unknown' ||
+    value === 'not_requested' ||
+    value === 'requested' ||
+    value === 'received'
+  )
+}
+
+function isDisclosurePackageType(value: unknown): value is DemoCondoDisclosurePackageType {
+  return value === 'unknown' || value === 'resale' || value === 'new_construction' || value === 'other'
+}
+
+function isDisclosurePackageDeliveryMethod(
+  value: unknown,
+): value is DemoCondoDisclosurePackageDeliveryMethod {
+  return (
+    value === 'unknown' ||
+    value === 'email' ||
+    value === 'portal' ||
+    value === 'mail' ||
+    value === 'hand_delivery' ||
+    value === 'other'
+  )
+}
+
 /**
  * Parse optional persisted `disclosurePackageReview`.
  * Missing/invalid object → undefined (older rows). Partial objects get defaults.
@@ -1081,9 +1118,19 @@ export function parseDemoCondoDisclosurePackageReview(
 
   return {
     reviewStatus: isFinancialDocReviewStatus(o.reviewStatus) ? o.reviewStatus : base.reviewStatus,
+    packageRequestStatus: isDisclosurePackageRequestStatus(o.packageRequestStatus)
+      ? o.packageRequestStatus
+      : base.packageRequestStatus,
+    packageRequestedDate: isYmdDateString(o.packageRequestedDate)
+      ? o.packageRequestedDate.trim()
+      : base.packageRequestedDate,
     packageReceivedDate: isYmdDateString(o.packageReceivedDate)
       ? o.packageReceivedDate.trim()
       : base.packageReceivedDate,
+    packageType: isDisclosurePackageType(o.packageType) ? o.packageType : base.packageType,
+    deliveryMethod: isDisclosurePackageDeliveryMethod(o.deliveryMethod)
+      ? o.deliveryMethod
+      : base.deliveryMethod,
     packageCompletenessStatus: isDisclosurePackageCompleteness(o.packageCompletenessStatus)
       ? o.packageCompletenessStatus
       : base.packageCompletenessStatus,
@@ -1109,6 +1156,9 @@ export function parseDemoCondoDisclosurePackageReview(
       ? o.estoppelIncludedStatus
       : base.estoppelIncludedStatus,
     followUpNeeded: typeof o.followUpNeeded === 'boolean' ? o.followUpNeeded : base.followUpNeeded,
+    missingItemsNotes: typeof o.missingItemsNotes === 'string' ? o.missingItemsNotes : base.missingItemsNotes,
+    optionalPackageNotes:
+      typeof o.optionalPackageNotes === 'string' ? o.optionalPackageNotes : base.optionalPackageNotes,
     packageConcernLevel: isFinancialRiskLevel(o.packageConcernLevel)
       ? (o.packageConcernLevel as DemoCondoGovernanceConcernLevel)
       : base.packageConcernLevel,
@@ -1123,7 +1173,11 @@ export function isCondoDisclosurePackageReviewUntouched(
   const d = normalizeCondoDisclosurePackageReview(input)
   return (
     d.reviewStatus === 'not_started' &&
+    d.packageRequestStatus === 'unknown' &&
+    d.packageRequestedDate.trim() === '' &&
     d.packageReceivedDate.trim() === '' &&
+    d.packageType === 'unknown' &&
+    d.deliveryMethod === 'unknown' &&
     d.packageCompletenessStatus === 'unknown' &&
     d.faqOrStatutoryQuestionsReviewStatus === 'not_started' &&
     d.governingDocsIncludedReviewStatus === 'not_started' &&
@@ -1133,6 +1187,8 @@ export function isCondoDisclosurePackageReviewUntouched(
     d.structuralOrSirsMaterialsStatus === 'not_started' &&
     d.estoppelIncludedStatus === 'not_started' &&
     d.followUpNeeded === false &&
+    d.missingItemsNotes.trim() === '' &&
+    d.optionalPackageNotes.trim() === '' &&
     d.packageConcernLevel === 'unknown' &&
     d.notes.trim() === ''
   )
@@ -1153,6 +1209,56 @@ export function condoDisclosurePackageCompletenessPresentation(
     case 'unknown':
     default:
       return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoDisclosurePackageRequestStatusPresentation(
+  status: DemoCondoDisclosurePackageRequestStatus,
+): { label: string; bg: string; color: string; border: string } {
+  switch (status) {
+    case 'received':
+      return { label: 'Received', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'requested':
+      return { label: 'Requested', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.25)' }
+    case 'not_requested':
+      return { label: 'Not requested', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+    case 'unknown':
+    default:
+      return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoDisclosurePackageTypeLabel(type: DemoCondoDisclosurePackageType): string {
+  switch (type) {
+    case 'resale':
+      return 'Resale'
+    case 'new_construction':
+      return 'New construction'
+    case 'other':
+      return 'Other'
+    case 'unknown':
+    default:
+      return 'Unknown'
+  }
+}
+
+export function condoDisclosurePackageDeliveryMethodLabel(
+  method: DemoCondoDisclosurePackageDeliveryMethod,
+): string {
+  switch (method) {
+    case 'email':
+      return 'Email'
+    case 'portal':
+      return 'Portal'
+    case 'mail':
+      return 'Mail'
+    case 'hand_delivery':
+      return 'Hand delivery'
+    case 'other':
+      return 'Other'
+    case 'unknown':
+    default:
+      return 'Unknown'
   }
 }
 
@@ -1650,7 +1756,11 @@ export function buildCondoDiligenceInternalReport(input: {
 
   const disclosureLines = [
     `Review status: ${condoFinancialDocReviewStatusPresentation(disclosure.reviewStatus).label}`,
+    `Package request status: ${condoDisclosurePackageRequestStatusPresentation(disclosure.packageRequestStatus).label}`,
+    `Package requested date: ${nonEmptyOrDash(disclosure.packageRequestedDate)}`,
     `Package received date: ${nonEmptyOrDash(disclosure.packageReceivedDate)}`,
+    `Package type: ${condoDisclosurePackageTypeLabel(disclosure.packageType)}`,
+    `Delivery method: ${condoDisclosurePackageDeliveryMethodLabel(disclosure.deliveryMethod)}`,
     `Completeness: ${condoDisclosurePackageCompletenessPresentation(disclosure.packageCompletenessStatus).label}`,
     `FAQ / statutory questions: ${condoFinancialDocReviewStatusPresentation(disclosure.faqOrStatutoryQuestionsReviewStatus).label}`,
     `Governing docs included: ${condoFinancialDocReviewStatusPresentation(disclosure.governingDocsIncludedReviewStatus).label}`,
@@ -1660,6 +1770,8 @@ export function buildCondoDiligenceInternalReport(input: {
     `Structural / SIRS materials: ${condoFinancialDocReviewStatusPresentation(disclosure.structuralOrSirsMaterialsStatus).label}`,
     `Estoppel included: ${condoFinancialDocReviewStatusPresentation(disclosure.estoppelIncludedStatus).label}`,
     `Follow-up needed: ${disclosure.followUpNeeded ? 'Yes' : 'No'}`,
+    `Missing items: ${nonEmptyOrDash(disclosure.missingItemsNotes)}`,
+    `Optional package notes: ${nonEmptyOrDash(disclosure.optionalPackageNotes)}`,
     `Package concern: ${condoGovernanceConcernLevelPresentation(disclosure.packageConcernLevel).label}`,
     `Notes: ${nonEmptyOrDash(disclosure.notes)}`,
   ]
