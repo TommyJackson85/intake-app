@@ -71,7 +71,10 @@ import DocumentPreviewModal from '@/app/demo/_components/DocumentPreviewModal'
 import {
   demoMatterReviewTaskStatusPresentation,
   formatCondoDiligenceActiveReviewTaskCountLabel,
+  formatCondoDiligenceReviewTaskCompletedAt,
+  formatCondoDiligenceReviewTaskNoteExcerpt,
   listActiveCondoDiligenceSummaryReviewTasks,
+  listCompletedCondoDiligenceSummaryReviewTasks,
   listCondoDiligenceSummaryReviewTasks,
 } from '@/lib/demo/demoMatterReviewTask'
 
@@ -300,6 +303,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   const activeCondoReviewTasks = useMemo(() => {
     if (!effectiveMatter) return []
     return listActiveCondoDiligenceSummaryReviewTasks(matterReviewTasks, effectiveMatter.id)
+  }, [effectiveMatter, matterReviewTasks])
+
+  const completedCondoReviewTasks = useMemo(() => {
+    if (!effectiveMatter) return []
+    return listCompletedCondoDiligenceSummaryReviewTasks(matterReviewTasks, effectiveMatter.id)
   }, [effectiveMatter, matterReviewTasks])
 
   const activeCondoReviewTaskCountLabel = formatCondoDiligenceActiveReviewTaskCountLabel(
@@ -933,6 +941,88 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                               fontWeight: 800,
                               fontSize: 11,
                               color: linkedDoc ? '#134252' : '#9aa8a1',
+                              cursor: linkedDoc ? 'pointer' : 'not-allowed',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            View summary
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {completedCondoReviewTasks.length > 0 && (
+                <div
+                  style={{
+                    border: '1px solid rgba(94,82,64,0.1)',
+                    borderRadius: 8,
+                    padding: 12,
+                    background: '#fcfcf9',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#627c71', marginBottom: 3 }}>
+                      Completed Condo Diligence Review Tasks
+                    </div>
+                    <div style={{ fontSize: 11, color: '#9aa8a1', lineHeight: 1.45 }}>
+                      Read-only internal history for this matter. Not a compliance determination or closing
+                      recommendation.
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {completedCondoReviewTasks.map((task) => {
+                      const linkedDoc = matterDocuments.find((d) => d.id === task.linked_document_id)
+                      const completedAt =
+                        formatCondoDiligenceReviewTaskCompletedAt(task.updated_at) ?? 'Unknown'
+                      const noteExcerpt = formatCondoDiligenceReviewTaskNoteExcerpt(task.internal_note)
+                      return (
+                        <div
+                          key={task.id}
+                          style={{
+                            borderTop: '1px solid rgba(94,82,64,0.08)',
+                            paddingTop: 7,
+                            display: 'flex',
+                            gap: 10,
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <div style={{ minWidth: 0, flex: '1 1 200px' }}>
+                            <div style={{ fontWeight: 700, color: '#627c71', fontSize: 12, marginBottom: 2 }}>
+                              {task.title}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#9aa8a1', fontWeight: 600 }}>
+                              Completed: {completedAt}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#9aa8a1', marginTop: 3, lineHeight: 1.4 }}>
+                              {noteExcerpt ? `Note: ${noteExcerpt}` : 'No note'}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#9aa8a1', marginTop: 3 }}>
+                              Summary: {linkedDoc?.name ?? 'Saved summary unavailable'}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={!linkedDoc}
+                            onClick={() => {
+                              if (!linkedDoc) return
+                              setPreviewDocumentId(linkedDoc.id)
+                            }}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(94,82,64,0.18)',
+                              background: linkedDoc ? '#fff' : '#f5f5f5',
+                              fontWeight: 700,
+                              fontSize: 11,
+                              color: linkedDoc ? '#627c71' : '#9aa8a1',
                               cursor: linkedDoc ? 'pointer' : 'not-allowed',
                               whiteSpace: 'nowrap',
                             }}

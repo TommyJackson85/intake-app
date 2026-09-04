@@ -164,6 +164,50 @@ export function listActiveCondoDiligenceSummaryReviewTasks(
   return listCondoDiligenceSummaryReviewTasks(tasks, matterId).filter((t) => t.status !== 'completed')
 }
 
+/**
+ * Completed internal summary review tasks for Overview history (newest completion first).
+ * Uses `updated_at` as the completion timestamp proxy (status patches refresh it).
+ */
+export function listCompletedCondoDiligenceSummaryReviewTasks(
+  tasks: DemoMatterReviewTask[],
+  matterId: string,
+): DemoMatterReviewTask[] {
+  return listCondoDiligenceSummaryReviewTasks(tasks, matterId)
+    .filter((t) => t.status === 'completed')
+    .slice()
+    .sort((a, b) => {
+      const aUpdated = new Date(a.updated_at).getTime()
+      const bUpdated = new Date(b.updated_at).getTime()
+      const aSafe = Number.isFinite(aUpdated) ? aUpdated : 0
+      const bSafe = Number.isFinite(bUpdated) ? bUpdated : 0
+      if (bSafe !== aSafe) return bSafe - aSafe
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+}
+
+/** Short read-only excerpt of an internal note for Overview history rows. */
+export function formatCondoDiligenceReviewTaskNoteExcerpt(
+  note: string | null | undefined,
+  maxLength = 120,
+): string | null {
+  const trimmed = note?.trim()
+  if (!trimmed) return null
+  const limit = Number.isFinite(maxLength) && maxLength > 0 ? Math.floor(maxLength) : 120
+  if (trimmed.length <= limit) return trimmed
+  return `${trimmed.slice(0, Math.max(1, limit - 1)).trimEnd()}…`
+}
+
+/** Formats a task ISO timestamp for Overview history; returns null when unparseable. */
+export function formatCondoDiligenceReviewTaskCompletedAt(
+  iso: string | null | undefined,
+): string | null {
+  const raw = iso?.trim()
+  if (!raw) return null
+  const dt = new Date(raw)
+  if (Number.isNaN(dt.getTime())) return null
+  return dt.toLocaleString()
+}
+
 /** Neutral count copy for Overview: `1 condo review task` / `N condo review tasks`. */
 export function formatCondoDiligenceActiveReviewTaskCountLabel(count: number): string | null {
   if (!Number.isFinite(count) || count < 1) return null

@@ -16,6 +16,9 @@ import {
   isCondoDiligenceWorkQueueDueSoon,
   listActiveCondoDiligenceSummaryReviewTasks,
   listCondoDiligenceSummaryReviewTasks,
+  listCompletedCondoDiligenceSummaryReviewTasks,
+  formatCondoDiligenceReviewTaskNoteExcerpt,
+  formatCondoDiligenceReviewTaskCompletedAt,
   matterHasActiveCondoDiligenceSummaryReviewTasks,
   matterHasDueSoonCondoDiligenceSummaryReviewTask,
   parseStoredDemoMatterReviewTasks,
@@ -218,6 +221,53 @@ describe('demoMatterReviewTask', () => {
     expect(formatCondoDiligenceActiveReviewTaskCountLabel(1)).toBe('1 condo review task')
     expect(formatCondoDiligenceActiveReviewTaskCountLabel(2)).toBe('2 condo review tasks')
     expect(formatCondoDiligenceActiveReviewTaskCountLabel(3)).toBe('3 condo review tasks')
+  })
+
+  it('lists completed Overview history tasks newest updated_at first and formats note excerpts', () => {
+    const open = buildDemoMatterReviewTask(
+      { ...base, id: 'open', status: 'open' },
+      { nowIso: () => '2026-09-04T12:00:00.000Z' },
+    )!
+    const olderDone = buildDemoMatterReviewTask(
+      {
+        ...base,
+        id: 'done-old',
+        status: 'completed',
+        internal_note: 'Older completion',
+        created_at: '2026-09-01T10:00:00.000Z',
+        updated_at: '2026-09-02T10:00:00.000Z',
+      },
+      { nowIso: () => '2026-09-01T10:00:00.000Z' },
+    )!
+    const newerDone = buildDemoMatterReviewTask(
+      {
+        ...base,
+        id: 'done-new',
+        status: 'completed',
+        internal_note: '  Newer note  ',
+        created_at: '2026-09-03T10:00:00.000Z',
+        updated_at: '2026-09-04T15:00:00.000Z',
+      },
+      { nowIso: () => '2026-09-03T10:00:00.000Z' },
+    )!
+    const otherMatter = buildDemoMatterReviewTask(
+      { ...base, id: 'other', matter_id: 'matter-2', status: 'completed' },
+      { nowIso: () => '2026-09-05T10:00:00.000Z' },
+    )!
+
+    expect(
+      listCompletedCondoDiligenceSummaryReviewTasks(
+        [open, olderDone, newerDone, otherMatter],
+        'matter-1',
+      ).map((t) => t.id),
+    ).toEqual(['done-new', 'done-old'])
+
+    expect(formatCondoDiligenceReviewTaskNoteExcerpt(null)).toBeNull()
+    expect(formatCondoDiligenceReviewTaskNoteExcerpt('  ')).toBeNull()
+    expect(formatCondoDiligenceReviewTaskNoteExcerpt('  Newer note  ')).toBe('Newer note')
+    expect(formatCondoDiligenceReviewTaskNoteExcerpt('abcdefghij', 5)).toBe('abcd…')
+    expect(formatCondoDiligenceReviewTaskCompletedAt('2026-09-04T15:00:00.000Z')).toBeTruthy()
+    expect(formatCondoDiligenceReviewTaskCompletedAt('not-a-date')).toBeNull()
   })
 
   it('builds matters-list chips and filters matters with active review tasks', () => {
