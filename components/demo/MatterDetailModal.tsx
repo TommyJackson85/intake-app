@@ -19,6 +19,7 @@ import DemoFinCENTab from '@/components/demo/DemoFinCENTab'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
 import {
+  buildCondoDiligenceOperationalSummary,
   condoDiligenceMatterStatusPresentation,
   condoEstoppelDueDateWarning,
   condoEstoppelReviewStatusPresentation,
@@ -295,24 +296,14 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
         )
       })
     : []
-  const condoDocPackSummary = useMemo(() => {
+  const condoOperationalSummary = useMemo(() => {
     if (!condoDiligence || !effectiveMatter) return null
-    let received = 0
-    let requested = 0
-    let outstanding = 0
-    for (const doc of condoDiligence.requiredDocuments) {
-      const derived = deriveCondoRequiredDocumentStatus({
-        matterId: effectiveMatter.id,
-        condoDocId: doc.id,
-        storedStatus: doc.status,
-        documents: matterDocuments,
-        documentRequests: matterDocumentRequests,
-      })
-      if (derived === 'received') received += 1
-      else if (derived === 'requested') requested += 1
-      else outstanding += 1
-    }
-    return { received, requested, outstanding, total: condoDiligence.requiredDocuments.length }
+    return buildCondoDiligenceOperationalSummary({
+      matterId: effectiveMatter.id,
+      condo: condoDiligence,
+      documents: matterDocuments,
+      documentRequests: matterDocumentRequests,
+    })
   }, [condoDiligence, effectiveMatter, matterDocuments, matterDocumentRequests])
 
   useEffect(() => {
@@ -1025,38 +1016,132 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       {condoDiligenceMatterStatusPresentation(condoDiligence.status).label}
                     </span>
                   </div>
-                  {condoDocPackSummary && (
+                  {condoOperationalSummary && (
                     <div
                       style={{
                         border: '1px solid rgba(94,82,64,0.12)',
                         borderRadius: 8,
-                        padding: '10px 12px',
+                        padding: 14,
                         background: 'white',
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 8,
-                        alignItems: 'center',
                       }}
                     >
-                      <span style={{ fontSize: 12, fontWeight: 900, color: '#134252' }}>
-                        Condo doc pack
-                      </span>
-                      <span style={{ fontSize: 11, color: '#2f855a', fontWeight: 800 }}>
-                        Received: {condoDocPackSummary.received}
-                      </span>
-                      <span style={{ fontSize: 11, color: '#1e40af', fontWeight: 800 }}>
-                        Requested: {condoDocPackSummary.requested}
-                      </span>
-                      <span style={{ fontSize: 11, color: '#b45309', fontWeight: 800 }}>
-                        Outstanding: {condoDocPackSummary.outstanding}
-                      </span>
-                      <span style={{ fontSize: 11, color: '#627c71', marginLeft: 'auto' }}>
-                        {condoDocPackSummary.total} total
-                      </span>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'baseline',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                          marginBottom: 8,
+                        }}
+                      >
+                        <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                          Condo Diligence Summary
+                        </div>
+                        <div style={{ fontSize: 11, color: '#627c71' }}>
+                          Operational summary only — lawyer review required.
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: '#134252' }}>
+                        <div>
+                          <span style={{ fontWeight: 800, color: '#627c71', marginRight: 6 }}>Documents</span>
+                          <span>
+                            {condoOperationalSummary.documentCounts.received} received ·{' '}
+                            {condoOperationalSummary.documentCounts.requested} requested ·{' '}
+                            {condoOperationalSummary.documentCounts.outstanding} outstanding ·{' '}
+                            {condoOperationalSummary.documentCounts.total} total
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontWeight: 800, color: '#627c71', marginRight: 6 }}>Findings</span>
+                          <span>{condoOperationalSummary.findingsLine}</span>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                          <span style={{ fontWeight: 800, color: '#627c71' }}>Estoppel</span>
+                          <span>{condoOperationalSummary.estoppelStatusLabel}</span>
+                          {condoOperationalSummary.estoppelAttention && (
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '2px 8px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                background: '#fff4d6',
+                                color: '#b45309',
+                                border: '1px solid rgba(240,180,41,0.35)',
+                              }}
+                            >
+                              {condoOperationalSummary.estoppelAttention}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <span style={{ fontWeight: 800, color: '#627c71', marginRight: 6 }}>Next</span>
+                          <span>{condoOperationalSummary.nextAction}</span>
+                        </div>
+                      </div>
+                      {(condoOperationalSummary.nextActionKind === 'request_outstanding' ||
+                        condoOperationalSummary.nextActionKind === 'chase_estoppel' ||
+                        condoOperationalSummary.nextActionKind === 'request_estoppel') && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                          {(condoOperationalSummary.nextActionKind === 'request_outstanding' ||
+                            condoOperationalSummary.nextActionKind === 'request_estoppel') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                document.getElementById('condo-request-missing-docs')?.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'center',
+                                })
+                              }}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(94,82,64,0.25)',
+                                background: '#fff',
+                                fontWeight: 800,
+                                fontSize: 11,
+                                color: '#134252',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Request missing docs
+                            </button>
+                          )}
+                          {(condoOperationalSummary.nextActionKind === 'chase_estoppel' ||
+                            condoOperationalSummary.nextActionKind === 'request_estoppel') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                document.getElementById('condo-estoppel-review')?.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'start',
+                                })
+                              }}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(94,82,64,0.25)',
+                                background: '#fff',
+                                fontWeight: 800,
+                                fontSize: 11,
+                                color: '#134252',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Review Estoppel
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  <div style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: 8, padding: 14, background: 'white' }}>
+                  <div
+                    id="condo-required-documents"
+                    style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: 8, padding: 14, background: 'white' }}
+                  >
                     <div
                       style={{
                         display: 'flex',
@@ -1070,6 +1155,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>Required documents</div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <button
+                          id="condo-request-missing-docs"
                           type="button"
                           disabled={requestableCondoDocs.length === 0}
                           onClick={() => {
@@ -1249,6 +1335,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                     }
                     return (
                       <div
+                        id="condo-estoppel-review"
                         style={{
                           border: '1px solid rgba(94,82,64,0.12)',
                           borderRadius: 8,

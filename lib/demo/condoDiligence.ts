@@ -464,6 +464,306 @@ export function condoEstoppelDueDateWarning(
   return null
 }
 
+const CONDO_SUMMARY_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const
+
+/** Short month-day label for operational summary copy (e.g. `Sep 12`). */
+export function formatCondoDiligenceSummaryTargetDate(isoDate: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate.trim())
+  if (!m) return null
+  const month = Number(m[2])
+  const day = Number(m[3])
+  if (!Number.isFinite(month) || !Number.isFinite(day) || month < 1 || month > 12 || day < 1 || day > 31) {
+    return null
+  }
+  return `${CONDO_SUMMARY_MONTHS[month - 1]} ${day}`
+}
+
+export type CondoDiligenceSummaryDocumentCounts = {
+  received: number
+  requested: number
+  outstanding: number
+  total: number
+}
+
+export type CondoDiligenceEstoppelSummaryKind =
+  | 'not_requested'
+  | 'requested'
+  | 'received_review_pending'
+  | 'reviewed'
+  | 'issue_flagged'
+
+export type CondoDiligenceNextActionKind =
+  | 'chase_estoppel'
+  | 'request_estoppel'
+  | 'request_outstanding'
+  | 'follow_up_requested'
+  | 'review_findings'
+  | 'review_pack'
+
+export type CondoDiligenceOperationalSummary = {
+  documentCounts: CondoDiligenceSummaryDocumentCounts
+  documentsLine: string
+  openFindingsCount: number
+  findingsLine: string
+  estoppelKind: CondoDiligenceEstoppelSummaryKind
+  estoppelStatusLabel: string
+  /** Neutral attention copy when target date has passed and review is not received/reviewed. */
+  estoppelAttention: string | null
+  nextAction: string
+  nextActionKind: CondoDiligenceNextActionKind
+}
+
+function countCondoDiligenceDocumentsForSummary(input: {
+  matterId: string
+  requiredDocuments: readonly DemoCondoDiligenceRequiredDocument[]
+  documents: DeriveCondoRequiredDocumentStatusInput['documents']
+  documentRequests: DeriveCondoRequiredDocumentStatusInput['documentRequests']
+}): CondoDiligenceSummaryDocumentCounts {
+  let received = 0
+  let requested = 0
+  let outstanding = 0
+  for (const doc of input.requiredDocuments) {
+    const derived = deriveCondoRequiredDocumentStatus({
+      matterId: input.matterId,
+      condoDocId: doc.id,
+      storedStatus: doc.status,
+      documents: input.documents,
+      documentRequests: input.documentRequests,
+    })
+    if (derived === 'received') received += 1
+    else if (derived === 'requested') requested += 1
+    else outstanding += 1
+  }
+  return {
+    received,
+    requested,
+    outstanding,
+    total: input.requiredDocuments.length,
+  }
+}
+
+function deriveCondoEstoppelSummaryDisplay(input: {
+  condo: DemoCondoDiligence | null | undefined
+  matterId: string
+  documents: DeriveCondoRequiredDocumentStatusInput['documents']
+  documentRequests: DeriveCondoRequiredDocumentStatusInput['documentRequests']
+  now: Date
+}): Pick<
+  CondoDiligenceOperationalSummary,
+  'estoppelKind' | 'estoppelStatusLabel' | 'estoppelAttention'
+> {
+  const hasStructuredReview = Boolean(input.condo?.estoppelReview)
+  const review = hasStructuredReview
+    ? normalizeCondoEstoppelReview(input.condo?.estoppelReview)
+    : null
+
+  const estoppelRow = input.condo?.requiredDocuments.find((d) => d.id === 'estoppel')
+  const checklistStatus: DemoCondoDiligenceDocStatus = estoppelRow
+    ? deriveCondoRequiredDocumentStatus({
+        matterId: input.matterId,
+        condoDocId: estoppelRow.id,
+        storedStatus: estoppelRow.status,
+        documents: input.documents,
+        documentRequests: input.documentRequests,
+      })
+    : 'outstanding'
+
+  let estoppelKind: CondoDiligenceEstoppelSummaryKind
+  let estoppelStatusLabel: string
+  let dueDate = ''
+
+  if (review) {
+    dueDate = review.dueDate.trim()
+    const targetLabel = formatCondoDiligenceSummaryTargetDate(dueDate)
+    switch (review.reviewStatus) {
+      case 'issue_found':
+        estoppelKind = 'issue_flagged'
+        estoppelStatusLabel = 'Issue flagged'
+        break
+      case 'reviewed':
+        estoppelKind = 'reviewed'
+        estoppelStatusLabel = 'Reviewed'
+        break
+      case 'received':
+        estoppelKind = 'received_review_pending'
+        estoppelStatusLabel = 'Received — review pending'
+        break
+      case 'requested':
+        estoppelKind = 'requested'
+        estoppelStatusLabel = targetLabel
+          ? `Requested — target response date ${targetLabel}`
+          : 'Requested'
+        break
+      default:
+        estoppelKind = 'not_requested'
+        estoppelStatusLabel = 'Not requested'
+        break
+    }
+  } else {
+    switch (checklistStatus) {
+      case 'received':
+        estoppelKind = 'received_review_pending'
+        estoppelStatusLabel = 'Received — review pending'
+        break
+      case 'requested':
+        estoppelKind = 'requested'
+        estoppelStatusLabel = 'Requested'
+        break
+      default:
+        estoppelKind = 'not_requested'
+        estoppelStatusLabel = 'Not requested'
+        break
+    }
+  }
+
+  const reviewDone =
+    estoppelKind === 'received_review_pending' ||
+    estoppelKind === 'reviewed' ||
+    estoppelKind === 'issue_flagged'
+  const dueWarning =
+    dueDate && !reviewDone ? condoEstoppelDueDateWarning(dueDate, { now: input.now }) : null
+  const estoppelAttention =
+    dueWarning?.kind === 'overdue' ? 'Target date passed — review needed' : null
+
+  return { estoppelKind, estoppelStatusLabel, estoppelAttention }
+}
+
+function deriveCondoDiligenceNextAction(input: {
+  review: DemoCondoEstoppelReview | null
+  checklistEstoppelStatus: DemoCondoDiligenceDocStatus
+  documentCounts: CondoDiligenceSummaryDocumentCounts
+  openFindingsCount: number
+}): Pick<CondoDiligenceOperationalSummary, 'nextAction' | 'nextActionKind'> {
+  const { review, checklistEstoppelStatus, documentCounts, openFindingsCount } = input
+
+  const estoppelRequestedNotDone = review
+    ? review.reviewStatus === 'requested'
+    : checklistEstoppelStatus === 'requested'
+  const estoppelNotRequested = review
+    ? review.reviewStatus === 'not_started'
+    : checklistEstoppelStatus === 'outstanding'
+
+  if (estoppelRequestedNotDone) {
+    return {
+      nextActionKind: 'chase_estoppel',
+      nextAction: 'Review or chase the Estoppel request.',
+    }
+  }
+  if (estoppelNotRequested) {
+    return {
+      nextActionKind: 'request_estoppel',
+      nextAction: 'Request the Estoppel certificate.',
+    }
+  }
+  if (documentCounts.outstanding > 0) {
+    return {
+      nextActionKind: 'request_outstanding',
+      nextAction: 'Request outstanding association documents.',
+    }
+  }
+  if (documentCounts.requested > 0) {
+    return {
+      nextActionKind: 'follow_up_requested',
+      nextAction: 'Follow up on requested association documents.',
+    }
+  }
+  if (openFindingsCount > 0) {
+    return {
+      nextActionKind: 'review_findings',
+      nextAction: 'Review and resolve open diligence findings.',
+    }
+  }
+  return {
+    nextActionKind: 'review_pack',
+    nextAction: 'Review the document pack and record lawyer findings.',
+  }
+}
+
+/**
+ * Read-only lawyer-facing operational summary for the Condo Diligence tab.
+ * Derives from existing saved checklist, linkage, findings, and optional estoppelReview — does not persist.
+ */
+export function buildCondoDiligenceOperationalSummary(input: {
+  matterId: string
+  condo: DemoCondoDiligence | null | undefined
+  documents?: DeriveCondoRequiredDocumentStatusInput['documents']
+  documentRequests?: DeriveCondoRequiredDocumentStatusInput['documentRequests']
+  /** Explicit “now” for date-sensitive attention copy (tests must pass this). */
+  now?: Date
+}): CondoDiligenceOperationalSummary {
+  const documents = input.documents ?? []
+  const documentRequests = input.documentRequests ?? []
+  const now = input.now ?? new Date()
+  const requiredDocuments = input.condo?.requiredDocuments ?? []
+  const findings = input.condo?.findings ?? []
+
+  const documentCounts = countCondoDiligenceDocumentsForSummary({
+    matterId: input.matterId,
+    requiredDocuments,
+    documents,
+    documentRequests,
+  })
+  const documentsLine = `Documents: ${documentCounts.received} received · ${documentCounts.requested} requested · ${documentCounts.outstanding} outstanding · ${documentCounts.total} total`
+
+  const openFindingsCount = findings.length
+  const findingsLine =
+    openFindingsCount === 0
+      ? 'No findings recorded'
+      : `${openFindingsCount} open finding${openFindingsCount === 1 ? '' : 's'}`
+
+  const estoppelDisplay = deriveCondoEstoppelSummaryDisplay({
+    condo: input.condo,
+    matterId: input.matterId,
+    documents,
+    documentRequests,
+    now,
+  })
+
+  const hasStructuredReview = Boolean(input.condo?.estoppelReview)
+  const review = hasStructuredReview
+    ? normalizeCondoEstoppelReview(input.condo?.estoppelReview)
+    : null
+  const estoppelRow = input.condo?.requiredDocuments.find((d) => d.id === 'estoppel')
+  const checklistEstoppelStatus: DemoCondoDiligenceDocStatus = estoppelRow
+    ? deriveCondoRequiredDocumentStatus({
+        matterId: input.matterId,
+        condoDocId: estoppelRow.id,
+        storedStatus: estoppelRow.status,
+        documents,
+        documentRequests,
+      })
+    : 'outstanding'
+
+  const next = deriveCondoDiligenceNextAction({
+    review,
+    checklistEstoppelStatus,
+    documentCounts,
+    openFindingsCount,
+  })
+
+  return {
+    documentCounts,
+    documentsLine,
+    openFindingsCount,
+    findingsLine,
+    ...estoppelDisplay,
+    ...next,
+  }
+}
+
 type MatterEligibilityInput = {
   matter_type: DemoMatter['matter_type']
   property: Pick<DemoMatter['property'], 'address' | 'property_type'> & { county?: DemoMatter['property']['county'] }

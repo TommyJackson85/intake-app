@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   CORE_CONDO_DILIGENCE_DOC_PACK_IDS,
   ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS,
+  buildCondoDiligenceOperationalSummary,
   buildDefaultCondoDiligence,
   buildDefaultCondoEstoppelReview,
   condoDiligenceMatterStatusPresentation,
@@ -11,6 +12,7 @@ import {
   condoRequiredDocSavedStatusAfterLinkedSync,
   deriveCondoDiligenceMatterStatusFromChecklist,
   deriveCondoRequiredDocumentStatus,
+  formatCondoDiligenceSummaryTargetDate,
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
   isCondoEstoppelReviewUntouched,
@@ -20,7 +22,7 @@ import {
   parseDemoCondoEstoppelReview,
   syncRequiredDocumentsFromDerivedLinkage,
 } from '@/lib/demo/condoDiligence'
-import type { DemoCondoDiligence, DemoMatter } from '@/lib/demo/types'
+import type { DemoCondoDiligence, DemoDocument, DemoDocumentRequest, DemoMatter } from '@/lib/demo/types'
 
 function matter(partial: Partial<DemoMatter> & Pick<DemoMatter, 'matter_type' | 'property'>): DemoMatter {
   return {
@@ -682,6 +684,240 @@ describe('condoDiligence', () => {
     it('does not change estoppel document linkage matching', () => {
       expect(condoRequiredDocMatchesLinkageHaystack('Condo Estoppel Certificate.pdf', 'estoppel')).toBe(true)
       expect(condoRequiredDocMatchesLinkageHaystack('Association financial statements', 'estoppel')).toBe(false)
+    })
+  })
+
+  describe('buildCondoDiligenceOperationalSummary', () => {
+    const matterId = 'm-summary'
+    const now = new Date('2026-09-15T12:00:00')
+
+    function docs(
+      required: DemoCondoDiligence['requiredDocuments'],
+      extras?: Partial<Omit<DemoCondoDiligence, 'requiredDocuments'>>,
+    ): DemoCondoDiligence {
+      const findings = extras?.findings ?? []
+      return {
+        applicable: true,
+        status: deriveCondoDiligenceMatterStatusFromChecklist({
+          requiredDocuments: required,
+          findings,
+        }),
+        requiredDocuments: required,
+        findings,
+        notes: extras?.notes ?? '',
+        updated_at: extras?.updated_at ?? '2026-01-01T00:00:00.000Z',
+        ...(extras?.estoppelReview !== undefined ? { estoppelReview: extras.estoppelReview } : {}),
+        ...(extras?.applicable !== undefined ? { applicable: extras.applicable } : {}),
+        ...(extras?.status !== undefined ? { status: extras.status } : {}),
+      }
+    }
+
+    it('counts received, requested, outstanding, and total from saved + linkage state', () => {
+      const condo = docs([
+        { id: 'estoppel', label: 'Estoppel', status: 'outstanding', detail: null },
+        { id: 'current_budget', label: 'Current budget', status: 'requested', detail: null },
+        { id: 'insurance_summary', label: 'Insurance summary', status: 'received', detail: null },
+        { id: 'recent_board_minutes', label: 'Recent board minutes', status: 'outstanding', detail: null },
+      ])
+      const documents: Pick<DemoDocument, 'matter_id' | 'name' | 'category' | 'document_subtype' | 'description' | 'deletedAt'>[] = [
+        {
+          matter_id: matterId,
+          name: 'Condo Estoppel Certificate.pdf',
+          category: 'Compliance',
+          document_subtype: null,
+          description: null,
+          deletedAt: null,
+        },
+      ]
+      const documentRequests: Pick<DemoDocumentRequest, 'matter_id' | 'title' | 'description' | 'category' | 'status'>[] = [
+        {
+          matter_id: matterId,
+          title: 'Board minutes request',
+          description: 'Recent board minutes',
+          category: 'Compliance',
+          status: 'open',
+        },
+      ]
+      const summary = buildCondoDiligenceOperationalSummary({
+        matterId,
+        condo,
+        documents,
+        documentRequests,
+        now,
+      })
+      expect(summary.documentCounts).toEqual({ received: 2, requested: 2, outstanding: 0, total: 4 })
+      expect(summary.documentsLine).toBe('Documents: 2 received · 2 requested · 0 outstanding · 4 total')
+    })
+
+    it('behaves safely with missing condo diligence or empty checklist', () => {
+      const missing = buildCondoDiligenceOperationalSummary({ matterId, condo: null, now })
+      expect(missing.documentCounts).toEqual({ received: 0, requested: 0, outstanding: 0, total: 0 })
+      expect(missing.findingsLine).toBe('No findings recorded')
+      expect(missing.estoppelStatusLabel).toBe('Not requested')
+      expect(missing.nextAction).toBe('Request the Estoppel certificate.')
+
+      const empty = buildCondoDiligenceOperationalSummary({
+        matterId,
+        condo: docs([]),
+        now,
+      })
+      expect(empty.documentCounts.total).toBe(0)
+      expect(empty.nextActionKind).toBe('request_estoppel')
+    })
+
+    it('prefers explicit estoppelReview.reviewStatus over checklist status', () => {
+      const condo = docs(
+        [{ id: 'estoppel', label: 'Estoppel', status: 'outstanding', detail: null }],
+        {
+          estoppelReview: {
+            ...buildDefaultCondoEstoppelReview(),
+            reviewStatus: 'reviewed',
+          },
+        },
+      )
+      const summary = buildCondoDiligenceOperationalSummary({ matterId, condo, now })
+      expect(summary.estoppelKind).toBe('reviewed')
+      expect(summary.estoppelStatusLabel).toBe('Reviewed')
+    })
+
+    it('falls back to Estoppel checklist status when no structured review exists', () => {
+      const condo = docs([{ id: 'estoppel', label: 'Estoppel', status: 'received', detail: null }])
+      expect(condo.estoppelReview).toBeUndefined()
+      const summary = buildCondoDiligenceOperationalSummary({ matterId, condo, now })
+      expect(summary.estoppelKind).toBe('received_review_pending')
+      expect(summary.estoppelStatusLabel).toBe('Received — review pending')
+    })
+
+    it('renders requested Estoppel with a derived target date safely', () => {
+      expect(formatCondoDiligenceSummaryTargetDate('2026-09-12')).toBe('Sep 12')
+      const condo = docs(
+        [{ id: 'estoppel', label: 'Estoppel', status: 'outstanding', detail: null }],
+        {
+          estoppelReview: {
+            ...buildDefaultCondoEstoppelReview(),
+            reviewStatus: 'requested',
+            dueDate: '2026-09-12',
+          },
+        },
+      )
+      const summary = buildCondoDiligenceOperationalSummary({ matterId, condo, now })
+      expect(summary.estoppelStatusLabel).toBe('Requested — target response date Sep 12')
+      expect(summary.estoppelAttention).toBe('Target date passed — review needed')
+    })
+
+    it('follows next-action priority order', () => {
+      const baseDocs = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' }).requiredDocuments.map(
+        (d) => ({ ...d, status: 'received' as const }),
+      )
+
+      expect(
+        buildCondoDiligenceOperationalSummary({
+          matterId,
+          condo: docs(baseDocs.map((d) => (d.id === 'estoppel' ? { ...d, status: 'outstanding' } : d)), {
+            estoppelReview: { ...buildDefaultCondoEstoppelReview(), reviewStatus: 'requested' },
+          }),
+          now,
+        }).nextAction,
+      ).toBe('Review or chase the Estoppel request.')
+
+      expect(
+        buildCondoDiligenceOperationalSummary({
+          matterId,
+          condo: docs(baseDocs.map((d) => (d.id === 'estoppel' ? { ...d, status: 'outstanding' } : d)), {
+            estoppelReview: { ...buildDefaultCondoEstoppelReview(), reviewStatus: 'not_started' },
+          }),
+          now,
+        }).nextAction,
+      ).toBe('Request the Estoppel certificate.')
+
+      expect(
+        buildCondoDiligenceOperationalSummary({
+          matterId,
+          condo: docs(
+            baseDocs.map((d) =>
+              d.id === 'estoppel'
+                ? { ...d, status: 'received' }
+                : d.id === 'current_budget'
+                  ? { ...d, status: 'outstanding' }
+                  : d,
+            ),
+            { estoppelReview: { ...buildDefaultCondoEstoppelReview(), reviewStatus: 'reviewed' } },
+          ),
+          now,
+        }).nextAction,
+      ).toBe('Request outstanding association documents.')
+
+      expect(
+        buildCondoDiligenceOperationalSummary({
+          matterId,
+          condo: docs(
+            baseDocs.map((d) =>
+              d.id === 'estoppel'
+                ? { ...d, status: 'received' }
+                : d.id === 'current_budget'
+                  ? { ...d, status: 'requested' }
+                  : d,
+            ),
+            { estoppelReview: { ...buildDefaultCondoEstoppelReview(), reviewStatus: 'reviewed' } },
+          ),
+          now,
+        }).nextAction,
+      ).toBe('Follow up on requested association documents.')
+
+      expect(
+        buildCondoDiligenceOperationalSummary({
+          matterId,
+          condo: docs(baseDocs, {
+            estoppelReview: { ...buildDefaultCondoEstoppelReview(), reviewStatus: 'reviewed' },
+            findings: [{ id: 'f1', text: 'Special assessment disclosed' }],
+          }),
+          now,
+        }).nextAction,
+      ).toBe('Review and resolve open diligence findings.')
+
+      expect(
+        buildCondoDiligenceOperationalSummary({
+          matterId,
+          condo: docs(baseDocs, {
+            estoppelReview: { ...buildDefaultCondoEstoppelReview(), reviewStatus: 'reviewed' },
+          }),
+          now,
+        }).nextAction,
+      ).toBe('Review the document pack and record lawyer findings.')
+    })
+
+    it('does not mutate input condo state', () => {
+      const condo = docs(
+        [{ id: 'estoppel', label: 'Estoppel', status: 'requested', detail: null }],
+        {
+          findings: [{ id: 'f1', text: 'Note' }],
+          estoppelReview: {
+            ...buildDefaultCondoEstoppelReview(),
+            reviewStatus: 'requested',
+            dueDate: '2026-09-01',
+          },
+        },
+      )
+      const before = structuredClone(condo)
+      buildCondoDiligenceOperationalSummary({ matterId, condo, now })
+      expect(condo).toEqual(before)
+    })
+
+    it('leaves existing Condo Diligence matter-status derivation unchanged', () => {
+      const requiredDocuments = [
+        { id: 'estoppel', label: 'Estoppel', status: 'received' as const, detail: null },
+        { id: 'current_budget', label: 'Current budget', status: 'requested' as const, detail: null },
+      ]
+      expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments, findings: [] })).toBe('under_review')
+      buildCondoDiligenceOperationalSummary({
+        matterId,
+        condo: docs(requiredDocuments),
+        now,
+      })
+      expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments, findings: [] })).toBe('under_review')
+      expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments, findings: [{ text: 'flagged' }] })).toBe(
+        'flagged',
+      )
     })
   })
 })
