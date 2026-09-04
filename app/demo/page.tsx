@@ -13,6 +13,7 @@ import SystemContractMapCard from './_components/SystemContractMapCard'
 import { getMatterPartyDisplayRows } from '@/lib/demo/matterPartyDisplay'
 import {
   buildCondoDiligenceWorkQueueRows,
+  collectCondoDiligenceWorkQueueOpenPrimaryTaskIds,
   condoDiligenceReviewTaskDueAttentionPresentation,
   countCondoDiligenceWorkQueueDueSoon,
   demoMatterReviewTaskStatusPresentation,
@@ -38,13 +39,16 @@ export default function DemoPage() {
 }
 
 function DemoPageContent() {
-  const { demoFirm, staff, matters, archivedMatters, matterReviewTasks, updateMatterStatus } = useDemoStore()
+  const { demoFirm, staff, matters, archivedMatters, matterReviewTasks, updateMatterStatus, updateMatterReviewTasksStatus } =
+    useDemoStore()
   const [selectedMatterId, setSelectedMatterId] = useState(mattersDefault(matters))
   const [isNewMatterOpen, setIsNewMatterOpen] = useState(false)
   const [showDemoCreationDisabledBanner, setShowDemoCreationDisabledBanner] = useState(false)
   const [isNewIntakeOpen, setIsNewIntakeOpen] = useState(false)
   const [showDemoIntakeDisabledBanner, setShowDemoIntakeDisabledBanner] = useState(false)
   const [workQueueFilter, setWorkQueueFilter] = useState<CondoDiligenceWorkQueueViewFilter>('all_active')
+  const [selectedWorkQueueMatterIds, setSelectedWorkQueueMatterIds] = useState<string[]>([])
+  const [workQueueBulkFeedback, setWorkQueueBulkFeedback] = useState<string | null>(null)
   /** Demo has no session current-user identity; Assigned to me stays disabled until one exists. */
   const demoCurrentStaffId: string | null = null
 
@@ -116,6 +120,29 @@ function DemoPageContent() {
     () => formatCondoDiligenceDueSoonCountLabel(countCondoDiligenceWorkQueueDueSoon(condoDiligenceWorkQueue, workQueueNow)),
     [condoDiligenceWorkQueue, workQueueNow],
   )
+
+  const selectedVisibleWorkQueueRows = useMemo(
+    () => visibleCondoDiligenceWorkQueue.filter((row) => selectedWorkQueueMatterIds.includes(row.matterId)),
+    [visibleCondoDiligenceWorkQueue, selectedWorkQueueMatterIds],
+  )
+  const selectedOpenPrimaryTaskIds = useMemo(
+    () => collectCondoDiligenceWorkQueueOpenPrimaryTaskIds(selectedVisibleWorkQueueRows),
+    [selectedVisibleWorkQueueRows],
+  )
+  const allVisibleSelected =
+    visibleCondoDiligenceWorkQueue.length > 0 &&
+    visibleCondoDiligenceWorkQueue.every((row) => selectedWorkQueueMatterIds.includes(row.matterId))
+
+  useEffect(() => {
+    const visibleIds = new Set(visibleCondoDiligenceWorkQueue.map((row) => row.matterId))
+    setSelectedWorkQueueMatterIds((prev) => prev.filter((id) => visibleIds.has(id)))
+  }, [visibleCondoDiligenceWorkQueue])
+
+  useEffect(() => {
+    if (!workQueueBulkFeedback) return
+    const t = window.setTimeout(() => setWorkQueueBulkFeedback(null), 2500)
+    return () => window.clearTimeout(t)
+  }, [workQueueBulkFeedback])
 
   if (!selectedMatter) {
     return (
@@ -308,55 +335,118 @@ function DemoPageContent() {
             gap: 8,
             alignItems: 'center',
             marginBottom: 10,
+            justifyContent: 'space-between',
           }}
-          role="group"
-          aria-label="Condo Diligence Work Queue filters"
         >
-          {(
-            [
-              { id: 'all_active' as const, label: 'All active', disabled: false },
-              {
-                id: 'assigned_to_me' as const,
-                label: 'Assigned to me',
-                disabled: !demoCurrentStaffId,
-              },
-              { id: 'due_soon' as const, label: 'Due soon', disabled: false },
-            ] as const
-          ).map((opt) => {
-            const active = workQueueFilter === opt.id
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                disabled={opt.disabled}
-                title={
-                  opt.disabled
-                    ? 'Assigned to me needs a demo current-user staff ID. Demo mode has no signed-in identity yet.'
-                    : opt.id === 'due_soon'
-                      ? 'Due soon includes overdue tasks and tasks due in the next 7 days.'
-                      : undefined
-                }
-                onClick={() => {
-                  if (opt.disabled) return
-                  setWorkQueueFilter(opt.id)
-                }}
-                aria-pressed={active}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 999,
-                  border: active ? '1px solid #208096' : '1px solid rgba(94,82,64,0.25)',
-                  background: opt.disabled ? '#f5f5f5' : active ? '#e8f4f7' : '#fff',
-                  color: opt.disabled ? '#9aa8a1' : active ? '#134252' : '#627c71',
-                  fontWeight: 800,
-                  fontSize: 12,
-                  cursor: opt.disabled ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {opt.label}
-              </button>
-            )
-          })}
+          <div
+            style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
+            role="group"
+            aria-label="Condo Diligence Work Queue filters"
+          >
+            {(
+              [
+                { id: 'all_active' as const, label: 'All active', disabled: false },
+                {
+                  id: 'assigned_to_me' as const,
+                  label: 'Assigned to me',
+                  disabled: !demoCurrentStaffId,
+                },
+                { id: 'due_soon' as const, label: 'Due soon', disabled: false },
+              ] as const
+            ).map((opt) => {
+              const active = workQueueFilter === opt.id
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  disabled={opt.disabled}
+                  title={
+                    opt.disabled
+                      ? 'Assigned to me needs a demo current-user staff ID. Demo mode has no signed-in identity yet.'
+                      : opt.id === 'due_soon'
+                        ? 'Due soon includes overdue tasks and tasks due in the next 7 days.'
+                        : undefined
+                  }
+                  onClick={() => {
+                    if (opt.disabled) return
+                    setWorkQueueFilter(opt.id)
+                  }}
+                  aria-pressed={active}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 999,
+                    border: active ? '1px solid #208096' : '1px solid rgba(94,82,64,0.25)',
+                    background: opt.disabled ? '#f5f5f5' : active ? '#e8f4f7' : '#fff',
+                    color: opt.disabled ? '#9aa8a1' : active ? '#134252' : '#627c71',
+                    fontWeight: 800,
+                    fontSize: 12,
+                    cursor: opt.disabled ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              )
+            })}
+          </div>
+          <button
+            type="button"
+            disabled={selectedOpenPrimaryTaskIds.length === 0}
+            title={
+              selectedVisibleWorkQueueRows.length === 0
+                ? 'Select one or more queue rows first'
+                : selectedOpenPrimaryTaskIds.length === 0
+                  ? 'Selected rows have no open primary review tasks to start (already in review are skipped)'
+                  : `Mark ${selectedOpenPrimaryTaskIds.length} open primary review task${
+                      selectedOpenPrimaryTaskIds.length === 1 ? '' : 's'
+                    } as in review`
+            }
+            onClick={() => {
+              const taskIds = selectedOpenPrimaryTaskIds
+              if (taskIds.length === 0) return
+              const ok = window.confirm(
+                `Mark ${taskIds.length} open review task${taskIds.length === 1 ? '' : 's'} as in review? Already in-review tasks are left unchanged.`,
+              )
+              if (!ok) return
+              const updated = updateMatterReviewTasksStatus(taskIds, 'in_review')
+              setSelectedWorkQueueMatterIds([])
+              setWorkQueueBulkFeedback(
+                updated === 0
+                  ? 'No open review tasks needed updating.'
+                  : `Marked ${updated} review task${updated === 1 ? '' : 's'} as in review.`,
+              )
+            }}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 8,
+              border: '1px solid rgba(94,82,64,0.25)',
+              background: selectedOpenPrimaryTaskIds.length === 0 ? '#f5f5f5' : '#134252',
+              color: selectedOpenPrimaryTaskIds.length === 0 ? '#9aa8a1' : '#fff',
+              fontWeight: 800,
+              fontSize: 12,
+              cursor: selectedOpenPrimaryTaskIds.length === 0 ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Mark selected as in review
+          </button>
         </div>
+        {workQueueBulkFeedback ? (
+          <div
+            role="status"
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              marginBottom: 8,
+              padding: '8px 10px',
+              borderRadius: 8,
+              background: '#edf7f0',
+              color: '#2f855a',
+              border: '1px solid rgba(47,133,90,0.25)',
+            }}
+          >
+            {workQueueBulkFeedback}
+          </div>
+        ) : null}
         {workQueueFilter === 'due_soon' ? (
           <div style={{ fontSize: 12, color: '#627c71', fontWeight: 700, marginBottom: 8 }}>
             Due soon includes overdue tasks and tasks due in the next 7 days.
@@ -382,9 +472,35 @@ function DemoPageContent() {
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
               <thead>
                 <tr style={{ background: '#fcfcf9' }}>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12, width: 36 }}>
+                    <input
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      ref={(el) => {
+                        if (el) {
+                          el.indeterminate =
+                            selectedVisibleWorkQueueRows.length > 0 && !allVisibleSelected
+                        }
+                      }}
+                      onChange={() => {
+                        if (allVisibleSelected) {
+                          setSelectedWorkQueueMatterIds((prev) =>
+                            prev.filter((id) => !visibleCondoDiligenceWorkQueue.some((r) => r.matterId === id)),
+                          )
+                        } else {
+                          setSelectedWorkQueueMatterIds((prev) => {
+                            const next = new Set(prev)
+                            for (const row of visibleCondoDiligenceWorkQueue) next.add(row.matterId)
+                            return Array.from(next)
+                          })
+                        }
+                      }}
+                      aria-label="Select all visible work queue rows"
+                    />
+                  </th>
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12 }}>Matter</th>
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12 }}>Review signal</th>
                   <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12 }}>Assignee</th>
@@ -403,6 +519,7 @@ function DemoPageContent() {
                     row.primaryTask.due_date,
                     workQueueNow,
                   )
+                  const rowSelected = selectedWorkQueueMatterIds.includes(row.matterId)
                   return (
                     <tr
                       key={row.matterId}
@@ -410,9 +527,29 @@ function DemoPageContent() {
                       style={{
                         borderTop: '1px solid rgba(94,82,64,0.12)',
                         cursor: 'pointer',
-                        background: row.matterId === selectedMatter.id ? '#f7fbfc' : 'white',
+                        background:
+                          row.matterId === selectedMatter.id
+                            ? '#f7fbfc'
+                            : rowSelected
+                              ? '#faf8f4'
+                              : 'white',
                       }}
                     >
+                      <td style={{ padding: '12px', verticalAlign: 'top' }}>
+                        <input
+                          type="checkbox"
+                          checked={rowSelected}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={() => {
+                            setSelectedWorkQueueMatterIds((prev) =>
+                              prev.includes(row.matterId)
+                                ? prev.filter((id) => id !== row.matterId)
+                                : [...prev, row.matterId],
+                            )
+                          }}
+                          aria-label={`Select ${row.fileId}`}
+                        />
+                      </td>
                       <td style={{ padding: '12px', color: '#134252', fontWeight: 700, verticalAlign: 'top' }}>
                         {row.fileId}
                         <div style={{ color: '#627c71', fontWeight: 500, fontSize: 12, marginTop: 2 }}>

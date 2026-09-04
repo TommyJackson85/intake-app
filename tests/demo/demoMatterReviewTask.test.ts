@@ -20,6 +20,8 @@ import {
   matterHasDueSoonCondoDiligenceSummaryReviewTask,
   parseStoredDemoMatterReviewTasks,
   patchDemoMatterReviewTaskStatus,
+  patchDemoMatterReviewTasksStatus,
+  collectCondoDiligenceWorkQueueOpenPrimaryTaskIds,
 } from '@/lib/demo/demoMatterReviewTask'
 
 describe('demoMatterReviewTask', () => {
@@ -83,6 +85,53 @@ describe('demoMatterReviewTask', () => {
     expect(next[0]?.status).toBe('in_review')
     expect(next[0]?.updated_at).toBe('2026-09-04T16:00:00.000Z')
     expect(patchDemoMatterReviewTaskStatus(next, 'rt-1', 'in_review')).toBe(next)
+  })
+
+  it('bulk-patches statuses and skips ids already at target status', () => {
+    const openA = buildDemoMatterReviewTask(
+      { ...base, id: 'rt-open-a' },
+      { nowIso: () => '2026-09-04T15:00:00.000Z' },
+    )!
+    const openB = buildDemoMatterReviewTask(
+      { ...base, id: 'rt-open-b', matter_id: 'matter-2' },
+      { nowIso: () => '2026-09-04T15:00:00.000Z' },
+    )!
+    const already = buildDemoMatterReviewTask(
+      { ...base, id: 'rt-in-review', status: 'in_review', matter_id: 'matter-3' },
+      { nowIso: () => '2026-09-04T14:00:00.000Z' },
+    )!
+    const result = patchDemoMatterReviewTasksStatus(
+      [openA, openB, already],
+      ['rt-open-a', 'rt-in-review', 'missing', '  '],
+      'in_review',
+      { nowIso: () => '2026-09-04T16:00:00.000Z' },
+    )
+    expect(result.updatedCount).toBe(1)
+    expect(result.updatedTaskIds).toEqual(['rt-open-a'])
+    expect(result.tasks.find((t) => t.id === 'rt-open-a')?.status).toBe('in_review')
+    expect(result.tasks.find((t) => t.id === 'rt-open-a')?.updated_at).toBe('2026-09-04T16:00:00.000Z')
+    expect(result.tasks.find((t) => t.id === 'rt-open-b')?.status).toBe('open')
+    expect(result.tasks.find((t) => t.id === 'rt-in-review')).toBe(already)
+
+    const noop = patchDemoMatterReviewTasksStatus(result.tasks, ['rt-open-a'], 'in_review')
+    expect(noop.updatedCount).toBe(0)
+    expect(noop.tasks).toBe(result.tasks)
+  })
+
+  it('collects only open primary task ids from work-queue rows', () => {
+    const open = buildDemoMatterReviewTask({ ...base, id: 'open-1', status: 'open' })!
+    const inReview = buildDemoMatterReviewTask({
+      ...base,
+      id: 'in-review-1',
+      status: 'in_review',
+    })!
+    expect(
+      collectCondoDiligenceWorkQueueOpenPrimaryTaskIds([
+        { primaryTask: open },
+        { primaryTask: inReview },
+      ]),
+    ).toEqual(['open-1'])
+    expect(collectCondoDiligenceWorkQueueOpenPrimaryTaskIds([])).toEqual([])
   })
 
   it('lists matter review tasks newest-first and ignores other matters', () => {

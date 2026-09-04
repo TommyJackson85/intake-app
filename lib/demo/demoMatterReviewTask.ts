@@ -112,6 +112,33 @@ export function patchDemoMatterReviewTaskStatus(
   return changed ? next : tasks
 }
 
+/**
+ * Bulk status patch for selected task ids. Skips ids that are missing or already at `status`.
+ * Returns the same array reference when nothing changes.
+ */
+export function patchDemoMatterReviewTasksStatus(
+  tasks: DemoMatterReviewTask[],
+  taskIds: readonly string[],
+  status: DemoMatterReviewTaskStatus,
+  options?: { nowIso?: () => string },
+): { tasks: DemoMatterReviewTask[]; updatedCount: number; updatedTaskIds: string[] } {
+  if (!isDemoMatterReviewTaskStatus(status) || taskIds.length === 0) {
+    return { tasks, updatedCount: 0, updatedTaskIds: [] }
+  }
+  const idSet = new Set(taskIds.map((id) => id.trim()).filter(Boolean))
+  if (idSet.size === 0) return { tasks, updatedCount: 0, updatedTaskIds: [] }
+
+  const nowIso = options?.nowIso?.() ?? new Date().toISOString()
+  const updatedTaskIds: string[] = []
+  const next = tasks.map((task) => {
+    if (!idSet.has(task.id) || task.status === status) return task
+    updatedTaskIds.push(task.id)
+    return { ...task, status, updated_at: nowIso }
+  })
+  if (updatedTaskIds.length === 0) return { tasks, updatedCount: 0, updatedTaskIds: [] }
+  return { tasks: next, updatedCount: updatedTaskIds.length, updatedTaskIds }
+}
+
 export function listCondoDiligenceSummaryReviewTasks(
   tasks: DemoMatterReviewTask[],
   matterId: string,
@@ -275,6 +302,15 @@ export function buildCondoDiligenceWorkQueueRows(
     if (dueCmp !== 0) return dueCmp
     return a.fileId.localeCompare(b.fileId)
   })
+}
+
+/** Primary task ids from work-queue rows that are eligible to mark as in review (`open` only). */
+export function collectCondoDiligenceWorkQueueOpenPrimaryTaskIds(
+  rows: ReadonlyArray<Pick<CondoDiligenceWorkQueueRow, 'primaryTask'>>,
+): string[] {
+  return rows
+    .filter((row) => row.primaryTask.status === 'open')
+    .map((row) => row.primaryTask.id)
 }
 
 export type CondoDiligenceWorkQueueViewFilter = 'all_active' | 'assigned_to_me' | 'due_soon'

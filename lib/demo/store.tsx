@@ -66,6 +66,7 @@ import {
   listCondoDiligenceSummaryReviewTasks,
   parseStoredDemoMatterReviewTasks,
   patchDemoMatterReviewTaskStatus,
+  patchDemoMatterReviewTasksStatus,
   type AddDemoMatterReviewTaskInput,
 } from '@/lib/demo/demoMatterReviewTask'
 
@@ -102,6 +103,8 @@ type DemoContextType = {
   fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => void
   addMatterReviewTask: (input: AddDemoMatterReviewTaskInput) => void
   updateMatterReviewTaskStatus: (taskId: string, status: DemoMatterReviewTaskStatus) => void
+  /** Atomically updates multiple review-task statuses (e.g. bulk mark in review). */
+  updateMatterReviewTasksStatus: (taskIds: string[], status: DemoMatterReviewTaskStatus) => number
   listMatterReviewTasksForMatter: (matterId: string) => DemoMatterReviewTask[]
   getCondoDiligence: (matterId: string) => DemoCondoDiligence | undefined
   ensureCondoDiligence: (matterId: string) => void
@@ -1679,6 +1682,16 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           if (matterReviewTasks === prev.matterReviewTasks) return prev
           return { ...prev, matterReviewTasks }
         })
+      },
+      updateMatterReviewTasksStatus: (taskIds, status) => {
+        let updatedCount = 0
+        setState((prev) => {
+          const result = patchDemoMatterReviewTasksStatus(prev.matterReviewTasks, taskIds, status)
+          updatedCount = result.updatedCount
+          if (result.tasks === prev.matterReviewTasks) return prev
+          return { ...prev, matterReviewTasks: result.tasks }
+        })
+        return updatedCount
       },
       listMatterReviewTasksForMatter: (matterId) =>
         listCondoDiligenceSummaryReviewTasks(state.matterReviewTasks, matterId),
