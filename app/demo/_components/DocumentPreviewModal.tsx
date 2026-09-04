@@ -8,6 +8,7 @@ import {
   resolveEngagementLetterPreview,
 } from '@/lib/demo/engagementLetterPreview'
 import { buildPreviewSourceLabel, buildPreviewTitle } from '@/lib/demo/documentPreviewPresentation'
+import { isCondoDiligenceInternalSummaryDocument } from '@/lib/demo/condoDiligence'
 
 type DocumentPreviewModalProps = {
   previewDocument: DemoDocument | null
@@ -118,6 +119,11 @@ export default function DocumentPreviewModal({
     categoryTitle: previewConfig.title,
   })
   const isEngagementLetter = isEngagementLetterDocument(previewDocument)
+  const isCondoInternalSummary = isCondoDiligenceInternalSummaryDocument(previewDocument)
+  const condoSummaryContent =
+    previewDocument.generatedInternalSummary?.content?.trim() ||
+    previewDocument.description?.trim() ||
+    ''
   const engagementPreview = resolveEngagementLetterPreview({
     dateLabel: previewDocument.document_date ?? 'Not specified',
     matterType: matter?.matter_type ?? 'Real estate matter',
@@ -307,7 +313,9 @@ export default function DocumentPreviewModal({
               Demo preview
             </div>
             <div style={{ fontSize: 12, color: '#627c71', marginBottom: 12 }}>
-              Simulated first-page preview. No real file stored.
+              {isCondoInternalSummary
+                ? 'Internal generated text snapshot. Not shared to the client portal.'
+                : 'Simulated first-page preview. No real file stored.'}
             </div>
             <div
               style={{
@@ -320,6 +328,49 @@ export default function DocumentPreviewModal({
                 overflowY: 'auto',
               }}
             >
+              {isCondoInternalSummary ? (
+                <>
+                  <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8, letterSpacing: '0.04em' }}>
+                    INTERNAL DILIGENCE SUMMARY — LAWYER REVIEW REQUIRED
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>
+                    {previewDocument.name}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#4b5563', marginBottom: 10 }}>
+                    Visibility: internal · Matter: {matterLabel} · Generated:{' '}
+                    {previewDocument.generatedInternalSummary?.generatedAt
+                      ? formatDemoDateTime(previewDocument.generatedInternalSummary.generatedAt)
+                      : formatDemoDateTime(previewDocument.uploaded_at)}
+                  </div>
+                  <div
+                    style={{
+                      marginBottom: 12,
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      background: '#fff8e6',
+                      border: '1px solid rgba(240,180,41,0.45)',
+                      color: '#92400e',
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Internal lawyer work product only. Not a client-facing compliance certificate.
+                  </div>
+                  <pre
+                    style={{
+                      margin: 0,
+                      whiteSpace: 'pre-wrap',
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                      fontSize: 12,
+                      lineHeight: 1.45,
+                      color: '#134252',
+                    }}
+                  >
+                    {condoSummaryContent || 'No summary content stored on this draft.'}
+                  </pre>
+                </>
+              ) : (
+                <>
               <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8, letterSpacing: '0.04em' }}>
                 {previewDocument.category.toUpperCase()} DOCUMENT - DEMO
               </div>
@@ -432,6 +483,8 @@ export default function DocumentPreviewModal({
               <div style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>
                 This is a visual mock preview generated from metadata for demo purposes only.
               </div>
+                </>
+              )}
             </div>
           </div>
           <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>

@@ -466,6 +466,20 @@ export type DemoDocument = {
   uploaded_by_staff_id: string
   status: 'draft' | 'reviewed' | 'final'
   deletedAt: string | null
+  /**
+   * Optional metadata for generated internal text snapshots (e.g. Condo Diligence summary).
+   * Absent on ordinary upload rows and older persisted documents.
+   */
+  generatedInternalSummary?: DemoGeneratedInternalSummaryMetadata
+}
+
+/** Immutable generated internal summary payload stored on a matter document row. */
+export type DemoGeneratedInternalSummaryMetadata = {
+  generatedType: 'condo_diligence_internal_summary'
+  generatedAt: string
+  sourceMatterId: string
+  content: string
+  visibility: 'internal'
 }
 
 export type DemoDocumentRequestStatus = 'open' | 'fulfilled'

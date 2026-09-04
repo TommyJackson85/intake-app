@@ -17,6 +17,7 @@ export type AddDemoDocumentInput = {
   /** For tests or deterministic replays */
   uploaded_at?: string
   id?: string
+  generatedInternalSummary?: DemoDocument['generatedInternalSummary']
 }
 
 export type BuildDemoDocumentOptions = {
@@ -75,6 +76,7 @@ export function buildDemoDocument(
     uploaded_at,
     uploaded_by_staff_id,
     deletedAt: null,
+    ...(input.generatedInternalSummary ? { generatedInternalSummary: input.generatedInternalSummary } : {}),
   }
 }
 
