@@ -3,12 +3,20 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
 import type {
+  DemoCondoAssociationFinancialReview,
+  DemoCondoAssociationLoanStatus,
+  DemoCondoAssociationSpecialAssessmentStatus,
+  DemoCondoDelinquencyConcern,
   DemoCondoDiligenceDocStatus,
   DemoCondoDiligenceMatterStatus,
+  DemoCondoDuesFrequency,
   DemoCondoEstoppelReview,
   DemoCondoEstoppelReviewStatus,
   DemoCondoEstoppelSpecialAssessmentStatus,
   DemoCondoEstoppelViolationOrLienStatus,
+  DemoCondoFinancialDocReviewStatus,
+  DemoCondoFinancialRiskLevel,
+  DemoCondoReserveFundingStatus,
   DemoCondoSirsApplicability,
   DemoCondoSirsDocumentStatus,
   DemoCondoSirsMilestoneReview,
@@ -28,6 +36,8 @@ import {
   condoDiligenceMatterStatusPresentation,
   condoEstoppelDueDateWarning,
   condoEstoppelReviewStatusPresentation,
+  condoFinancialDocReviewStatusPresentation,
+  condoFinancialRiskLevelPresentation,
   condoRequiredDocMatchesLinkageHaystack,
   condoRequiredDocDerivedStatusPresentation,
   condoSirsApplicabilityPresentation,
@@ -37,6 +47,7 @@ import {
   deriveCondoRequiredDocumentStatus,
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
+  normalizeCondoAssociationFinancialReview,
   normalizeCondoEstoppelReview,
   normalizeCondoSirsMilestoneReview,
   syncRequiredDocumentsFromDerivedLinkage,
@@ -1861,6 +1872,416 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                 </li>
                               ))}
                               {sirsLinkedRequests.map((r) => (
+                                <li key={r.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Request ({r.status}):</strong> {r.title}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {(() => {
+                    const financialReview = normalizeCondoAssociationFinancialReview(
+                      condoDiligence.associationFinancialReview,
+                    )
+                    const budgetStatusPresent = condoFinancialDocReviewStatusPresentation(
+                      financialReview.budgetReviewStatus,
+                    )
+                    const statementsStatusPresent = condoFinancialDocReviewStatusPresentation(
+                      financialReview.financialStatementsReviewStatus,
+                    )
+                    const reserveScheduleStatusPresent = condoFinancialDocReviewStatusPresentation(
+                      financialReview.reserveScheduleReviewStatus,
+                    )
+                    const riskPresent = condoFinancialRiskLevelPresentation(financialReview.financialRiskLevel)
+                    const financialDocIds = [
+                      'current_budget',
+                      'association_financial_statements',
+                      'reserve_schedule_funding_detail',
+                      'special_assessment_notice_schedule',
+                    ] as const
+                    const financialLinkedDocuments = matterDocuments.filter((d) => {
+                      if (d.deletedAt) return false
+                      const haystack = [d.name, d.document_subtype ?? '', d.description ?? '', d.category]
+                        .filter(Boolean)
+                        .join(' ')
+                        .toLowerCase()
+                      return financialDocIds.some((id) => condoRequiredDocMatchesLinkageHaystack(haystack, id))
+                    })
+                    const financialLinkedRequests = matterDocumentRequests.filter((r) => {
+                      const haystack = [r.title, r.description ?? '', r.category].filter(Boolean).join(' ').toLowerCase()
+                      return financialDocIds.some((id) => condoRequiredDocMatchesLinkageHaystack(haystack, id))
+                    })
+                    const patchFinancial = (patch: Partial<DemoCondoAssociationFinancialReview>) => {
+                      patchCondoDiligence(matterId, {
+                        associationFinancialReview: { ...financialReview, ...patch },
+                      })
+                    }
+                    const parseOptionalAmount = (raw: string): number | null | undefined => {
+                      const trimmed = raw.trim()
+                      if (!trimmed) return null
+                      const n = Number(trimmed)
+                      return Number.isFinite(n) ? n : undefined
+                    }
+                    const fieldLabel: React.CSSProperties = {
+                      display: 'block',
+                      fontSize: 12,
+                      color: '#627c71',
+                      fontWeight: 800,
+                      marginBottom: 4,
+                    }
+                    const fieldInput: React.CSSProperties = {
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(94,82,64,0.22)',
+                      fontSize: 13,
+                      color: '#134252',
+                      boxSizing: 'border-box',
+                    }
+                    const docReviewOptions = (
+                      <>
+                        <option value="not_started">Not started</option>
+                        <option value="requested">Requested</option>
+                        <option value="received">Received</option>
+                        <option value="reviewed">Reviewed</option>
+                        <option value="issue_found">Issue found</option>
+                      </>
+                    )
+                    const showFinancialAttention =
+                      financialReview.financialRiskLevel === 'medium' ||
+                      financialReview.financialRiskLevel === 'high' ||
+                      financialReview.delinquencyConcern === 'material' ||
+                      financialReview.reserveFundingStatus === 'material_shortfall' ||
+                      financialReview.budgetReviewStatus === 'issue_found' ||
+                      financialReview.financialStatementsReviewStatus === 'issue_found' ||
+                      financialReview.reserveScheduleReviewStatus === 'issue_found' ||
+                      financialReview.specialAssessmentStatus === 'active' ||
+                      financialReview.specialAssessmentStatus === 'proposed_or_pending'
+
+                    return (
+                      <div
+                        id="condo-association-financial-review"
+                        style={{
+                          border: '1px solid rgba(94,82,64,0.12)',
+                          borderRadius: 8,
+                          padding: 14,
+                          background: 'white',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                              Association Financial Review
+                            </div>
+                            <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '36rem' }}>
+                              Structured practice notes for association budget, financial statements, reserves, and
+                              assessments. Complements checklist rows — does not replace document requests, linkage, or
+                              sync. Not an affordability, solvency, or closing-readiness determination.
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: budgetStatusPresent.bg,
+                                color: budgetStatusPresent.color,
+                                border: `1px solid ${budgetStatusPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Budget: {budgetStatusPresent.label}
+                            </span>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: statementsStatusPresent.bg,
+                                color: statementsStatusPresent.color,
+                                border: `1px solid ${statementsStatusPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Statements: {statementsStatusPresent.label}
+                            </span>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: riskPresent.bg,
+                                color: riskPresent.color,
+                                border: `1px solid ${riskPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Risk: {riskPresent.label}
+                            </span>
+                          </div>
+                        </div>
+
+                        {showFinancialAttention && (
+                          <div
+                            role="status"
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(240,180,41,0.45)',
+                              background: '#fff8e6',
+                              color: '#b45309',
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            Attention: material association financial signals recorded. Confirm linked documents and
+                            lawyer notes before treating finances as cleared. Demo reminder only — not a solvency or
+                            closing opinion. Reserve schedule review: {reserveScheduleStatusPresent.label}.
+                          </div>
+                        )}
+
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                            gap: 10,
+                          }}
+                        >
+                          <label>
+                            <span style={fieldLabel}>Budget review</span>
+                            <select
+                              value={financialReview.budgetReviewStatus}
+                              onChange={(e) =>
+                                patchFinancial({
+                                  budgetReviewStatus: e.target.value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Financial statements review</span>
+                            <select
+                              value={financialReview.financialStatementsReviewStatus}
+                              onChange={(e) =>
+                                patchFinancial({
+                                  financialStatementsReviewStatus: e.target
+                                    .value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Reserve schedule review</span>
+                            <select
+                              value={financialReview.reserveScheduleReviewStatus}
+                              onChange={(e) =>
+                                patchFinancial({
+                                  reserveScheduleReviewStatus: e.target.value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Dues amount</span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.01"
+                              value={financialReview.duesAmount ?? ''}
+                              onChange={(e) => {
+                                const parsed = parseOptionalAmount(e.target.value)
+                                if (parsed !== undefined) patchFinancial({ duesAmount: parsed })
+                              }}
+                              placeholder="Optional"
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Dues frequency</span>
+                            <select
+                              value={financialReview.duesFrequency}
+                              onChange={(e) =>
+                                patchFinancial({ duesFrequency: e.target.value as DemoCondoDuesFrequency })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="monthly">Monthly</option>
+                              <option value="quarterly">Quarterly</option>
+                              <option value="annual">Annual</option>
+                              <option value="other">Other</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Special assessment status</span>
+                            <select
+                              value={financialReview.specialAssessmentStatus}
+                              onChange={(e) =>
+                                patchFinancial({
+                                  specialAssessmentStatus: e.target
+                                    .value as DemoCondoAssociationSpecialAssessmentStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="none_disclosed">None disclosed</option>
+                              <option value="proposed_or_pending">Proposed or pending</option>
+                              <option value="active">Active</option>
+                              <option value="paid_or_resolved">Paid or resolved</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Special assessment amount</span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.01"
+                              value={financialReview.specialAssessmentAmount ?? ''}
+                              onChange={(e) => {
+                                const parsed = parseOptionalAmount(e.target.value)
+                                if (parsed !== undefined) patchFinancial({ specialAssessmentAmount: parsed })
+                              }}
+                              placeholder="Optional"
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Association loan / LOC</span>
+                            <select
+                              value={financialReview.associationLoanOrLineOfCreditStatus}
+                              onChange={(e) =>
+                                patchFinancial({
+                                  associationLoanOrLineOfCreditStatus: e.target
+                                    .value as DemoCondoAssociationLoanStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="none_disclosed">None disclosed</option>
+                              <option value="disclosed">Disclosed</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Delinquency concern</span>
+                            <select
+                              value={financialReview.delinquencyConcern}
+                              onChange={(e) =>
+                                patchFinancial({
+                                  delinquencyConcern: e.target.value as DemoCondoDelinquencyConcern,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="none_noted">None noted</option>
+                              <option value="possible">Possible</option>
+                              <option value="material">Material</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Reserve funding status</span>
+                            <select
+                              value={financialReview.reserveFundingStatus}
+                              onChange={(e) =>
+                                patchFinancial({
+                                  reserveFundingStatus: e.target.value as DemoCondoReserveFundingStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="appears_adequate">Appears adequate</option>
+                              <option value="possible_shortfall">Possible shortfall</option>
+                              <option value="material_shortfall">Material shortfall</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Financial risk level</span>
+                            <select
+                              value={financialReview.financialRiskLevel}
+                              onChange={(e) =>
+                                patchFinancial({
+                                  financialRiskLevel: e.target.value as DemoCondoFinancialRiskLevel,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="none">None noted</option>
+                              <option value="low">Low</option>
+                              <option value="medium">Medium</option>
+                              <option value="high">High</option>
+                            </select>
+                          </label>
+                        </div>
+
+                        <label style={{ display: 'block' }}>
+                          <span style={fieldLabel}>Lawyer notes</span>
+                          <textarea
+                            value={financialReview.notes}
+                            onChange={(e) => patchFinancial({ notes: e.target.value })}
+                            rows={3}
+                            placeholder="Internal association financial review notes (demo)"
+                            style={{ ...fieldInput, resize: 'vertical' }}
+                          />
+                        </label>
+
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 900, color: '#134252', marginBottom: 6 }}>
+                            Linked association financial documents &amp; requests
+                          </div>
+                          <div style={{ fontSize: 11, color: '#627c71', marginBottom: 8, lineHeight: 1.4 }}>
+                            Read-only matches for current budget, association financial statements, reserve schedule /
+                            funding detail, and special assessment notice / schedule.
+                          </div>
+                          {financialLinkedDocuments.length === 0 && financialLinkedRequests.length === 0 ? (
+                            <div style={{ fontSize: 13, color: '#627c71' }}>
+                              No matching association financial documents or requests linked yet.
+                            </div>
+                          ) : (
+                            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {financialLinkedDocuments.map((d) => (
+                                <li key={d.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Document:</strong> {d.name}
+                                  {d.document_subtype ? ` · ${d.document_subtype}` : ''}
+                                </li>
+                              ))}
+                              {financialLinkedRequests.map((r) => (
                                 <li key={r.id} style={{ fontSize: 13, color: '#134252' }}>
                                   <strong>Request ({r.status}):</strong> {r.title}
                                 </li>

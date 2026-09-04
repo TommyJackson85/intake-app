@@ -50,8 +50,10 @@ import {
   buildDefaultCondoDiligence,
   deriveCondoDiligenceMatterStatusFromChecklist,
   isCondoDiligenceEligible,
+  normalizeCondoAssociationFinancialReview,
   normalizeCondoEstoppelReview,
   normalizeCondoSirsMilestoneReview,
+  parseDemoCondoAssociationFinancialReview,
   parseDemoCondoEstoppelReview,
   parseDemoCondoSirsMilestoneReview,
 } from '@/lib/demo/condoDiligence'
@@ -259,6 +261,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
 
   const estoppelReview = parseDemoCondoEstoppelReview(o.estoppelReview)
   const sirsMilestoneReview = parseDemoCondoSirsMilestoneReview(o.sirsMilestoneReview)
+  const associationFinancialReview = parseDemoCondoAssociationFinancialReview(o.associationFinancialReview)
 
   return {
     applicable: o.applicable,
@@ -269,6 +272,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
     updated_at: o.updated_at.trim(),
     ...(estoppelReview ? { estoppelReview } : {}),
     ...(sirsMilestoneReview ? { sirsMilestoneReview } : {}),
+    ...(associationFinancialReview ? { associationFinancialReview } : {}),
   }
 }
 
@@ -1604,8 +1608,12 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           const definedEntries = Object.fromEntries(
             Object.entries(patch).filter(([, v]) => v !== undefined),
           ) as Partial<DemoCondoDiligence>
-          const { estoppelReview: estoppelPatch, sirsMilestoneReview: sirsPatch, ...restPatch } =
-            definedEntries
+          const {
+            estoppelReview: estoppelPatch,
+            sirsMilestoneReview: sirsPatch,
+            associationFinancialReview: financialPatch,
+            ...restPatch
+          } = definedEntries
           const nextBase: DemoCondoDiligence = {
             ...existing,
             ...restPatch,
@@ -1624,6 +1632,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               ? {
                   ...normalizeCondoSirsMilestoneReview(existing.sirsMilestoneReview),
                   ...sirsPatch,
+                }
+              : undefined
+          }
+          if ('associationFinancialReview' in definedEntries) {
+            nextBase.associationFinancialReview = financialPatch
+              ? {
+                  ...normalizeCondoAssociationFinancialReview(existing.associationFinancialReview),
+                  ...financialPatch,
                 }
               : undefined
           }
