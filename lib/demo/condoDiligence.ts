@@ -137,6 +137,69 @@ export function condoRequiredDocMatchesLinkageHaystack(haystack: string, condoDo
         t.includes('association minutes') ||
         (t.includes('board') && t.includes('minute'))
       )
+    case 'association_financial_statements':
+      return (
+        t.includes('financial statement') ||
+        t.includes('financial statements') ||
+        t.includes('audited financial') ||
+        t.includes('association financials') ||
+        (t.includes('financial') && t.includes('statement') && /\b(association|hoa|condo)\b/.test(t))
+      )
+    case 'declaration_bylaws_rules_amendments':
+      return (
+        t.includes('declaration') ||
+        t.includes('bylaws') ||
+        t.includes('by-laws') ||
+        t.includes('rules and regulations') ||
+        t.includes('rules & regulations') ||
+        (t.includes('amendment') && /\b(declaration|bylaw|by-law|covenant|condo)\b/.test(t))
+      )
+    case 'reserve_schedule_funding_detail':
+      if (/\bsirs\b/.test(t) || t.includes('reserve study') || t.includes('structural integrity reserve')) {
+        return false
+      }
+      return (
+        t.includes('reserve schedule') ||
+        t.includes('reserve funding') ||
+        t.includes('funding schedule') ||
+        (t.includes('reserve') && t.includes('funding') && t.includes('detail')) ||
+        (t.includes('reserve') && t.includes('schedule'))
+      )
+    case 'special_assessment_notice_schedule':
+      return (
+        t.includes('special assessment') ||
+        t.includes('special assessments') ||
+        (t.includes('assessment') && t.includes('notice') && /\b(special|hoa|association|condo)\b/.test(t))
+      )
+    case 'litigation_claims_arbitration_dbpr':
+      return (
+        /\bdbpr\b/.test(t) ||
+        t.includes('litigation') ||
+        t.includes('arbitration') ||
+        t.includes('pending claim') ||
+        t.includes('claims disclosure') ||
+        (t.includes('claim') && /\b(litigation|arbitration|association|hoa|condo|disclosure)\b/.test(t))
+      )
+    case 'association_approval_leasing_restrictions':
+      return (
+        t.includes('leasing restriction') ||
+        t.includes('leasing restrictions') ||
+        t.includes('rental restriction') ||
+        t.includes('rental restrictions') ||
+        t.includes('association approval') ||
+        t.includes('lease approval') ||
+        (t.includes('leasing') && /\b(restriction|approval|package)\b/.test(t))
+      )
+    case 'management_association_contacts':
+      return (
+        t.includes('management company') ||
+        t.includes('management contact') ||
+        t.includes('association contact') ||
+        t.includes('association contacts') ||
+        t.includes('property manager contact') ||
+        (t.includes('management') && t.includes('contact')) ||
+        (t.includes('association') && t.includes('contact') && /\b(manager|management|hoa|condo)\b/.test(t))
+      )
     default:
       return false
   }
@@ -275,7 +338,55 @@ const DEFAULT_REQUIRED_DOCS: DemoCondoDiligenceRequiredDocument[] = [
   { id: 'current_budget', label: 'Current budget', status: 'outstanding', detail: null },
   { id: 'insurance_summary', label: 'Insurance summary', status: 'outstanding', detail: null },
   { id: 'recent_board_minutes', label: 'Recent board minutes', status: 'outstanding', detail: null },
+  { id: 'association_financial_statements', label: 'Association financial statements', status: 'outstanding', detail: null },
+  {
+    id: 'declaration_bylaws_rules_amendments',
+    label: 'Declaration, bylaws, rules & amendments',
+    status: 'outstanding',
+    detail: null,
+  },
+  { id: 'reserve_schedule_funding_detail', label: 'Reserve schedule / funding detail', status: 'outstanding', detail: null },
+  {
+    id: 'special_assessment_notice_schedule',
+    label: 'Special assessment notice / schedule',
+    status: 'outstanding',
+    detail: null,
+  },
+  {
+    id: 'litigation_claims_arbitration_dbpr',
+    label: 'Litigation, claims, arbitration or DBPR disclosure',
+    status: 'outstanding',
+    detail: null,
+  },
+  {
+    id: 'association_approval_leasing_restrictions',
+    label: 'Association approval & leasing restrictions',
+    status: 'outstanding',
+    detail: null,
+  },
+  { id: 'management_association_contacts', label: 'Management & association contacts', status: 'outstanding', detail: null },
 ]
+
+/** Stable ids for the original six condo diligence checklist rows (back-compat assertions). */
+export const ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS = [
+  'estoppel',
+  'milestone_inspection_summary',
+  'sirs_reserve_study',
+  'current_budget',
+  'insurance_summary',
+  'recent_board_minutes',
+] as const
+
+/** Stable ids added in the core document-pack expansion (demo defaults for newly eligible matters). */
+export const CORE_CONDO_DILIGENCE_DOC_PACK_IDS = [
+  'association_financial_statements',
+  'declaration_bylaws_rules_amendments',
+  'reserve_schedule_funding_detail',
+  'special_assessment_notice_schedule',
+  'litigation_claims_arbitration_dbpr',
+  'association_approval_leasing_restrictions',
+  'management_association_contacts',
+] as const
 
 export type BuildDefaultCondoDiligenceOptions = {
   nowIso?: () => string

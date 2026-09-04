@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CORE_CONDO_DILIGENCE_DOC_PACK_IDS,
+  ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS,
   buildDefaultCondoDiligence,
   condoDiligenceMatterStatusPresentation,
   condoRequiredDocMatchesLinkageHaystack,
@@ -12,7 +14,7 @@ import {
   isFloridaPropertyAddress,
   syncRequiredDocumentsFromDerivedLinkage,
 } from '@/lib/demo/condoDiligence'
-import type { DemoMatter } from '@/lib/demo/types'
+import type { DemoCondoDiligence, DemoMatter } from '@/lib/demo/types'
 
 function matter(partial: Partial<DemoMatter> & Pick<DemoMatter, 'matter_type' | 'property'>): DemoMatter {
   return {
@@ -20,9 +22,7 @@ function matter(partial: Partial<DemoMatter> & Pick<DemoMatter, 'matter_type' | 
     file_id: 'FL-TEST',
     status: 'Title Search',
     deletedAt: null,
-    matter_type: partial.matter_type,
     portal_token: 'demo-portal-test',
-    property: partial.property,
     buyer: { id: 'b', name: 'B', email: '', phone: '' },
     seller: { id: 's', name: 'S', email: '', phone: '' },
     transactionType: 'Purchase',
@@ -296,6 +296,41 @@ describe('condoDiligence', () => {
         }),
       ).toBe('outstanding')
     })
+
+    it('links core doc-pack rows without changing existing estoppel matching', () => {
+      expect(
+        deriveCondoRequiredDocumentStatus({
+          ...base,
+          condoDocId: 'association_financial_statements',
+          documents: [
+            {
+              matter_id: 'matter-002',
+              name: 'Association financial statements 2025.pdf',
+              category: 'Compliance',
+              document_subtype: null,
+              description: null,
+              deletedAt: null,
+            },
+          ],
+        }),
+      ).toBe('received')
+      expect(
+        deriveCondoRequiredDocumentStatus({
+          ...base,
+          condoDocId: 'estoppel',
+          documents: [
+            {
+              matter_id: 'matter-002',
+              name: 'Association financial statements 2025.pdf',
+              category: 'Compliance',
+              document_subtype: null,
+              description: null,
+              deletedAt: null,
+            },
+          ],
+        }),
+      ).toBe('outstanding')
+    })
   })
 
   describe('condoRequiredDocSavedStatusAfterLinkedSync', () => {
@@ -337,6 +372,7 @@ describe('condoDiligence', () => {
       expect(estoppel?.status).toBe('received')
       expect(budget?.status).toBe('requested')
       expect(next.find((d) => d.id === 'milestone_inspection_summary')?.status).toBe('outstanding')
+      expect(next.find((d) => d.id === 'association_financial_statements')?.status).toBe('outstanding')
     })
   })
 
@@ -347,6 +383,33 @@ describe('condoDiligence', () => {
       )
       expect(condoRequiredDocMatchesLinkageHaystack('SIRS / reserve study package', 'sirs_reserve_study')).toBe(true)
       expect(condoRequiredDocMatchesLinkageHaystack('milestone inspection summary 2024', 'sirs_reserve_study')).toBe(false)
+    })
+
+    it('matches core doc-pack phrases without stealing SIRS / reserve study', () => {
+      expect(
+        condoRequiredDocMatchesLinkageHaystack('reserve schedule / funding detail', 'reserve_schedule_funding_detail'),
+      ).toBe(true)
+      expect(condoRequiredDocMatchesLinkageHaystack('SIRS / reserve study package', 'reserve_schedule_funding_detail')).toBe(
+        false,
+      )
+      expect(
+        condoRequiredDocMatchesLinkageHaystack('declaration bylaws and amendments', 'declaration_bylaws_rules_amendments'),
+      ).toBe(true)
+      expect(
+        condoRequiredDocMatchesLinkageHaystack('special assessment notice schedule', 'special_assessment_notice_schedule'),
+      ).toBe(true)
+      expect(
+        condoRequiredDocMatchesLinkageHaystack('pending litigation and DBPR disclosure', 'litigation_claims_arbitration_dbpr'),
+      ).toBe(true)
+      expect(
+        condoRequiredDocMatchesLinkageHaystack(
+          'association approval & leasing restrictions package',
+          'association_approval_leasing_restrictions',
+        ),
+      ).toBe(true)
+      expect(
+        condoRequiredDocMatchesLinkageHaystack('management company and association contacts', 'management_association_contacts'),
+      ).toBe(true)
     })
   })
 
@@ -361,28 +424,28 @@ describe('condoDiligence', () => {
   })
 
   describe('deriveCondoDiligenceMatterStatusFromChecklist', () => {
-    const six = () =>
+    const defaultStatuses = () =>
       buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' }).requiredDocuments.map((d) => ({
         status: d.status,
       }))
 
     it('returns not_started when all required docs are outstanding', () => {
-      expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments: six(), findings: [] })).toBe(
-        'not_started',
-      )
+      expect(
+        deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments: defaultStatuses(), findings: [] }),
+      ).toBe('not_started')
     })
 
     it('returns cleared when every required doc is received', () => {
       expect(
         deriveCondoDiligenceMatterStatusFromChecklist({
-          requiredDocuments: six().map(() => ({ status: 'received' as const })),
+          requiredDocuments: defaultStatuses().map(() => ({ status: 'received' as const })),
           findings: [],
         }),
       ).toBe('cleared')
     })
 
     it('returns in_progress when there is a mix of outstanding and requested', () => {
-      const rows = six()
+      const rows = defaultStatuses()
       rows[0] = { status: 'requested' }
       expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments: rows, findings: [] })).toBe(
         'in_progress',
@@ -390,7 +453,9 @@ describe('condoDiligence', () => {
     })
 
     it('returns under_review when nothing is outstanding, something is requested, and not all received', () => {
-      const rows = six().map(() => ({ status: 'received' as const }))
+      const rows: Array<{ status: 'outstanding' | 'requested' | 'received' }> = defaultStatuses().map(() => ({
+        status: 'received',
+      }))
       rows[0] = { status: 'requested' }
       expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments: rows, findings: [] })).toBe(
         'under_review',
@@ -400,7 +465,7 @@ describe('condoDiligence', () => {
     it('returns flagged when a finding matches the demo flag signal', () => {
       expect(
         deriveCondoDiligenceMatterStatusFromChecklist({
-          requiredDocuments: six(),
+          requiredDocuments: defaultStatuses(),
           findings: [{ text: 'Seller disclosure looks fine' }, { text: 'This item should be flagged for counsel.' }],
         }),
       ).toBe('flagged')
@@ -409,6 +474,15 @@ describe('condoDiligence', () => {
     it('returns not_started for an empty requiredDocuments list', () => {
       expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments: [], findings: [] })).toBe(
         'not_started',
+      )
+    })
+
+    it('still derives status for older six-row saved checklists', () => {
+      const olderSix: Array<{ status: 'outstanding' | 'requested' | 'received' }> =
+        ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS.map(() => ({ status: 'outstanding' }))
+      olderSix[0] = { status: 'requested' }
+      expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments: olderSix, findings: [] })).toBe(
+        'in_progress',
       )
     })
   })
@@ -431,6 +505,30 @@ describe('condoDiligence', () => {
         }),
       ).toBe(false)
     })
+
+    it('treats older saved six-row checklists as untouched when still at defaults', () => {
+      const older: DemoCondoDiligence = {
+        applicable: true,
+        status: 'not_started',
+        notes: '',
+        findings: [],
+        updated_at: '2026-01-01T00:00:00.000Z',
+        requiredDocuments: ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS.map((id) => ({
+          id,
+          label: id,
+          status: 'outstanding' as const,
+          detail: null,
+        })),
+      }
+      expect(isCondoDiligenceUntouched(older)).toBe(true)
+      expect(
+        isCondoDiligenceUntouched({
+          ...older,
+          requiredDocuments: older.requiredDocuments.map((d, i) => (i === 0 ? { ...d, status: 'received' } : d)),
+          status: 'in_progress',
+        }),
+      ).toBe(false)
+    })
   })
 
   describe('buildDefaultCondoDiligence', () => {
@@ -442,14 +540,49 @@ describe('condoDiligence', () => {
       expect(d.findings).toEqual([])
       expect(d.updated_at).toBe('2026-04-27T12:00:00.000Z')
       expect(d.requiredDocuments.map((x) => x.id)).toEqual([
-        'estoppel',
-        'milestone_inspection_summary',
-        'sirs_reserve_study',
-        'current_budget',
-        'insurance_summary',
-        'recent_board_minutes',
+        ...ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS,
+        ...CORE_CONDO_DILIGENCE_DOC_PACK_IDS,
       ])
       expect(d.requiredDocuments.every((x) => x.status === 'outstanding')).toBe(true)
+    })
+
+    it('keeps the original six rows and adds exactly seven new core doc-pack rows without duplicates', () => {
+      const d = buildDefaultCondoDiligence({ nowIso: () => '2026-04-27T12:00:00.000Z' })
+      const ids = d.requiredDocuments.map((x) => x.id)
+      const labels = d.requiredDocuments.map((x) => x.label)
+
+      for (const id of ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS) {
+        expect(ids).toContain(id)
+      }
+      expect(CORE_CONDO_DILIGENCE_DOC_PACK_IDS).toHaveLength(7)
+      for (const id of CORE_CONDO_DILIGENCE_DOC_PACK_IDS) {
+        expect(ids).toContain(id)
+      }
+      expect(ids).toHaveLength(ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS.length + CORE_CONDO_DILIGENCE_DOC_PACK_IDS.length)
+      expect(new Set(ids).size).toBe(ids.length)
+      expect(new Set(labels).size).toBe(labels.length)
+
+      expect(d.requiredDocuments.find((x) => x.id === 'association_financial_statements')?.label).toBe(
+        'Association financial statements',
+      )
+      expect(d.requiredDocuments.find((x) => x.id === 'declaration_bylaws_rules_amendments')?.label).toBe(
+        'Declaration, bylaws, rules & amendments',
+      )
+      expect(d.requiredDocuments.find((x) => x.id === 'reserve_schedule_funding_detail')?.label).toBe(
+        'Reserve schedule / funding detail',
+      )
+      expect(d.requiredDocuments.find((x) => x.id === 'special_assessment_notice_schedule')?.label).toBe(
+        'Special assessment notice / schedule',
+      )
+      expect(d.requiredDocuments.find((x) => x.id === 'litigation_claims_arbitration_dbpr')?.label).toBe(
+        'Litigation, claims, arbitration or DBPR disclosure',
+      )
+      expect(d.requiredDocuments.find((x) => x.id === 'association_approval_leasing_restrictions')?.label).toBe(
+        'Association approval & leasing restrictions',
+      )
+      expect(d.requiredDocuments.find((x) => x.id === 'management_association_contacts')?.label).toBe(
+        'Management & association contacts',
+      )
     })
   })
 })

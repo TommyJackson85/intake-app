@@ -975,7 +975,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       </div>
                       <div style={{ fontSize: 12, lineHeight: 1.5 }}>
                         Review required association records, track requested and received items, and capture findings here.
-                        Start with estoppel, milestone/SIRS materials, budget, insurance summary, and recent board minutes.
+                        Work the checklist below (estoppel, inspections/reserves, financials, governing docs, insurance,
+                        minutes, assessments, litigation disclosures, leasing restrictions, and contacts).
                         Linked documents and open requests can help update the checklist.
                       </div>
                     </div>
