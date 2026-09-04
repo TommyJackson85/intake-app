@@ -1,0 +1,159 @@
+/**
+ * Build/merge helpers for internal Condo Diligence summary review tasks (demo-only).
+ * Separate from checklist `DemoTask` so matter-status derivation is unaffected.
+ */
+import type { DemoMatterReviewTask, DemoMatterReviewTaskStatus } from '@/lib/demo/types'
+
+export type AddDemoMatterReviewTaskInput = {
+  matter_id: string
+  title: string
+  linked_document_id: string
+  assignee_id?: string | null
+  due_date?: string | null
+  internal_note?: string | null
+  status?: DemoMatterReviewTaskStatus
+  id?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export type BuildDemoMatterReviewTaskOptions = {
+  idFactory?: () => string
+  nowIso?: () => string
+}
+
+const STATUSES: readonly DemoMatterReviewTaskStatus[] = ['open', 'in_review', 'completed']
+
+export function isDemoMatterReviewTaskStatus(value: unknown): value is DemoMatterReviewTaskStatus {
+  return typeof value === 'string' && (STATUSES as readonly string[]).includes(value)
+}
+
+export function demoMatterReviewTaskStatusPresentation(status: DemoMatterReviewTaskStatus): {
+  label: string
+  bg: string
+  color: string
+  border: string
+} {
+  switch (status) {
+    case 'completed':
+      return { label: 'Completed', bg: '#e8f5f0', color: '#2f855a', border: 'rgba(47,133,90,0.35)' }
+    case 'in_review':
+      return { label: 'In review', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.35)' }
+    case 'open':
+    default:
+      return { label: 'Open', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+  }
+}
+
+/**
+ * Builds an internal review task linked to a saved summary document.
+ * Returns null when required ids/title are empty after trim.
+ */
+export function buildDemoMatterReviewTask(
+  input: AddDemoMatterReviewTaskInput,
+  options?: BuildDemoMatterReviewTaskOptions,
+): DemoMatterReviewTask | null {
+  const matter_id = input.matter_id.trim()
+  const title = input.title.trim()
+  const linked_document_id = input.linked_document_id.trim()
+  if (!matter_id || !title || !linked_document_id) return null
+
+  const nowIso = options?.nowIso?.() ?? new Date().toISOString()
+  const created_at = input.created_at?.trim() || nowIso
+  const updated_at = input.updated_at?.trim() || created_at
+  const assignee_id = input.assignee_id?.trim() || null
+  const due_date = input.due_date?.trim() || null
+  const internal_note = input.internal_note?.trim() || null
+  const status = input.status && isDemoMatterReviewTaskStatus(input.status) ? input.status : 'open'
+  const idFactory = options?.idFactory ?? (() => `review-task-${Date.now()}`)
+
+  return {
+    id: input.id?.trim() || idFactory(),
+    matter_id,
+    title,
+    status,
+    assignee_id,
+    due_date,
+    internal_note,
+    linked_document_id,
+    task_type: 'condo_diligence_summary_review',
+    visibility: 'internal',
+    created_at,
+    updated_at,
+  }
+}
+
+export function appendDemoMatterReviewTaskIfValid(
+  tasks: DemoMatterReviewTask[],
+  input: AddDemoMatterReviewTaskInput,
+  options?: BuildDemoMatterReviewTaskOptions,
+): DemoMatterReviewTask[] {
+  const next = buildDemoMatterReviewTask(input, options)
+  if (!next) return tasks
+  return [...tasks, next]
+}
+
+export function patchDemoMatterReviewTaskStatus(
+  tasks: DemoMatterReviewTask[],
+  taskId: string,
+  status: DemoMatterReviewTaskStatus,
+  options?: { nowIso?: () => string },
+): DemoMatterReviewTask[] {
+  const id = taskId.trim()
+  if (!id || !isDemoMatterReviewTaskStatus(status)) return tasks
+  const nowIso = options?.nowIso?.() ?? new Date().toISOString()
+  let changed = false
+  const next = tasks.map((task) => {
+    if (task.id !== id) return task
+    if (task.status === status) return task
+    changed = true
+    return { ...task, status, updated_at: nowIso }
+  })
+  return changed ? next : tasks
+}
+
+export function listCondoDiligenceSummaryReviewTasks(
+  tasks: DemoMatterReviewTask[],
+  matterId: string,
+): DemoMatterReviewTask[] {
+  const id = matterId.trim()
+  if (!id) return []
+  return tasks
+    .filter(
+      (t) =>
+        t.matter_id === id &&
+        t.task_type === 'condo_diligence_summary_review' &&
+        t.visibility === 'internal',
+    )
+    .slice()
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+}
+
+/** Parse persisted rows; drops invalid entries. */
+export function parseStoredDemoMatterReviewTasks(raw: unknown): DemoMatterReviewTask[] {
+  if (!Array.isArray(raw)) return []
+  const out: DemoMatterReviewTask[] = []
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue
+    const o = row as Record<string, unknown>
+    const built = buildDemoMatterReviewTask({
+      id: typeof o.id === 'string' ? o.id : undefined,
+      matter_id: typeof o.matter_id === 'string' ? o.matter_id : '',
+      title: typeof o.title === 'string' ? o.title : '',
+      linked_document_id: typeof o.linked_document_id === 'string' ? o.linked_document_id : '',
+      assignee_id: typeof o.assignee_id === 'string' ? o.assignee_id : null,
+      due_date: typeof o.due_date === 'string' ? o.due_date : null,
+      internal_note: typeof o.internal_note === 'string' ? o.internal_note : null,
+      status: isDemoMatterReviewTaskStatus(o.status) ? o.status : 'open',
+      created_at: typeof o.created_at === 'string' ? o.created_at : undefined,
+      updated_at: typeof o.updated_at === 'string' ? o.updated_at : undefined,
+    })
+    if (built) out.push(built)
+  }
+  return out
+}
+
+export function defaultCondoDiligenceSummaryReviewTaskTitle(documentName: string): string {
+  const name = documentName.trim() || 'Internal Condo Diligence Summary'
+  return `Review: ${name}`
+}

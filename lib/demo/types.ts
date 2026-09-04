@@ -497,3 +497,21 @@ export type DemoDocumentRequest = {
   /** Set when fulfilled (e.g. portal simulated upload); links to `DemoDocument.id`. */
   fulfilled_document_id: string | null
 }
+
+/** Internal-only review of a saved Condo Diligence summary snapshot (not shared to portal). */
+export type DemoMatterReviewTaskStatus = 'open' | 'in_review' | 'completed'
+
+export type DemoMatterReviewTask = {
+  id: string
+  matter_id: string
+  title: string
+  status: DemoMatterReviewTaskStatus
+  assignee_id: string | null
+  due_date: string | null
+  internal_note: string | null
+  linked_document_id: string
+  task_type: 'condo_diligence_summary_review'
+  visibility: 'internal'
+  created_at: string
+  updated_at: string
+}

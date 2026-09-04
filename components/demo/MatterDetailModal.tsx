@@ -29,6 +29,7 @@ import type {
   DemoCondoSirsResult,
   DemoCondoSirsRiskLevel,
   DemoMatter,
+  DemoMatterReviewTaskStatus,
   DemoMatterStatus,
 } from '@/lib/demo/types'
 import DemoTaskChecklist from '@/components/demo/DemoTaskChecklist'
@@ -38,6 +39,7 @@ import DemoFinCENTab from '@/components/demo/DemoFinCENTab'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
 import CondoDiligenceSummaryCompareModal from '@/app/demo/_components/CondoDiligenceSummaryCompareModal'
+import CreateCondoDiligenceSummaryReviewTaskModal from '@/app/demo/_components/CreateCondoDiligenceSummaryReviewTaskModal'
 import {
   buildCondoDiligenceInternalReport,
   buildCondoDiligenceOperationalSummary,
@@ -66,6 +68,10 @@ import {
   syncRequiredDocumentsFromDerivedLinkage,
 } from '@/lib/demo/condoDiligence'
 import DocumentPreviewModal from '@/app/demo/_components/DocumentPreviewModal'
+import {
+  demoMatterReviewTaskStatusPresentation,
+  listCondoDiligenceSummaryReviewTasks,
+} from '@/lib/demo/demoMatterReviewTask'
 
 type MatterDetailModalProps = {
   matter: DemoMatter | null
@@ -228,10 +234,13 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   const {
     documents,
     documentRequests,
+    matterReviewTasks,
     staff,
     matters,
     addDemoDocument,
     addDemoDocumentRequest,
+    addMatterReviewTask,
+    updateMatterReviewTaskStatus,
     getMatterById,
     getArchivedMatterById,
     ensureCondoDiligence,
@@ -247,6 +256,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   const [condoReportSavedDocId, setCondoReportSavedDocId] = useState<string | null>(null)
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null)
   const [compareSummariesOpen, setCompareSummariesOpen] = useState(false)
+  const [reviewTaskDocumentId, setReviewTaskDocumentId] = useState<string | null>(null)
   const condoReportSaveLockRef = React.useRef(false)
 
   const matterId = matter?.id ?? ''
@@ -279,6 +289,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     () => listCondoDiligenceInternalSummaryDocuments(matterDocuments),
     [matterDocuments],
   )
+
+  const condoReviewTasks = useMemo(() => {
+    if (!effectiveMatter) return []
+    return listCondoDiligenceSummaryReviewTasks(matterReviewTasks, effectiveMatter.id)
+  }, [effectiveMatter, matterReviewTasks])
 
   const matterDocumentRequests = useMemo(() => {
     if (!effectiveMatter) return []
@@ -923,9 +938,163 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
           )}
 
           {activeTab === 'Tasks' && (
-            <div>
-              <h3 style={{ marginBottom: '8px', fontSize: '15px' }}>Task checklist</h3>
-              <DemoTaskChecklist matterId={effectiveMatter.id} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <h3 style={{ marginBottom: '8px', fontSize: '15px' }}>Task checklist</h3>
+                <DemoTaskChecklist matterId={effectiveMatter.id} />
+              </div>
+
+              {(showCondoDiligenceTab || condoReviewTasks.length > 0) && (
+                <div
+                  style={{
+                    border: '1px solid rgba(94,82,64,0.12)',
+                    borderRadius: 8,
+                    padding: 14,
+                    background: 'white',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#134252', marginBottom: 4 }}>
+                      Condo Diligence Review Tasks
+                    </div>
+                    <div style={{ fontSize: 12, color: '#627c71', lineHeight: 1.45 }}>
+                      Internal-only tasks linked to saved Internal Condo Diligence Summary snapshots. Not shared to
+                      the client portal.
+                    </div>
+                  </div>
+                  {condoReviewTasks.length === 0 ? (
+                    <div style={{ color: '#627c71', fontSize: 13 }}>
+                      No review tasks yet. Create one from a saved summary in Documents → Summary History.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {condoReviewTasks.map((task) => {
+                        const statusPresent = demoMatterReviewTaskStatusPresentation(task.status)
+                        const assignee =
+                          staff.find((s) => s.id === task.assignee_id)?.full_name ??
+                          (task.assignee_id ? task.assignee_id : 'Unassigned')
+                        const linkedDoc = matterDocuments.find((d) => d.id === task.linked_document_id)
+                        return (
+                          <div
+                            key={task.id}
+                            style={{
+                              border: '1px solid rgba(94,82,64,0.12)',
+                              borderRadius: 8,
+                              padding: 12,
+                              background: '#fcfcf9',
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                gap: 10,
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <div style={{ minWidth: 0, flex: '1 1 180px' }}>
+                                <div style={{ fontWeight: 900, color: '#134252', fontSize: 13, marginBottom: 4 }}>
+                                  {task.title}
+                                </div>
+                                <div style={{ fontSize: 12, color: '#627c71', fontWeight: 700, lineHeight: 1.45 }}>
+                                  Assignee: {assignee}
+                                  {' · '}
+                                  Due: {task.due_date || 'None'}
+                                  {' · '}
+                                  Internal only
+                                </div>
+                                {task.internal_note ? (
+                                  <div style={{ fontSize: 12, color: '#627c71', marginTop: 6, lineHeight: 1.45 }}>
+                                    Note: {task.internal_note}
+                                  </div>
+                                ) : null}
+                                <div style={{ fontSize: 11, color: '#9aa8a1', marginTop: 6 }}>
+                                  Linked: {linkedDoc?.name ?? 'Saved summary (missing from matter documents)'}
+                                </div>
+                              </div>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '4px 8px',
+                                  borderRadius: 999,
+                                  fontSize: 11,
+                                  fontWeight: 900,
+                                  background: statusPresent.bg,
+                                  color: statusPresent.color,
+                                  border: `1px solid ${statusPresent.border}`,
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {statusPresent.label}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: 8,
+                                marginTop: 10,
+                                alignItems: 'center',
+                              }}
+                            >
+                              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                                <span style={{ fontWeight: 800, color: '#627c71' }}>Status</span>
+                                <select
+                                  value={task.status}
+                                  onChange={(e) =>
+                                    updateMatterReviewTaskStatus(
+                                      task.id,
+                                      e.target.value as DemoMatterReviewTaskStatus,
+                                    )
+                                  }
+                                  aria-label={`Status for ${task.title}`}
+                                  style={{
+                                    padding: '5px 8px',
+                                    borderRadius: 6,
+                                    border: '1px solid rgba(94,82,64,0.25)',
+                                    background: '#fff',
+                                    fontWeight: 700,
+                                    fontSize: 12,
+                                    color: '#134252',
+                                  }}
+                                >
+                                  <option value="open">Open</option>
+                                  <option value="in_review">In review</option>
+                                  <option value="completed">Completed</option>
+                                </select>
+                              </label>
+                              <button
+                                type="button"
+                                disabled={!linkedDoc}
+                                onClick={() => {
+                                  if (!linkedDoc) return
+                                  setPreviewDocumentId(linkedDoc.id)
+                                }}
+                                style={{
+                                  padding: '5px 10px',
+                                  borderRadius: 6,
+                                  border: '1px solid rgba(94,82,64,0.25)',
+                                  background: linkedDoc ? '#fff' : '#f5f5f5',
+                                  fontWeight: 800,
+                                  fontSize: 11,
+                                  color: linkedDoc ? '#134252' : '#9aa8a1',
+                                  cursor: linkedDoc ? 'pointer' : 'not-allowed',
+                                }}
+                              >
+                                View linked summary
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -1065,6 +1234,23 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             >
                               View internal summary
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => setReviewTaskDocumentId(doc.id)}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(94,82,64,0.25)',
+                                background: '#fff',
+                                fontWeight: 800,
+                                fontSize: 11,
+                                color: '#134252',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Create review task
+                            </button>
                           </div>
                         )
                       })}
@@ -1156,19 +1342,6 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                 isOpen={isAddDocumentOpen}
                 onClose={() => setIsAddDocumentOpen(false)}
                 preferredMatterId={effectiveMatter.id}
-              />
-              <DocumentPreviewModal
-                previewDocument={
-                  previewDocumentId ? matterDocuments.find((d) => d.id === previewDocumentId) ?? null : null
-                }
-                matters={matters}
-                staff={staff}
-                fulfilledRequest={
-                  previewDocumentId
-                    ? documentRequests.find((r) => r.fulfilled_document_id === previewDocumentId) ?? null
-                    : null
-                }
-                onClose={() => setPreviewDocumentId(null)}
               />
               <CondoDiligenceSummaryCompareModal
                 open={compareSummariesOpen}
@@ -3274,6 +3447,43 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
           )}
 
           {activeTab === 'FinCEN / AML' && <DemoFinCENTab matter={effectiveMatter} />}
+
+          <DocumentPreviewModal
+            previewDocument={
+              previewDocumentId ? matterDocuments.find((d) => d.id === previewDocumentId) ?? null : null
+            }
+            matters={matters}
+            staff={staff}
+            fulfilledRequest={
+              previewDocumentId
+                ? documentRequests.find((r) => r.fulfilled_document_id === previewDocumentId) ?? null
+                : null
+            }
+            onClose={() => setPreviewDocumentId(null)}
+          />
+          <CreateCondoDiligenceSummaryReviewTaskModal
+            open={Boolean(reviewTaskDocumentId)}
+            document={
+              reviewTaskDocumentId
+                ? matterDocuments.find((d) => d.id === reviewTaskDocumentId) ?? null
+                : null
+            }
+            staff={staff}
+            onClose={() => setReviewTaskDocumentId(null)}
+            onCreate={({ title, assignee_id, due_date, internal_note }) => {
+              if (!effectiveMatter || !reviewTaskDocumentId) return
+              addMatterReviewTask({
+                matter_id: effectiveMatter.id,
+                title,
+                linked_document_id: reviewTaskDocumentId,
+                assignee_id,
+                due_date,
+                internal_note,
+              })
+              setReviewTaskDocumentId(null)
+              setActiveTab('Tasks')
+            }}
+          />
         </div>
 
         {/* Footer */}

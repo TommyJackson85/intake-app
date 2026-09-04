@@ -31,6 +31,8 @@ import type {
   DemoCondoDiligenceFinding,
   DemoCondoDiligenceMatterStatus,
   DemoCondoDiligenceRequiredDocument,
+  DemoMatterReviewTask,
+  DemoMatterReviewTaskStatus,
 } from '@/lib/demo/types'
 import { deriveMatterStatus } from '@/lib/demo-utils'
 import { findExistingDemoClient } from '@/lib/demo/demoIntakeFlow'
@@ -59,6 +61,13 @@ import {
   parseDemoCondoEstoppelReview,
   parseDemoCondoSirsMilestoneReview,
 } from '@/lib/demo/condoDiligence'
+import {
+  appendDemoMatterReviewTaskIfValid,
+  listCondoDiligenceSummaryReviewTasks,
+  parseStoredDemoMatterReviewTasks,
+  patchDemoMatterReviewTaskStatus,
+  type AddDemoMatterReviewTaskInput,
+} from '@/lib/demo/demoMatterReviewTask'
 
 type DemoContextType = {
   demoFirm: DemoSeedData['demoFirm']
@@ -68,6 +77,7 @@ type DemoContextType = {
   calendarEvents: DemoCalendarEvent[]
   documents: DemoDocument[]
   documentRequests: DemoDocumentRequest[]
+  matterReviewTasks: DemoMatterReviewTask[]
   intakeLeads: DemoIntakeLead[]
   archivedMatters: DemoMatter[]
   archivedClients: DemoClient[]
@@ -90,6 +100,9 @@ type DemoContextType = {
   addDemoDocumentRequest: (input: AddDemoDocumentRequestInput) => void
   /** Appends one `DemoDocument` (same helper as `addDemoDocument`) and marks the request fulfilled — one `setState`. */
   fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => void
+  addMatterReviewTask: (input: AddDemoMatterReviewTaskInput) => void
+  updateMatterReviewTaskStatus: (taskId: string, status: DemoMatterReviewTaskStatus) => void
+  listMatterReviewTasksForMatter: (matterId: string) => DemoMatterReviewTask[]
   getCondoDiligence: (matterId: string) => DemoCondoDiligence | undefined
   ensureCondoDiligence: (matterId: string) => void
   patchCondoDiligence: (matterId: string, patch: Partial<DemoCondoDiligence>) => void
@@ -176,6 +189,9 @@ const DEMO_DOCUMENT_REQUESTS_STORAGE_KEY = 'lawintake-demo-document-requests-v1'
 /** Matter-scoped condo diligence checklist (demo-only; keyed by matter id). */
 const DEMO_CONDO_DILIGENCE_STORAGE_KEY = 'lawintake-demo-condo-diligence-v1'
 
+/** Internal matter review tasks linked to saved summary documents (demo-only; not portal-visible). */
+const DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY = 'lawintake-demo-matter-review-tasks-v1'
+
 function persistDemoMatters(matters: DemoMatter[]) {
   try {
     if (typeof localStorage !== 'undefined') {
@@ -210,6 +226,16 @@ function persistDemoCondoDiligence(map: Record<string, DemoCondoDiligence>) {
   try {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(DEMO_CONDO_DILIGENCE_STORAGE_KEY, JSON.stringify(map))
+    }
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function persistDemoMatterReviewTasks(tasks: DemoMatterReviewTask[]) {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY, JSON.stringify(tasks))
     }
   } catch {
     /* ignore quota / private mode */
@@ -499,12 +525,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       recentlyDeletedMatters: DemoMatter[]
       recentlyDeletedClients: DemoClient[]
       condoDiligenceByMatterId: Record<string, DemoCondoDiligence>
+      matterReviewTasks: DemoMatterReviewTask[]
     }
   >(() => ({
     ...cloneSeedData(),
     recentlyDeletedMatters: [],
     recentlyDeletedClients: [],
     condoDiligenceByMatterId: {},
+    matterReviewTasks: [],
   }))
 
   useEffect(() => {
@@ -549,7 +577,17 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_DOCUMENT_REQUESTS_STORAGE_KEY) : null
       const rawCondoDiligence =
         typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_CONDO_DILIGENCE_STORAGE_KEY) : null
-      if (!rawMatters && !rawFincen && !rawDocuments && !rawDocumentRequests && !rawCondoDiligence) return
+      const rawMatterReviewTasks =
+        typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY) : null
+      if (
+        !rawMatters &&
+        !rawFincen &&
+        !rawDocuments &&
+        !rawDocumentRequests &&
+        !rawCondoDiligence &&
+        !rawMatterReviewTasks
+      )
+        return
       setState((prev) => {
         let matters = prev.matters
         if (rawMatters) {
@@ -592,7 +630,24 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             condoDiligenceByMatterId = { ...prev.condoDiligenceByMatterId, ...storedMap }
           }
         }
-        return { ...prev, matters, fincenCertRequests, documents, documentRequests, condoDiligenceByMatterId }
+        let matterReviewTasks = prev.matterReviewTasks
+        if (rawMatterReviewTasks) {
+          try {
+            const parsed = JSON.parse(rawMatterReviewTasks) as unknown
+            matterReviewTasks = parseStoredDemoMatterReviewTasks(parsed)
+          } catch {
+            /* keep prev */
+          }
+        }
+        return {
+          ...prev,
+          matters,
+          fincenCertRequests,
+          documents,
+          documentRequests,
+          condoDiligenceByMatterId,
+          matterReviewTasks,
+        }
       })
     } catch {
       /* ignore */
@@ -642,6 +697,17 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     }, 250)
     return () => window.clearTimeout(t)
   }, [state.condoDiligenceByMatterId])
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        persistDemoMatterReviewTasks(state.matterReviewTasks)
+      } catch {
+        /* ignore */
+      }
+    }, 250)
+    return () => window.clearTimeout(t)
+  }, [state.matterReviewTasks])
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -750,6 +816,21 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY || !e.newValue) return
+      try {
+        const parsed = JSON.parse(e.newValue) as unknown
+        const matterReviewTasks = parseStoredDemoMatterReviewTasks(parsed)
+        setState((prev) => ({ ...prev, matterReviewTasks }))
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   const value = useMemo<DemoContextType>(() => {
     return {
       demoFirm: state.demoFirm,
@@ -761,6 +842,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       calendarEvents: state.calendarEvents.filter((e) => !e.deletedAt),
       documents: state.documents.filter((d) => !d.deletedAt),
       documentRequests: state.documentRequests,
+      matterReviewTasks: state.matterReviewTasks,
       intakeLeads: state.intakeLeads,
       fincenCertRequests: state.fincenCertRequests,
       archivedMatters: state.matters
@@ -1584,6 +1666,22 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           return { ...prev, documents: result.documents, documentRequests: result.documentRequests }
         })
       },
+      addMatterReviewTask: (input) => {
+        setState((prev) => {
+          const matterReviewTasks = appendDemoMatterReviewTaskIfValid(prev.matterReviewTasks, input)
+          if (matterReviewTasks === prev.matterReviewTasks) return prev
+          return { ...prev, matterReviewTasks }
+        })
+      },
+      updateMatterReviewTaskStatus: (taskId, status) => {
+        setState((prev) => {
+          const matterReviewTasks = patchDemoMatterReviewTaskStatus(prev.matterReviewTasks, taskId, status)
+          if (matterReviewTasks === prev.matterReviewTasks) return prev
+          return { ...prev, matterReviewTasks }
+        })
+      },
+      listMatterReviewTasksForMatter: (matterId) =>
+        listCondoDiligenceSummaryReviewTasks(state.matterReviewTasks, matterId),
       getCondoDiligence: (matterId) => {
         const id = matterId.trim()
         if (!id) return undefined
