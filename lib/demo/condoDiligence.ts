@@ -5,7 +5,9 @@
 import type {
   DemoCondoAssociationFinancialReview,
   DemoCondoAssociationLoanStatus,
+  DemoCondoAssociationRecordsGovernanceReview,
   DemoCondoAssociationSpecialAssessmentStatus,
+  DemoCondoBuyerApprovalStatus,
   DemoCondoDelinquencyConcern,
   DemoCondoDiligence,
   DemoCondoDiligenceDocStatus,
@@ -19,6 +21,10 @@ import type {
   DemoCondoEstoppelViolationOrLienStatus,
   DemoCondoFinancialDocReviewStatus,
   DemoCondoFinancialRiskLevel,
+  DemoCondoGovernanceConcernLevel,
+  DemoCondoLitigationOrDbprStatus,
+  DemoCondoRecordsAccessStatus,
+  DemoCondoRentalRestrictionStatus,
   DemoCondoReserveFundingStatus,
   DemoCondoSirsApplicability,
   DemoCondoSirsDocumentStatus,
@@ -320,6 +326,7 @@ export function isCondoDiligenceUntouched(
     estoppelReview?: DemoCondoEstoppelReview | null
     sirsMilestoneReview?: DemoCondoSirsMilestoneReview | null
     associationFinancialReview?: DemoCondoAssociationFinancialReview | null
+    associationRecordsGovernanceReview?: DemoCondoAssociationRecordsGovernanceReview | null
   },
 ): boolean {
   const notesEmpty = input.notes.trim() === ''
@@ -328,6 +335,9 @@ export function isCondoDiligenceUntouched(
   const estoppelUntouched = isCondoEstoppelReviewUntouched(input.estoppelReview)
   const sirsUntouched = isCondoSirsMilestoneReviewUntouched(input.sirsMilestoneReview)
   const financialUntouched = isCondoAssociationFinancialReviewUntouched(input.associationFinancialReview)
+  const governanceUntouched = isCondoAssociationRecordsGovernanceReviewUntouched(
+    input.associationRecordsGovernanceReview,
+  )
   return (
     input.status === 'not_started' &&
     notesEmpty &&
@@ -335,7 +345,8 @@ export function isCondoDiligenceUntouched(
     allOutstanding &&
     estoppelUntouched &&
     sirsUntouched &&
-    financialUntouched
+    financialUntouched &&
+    governanceUntouched
   )
 }
 
@@ -858,6 +869,158 @@ export function condoFinancialRiskLevelPresentation(level: DemoCondoFinancialRis
   }
 }
 
+/** Default empty structured association records/governance review for newly seeded rows. */
+export function buildDefaultCondoAssociationRecordsGovernanceReview(): DemoCondoAssociationRecordsGovernanceReview {
+  return {
+    governingDocumentsReviewStatus: 'not_started',
+    restrictionsReviewStatus: 'not_started',
+    insuranceReviewStatus: 'not_started',
+    boardMinutesReviewStatus: 'not_started',
+    rentalRestrictionStatus: 'unknown',
+    buyerApprovalStatus: 'unknown',
+    insuranceConcernLevel: 'unknown',
+    litigationOrDbprStatus: 'unknown',
+    recordsAccessStatus: 'unknown',
+    governanceConcernLevel: 'unknown',
+    managementContactName: '',
+    managementContactEmail: '',
+    managementContactPhone: '',
+    notes: '',
+  }
+}
+
+export function normalizeCondoAssociationRecordsGovernanceReview(
+  input?: Partial<DemoCondoAssociationRecordsGovernanceReview> | null,
+): DemoCondoAssociationRecordsGovernanceReview {
+  return {
+    ...buildDefaultCondoAssociationRecordsGovernanceReview(),
+    ...(input ?? {}),
+  }
+}
+
+function isRentalRestrictionStatus(value: unknown): value is DemoCondoRentalRestrictionStatus {
+  return (
+    value === 'unknown' ||
+    value === 'no_material_restriction_noted' ||
+    value === 'restriction_noted' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+function isBuyerApprovalStatus(value: unknown): value is DemoCondoBuyerApprovalStatus {
+  return (
+    value === 'unknown' ||
+    value === 'not_required_noted' ||
+    value === 'required' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+function isLitigationOrDbprStatus(value: unknown): value is DemoCondoLitigationOrDbprStatus {
+  return (
+    value === 'unknown' ||
+    value === 'none_disclosed' ||
+    value === 'disclosed' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+function isRecordsAccessStatus(value: unknown): value is DemoCondoRecordsAccessStatus {
+  return (
+    value === 'unknown' ||
+    value === 'available' ||
+    value === 'partial_or_incomplete' ||
+    value === 'not_provided' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+/**
+ * Parse optional persisted `associationRecordsGovernanceReview`.
+ * Missing/invalid object → undefined (older rows). Partial objects get defaults.
+ */
+export function parseDemoCondoAssociationRecordsGovernanceReview(
+  raw: unknown,
+): DemoCondoAssociationRecordsGovernanceReview | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const o = raw as Record<string, unknown>
+  const base = buildDefaultCondoAssociationRecordsGovernanceReview()
+
+  return {
+    governingDocumentsReviewStatus: isFinancialDocReviewStatus(o.governingDocumentsReviewStatus)
+      ? o.governingDocumentsReviewStatus
+      : base.governingDocumentsReviewStatus,
+    restrictionsReviewStatus: isFinancialDocReviewStatus(o.restrictionsReviewStatus)
+      ? o.restrictionsReviewStatus
+      : base.restrictionsReviewStatus,
+    insuranceReviewStatus: isFinancialDocReviewStatus(o.insuranceReviewStatus)
+      ? o.insuranceReviewStatus
+      : base.insuranceReviewStatus,
+    boardMinutesReviewStatus: isFinancialDocReviewStatus(o.boardMinutesReviewStatus)
+      ? o.boardMinutesReviewStatus
+      : base.boardMinutesReviewStatus,
+    rentalRestrictionStatus: isRentalRestrictionStatus(o.rentalRestrictionStatus)
+      ? o.rentalRestrictionStatus
+      : base.rentalRestrictionStatus,
+    buyerApprovalStatus: isBuyerApprovalStatus(o.buyerApprovalStatus)
+      ? o.buyerApprovalStatus
+      : base.buyerApprovalStatus,
+    insuranceConcernLevel: isFinancialRiskLevel(o.insuranceConcernLevel)
+      ? (o.insuranceConcernLevel as DemoCondoGovernanceConcernLevel)
+      : base.insuranceConcernLevel,
+    litigationOrDbprStatus: isLitigationOrDbprStatus(o.litigationOrDbprStatus)
+      ? o.litigationOrDbprStatus
+      : base.litigationOrDbprStatus,
+    recordsAccessStatus: isRecordsAccessStatus(o.recordsAccessStatus)
+      ? o.recordsAccessStatus
+      : base.recordsAccessStatus,
+    governanceConcernLevel: isFinancialRiskLevel(o.governanceConcernLevel)
+      ? (o.governanceConcernLevel as DemoCondoGovernanceConcernLevel)
+      : base.governanceConcernLevel,
+    managementContactName:
+      typeof o.managementContactName === 'string' ? o.managementContactName : base.managementContactName,
+    managementContactEmail:
+      typeof o.managementContactEmail === 'string' ? o.managementContactEmail : base.managementContactEmail,
+    managementContactPhone:
+      typeof o.managementContactPhone === 'string' ? o.managementContactPhone : base.managementContactPhone,
+    notes: typeof o.notes === 'string' ? o.notes : base.notes,
+  }
+}
+
+export function isCondoAssociationRecordsGovernanceReviewUntouched(
+  input?: DemoCondoAssociationRecordsGovernanceReview | null,
+): boolean {
+  if (!input) return true
+  const d = normalizeCondoAssociationRecordsGovernanceReview(input)
+  return (
+    d.governingDocumentsReviewStatus === 'not_started' &&
+    d.restrictionsReviewStatus === 'not_started' &&
+    d.insuranceReviewStatus === 'not_started' &&
+    d.boardMinutesReviewStatus === 'not_started' &&
+    d.rentalRestrictionStatus === 'unknown' &&
+    d.buyerApprovalStatus === 'unknown' &&
+    d.insuranceConcernLevel === 'unknown' &&
+    d.litigationOrDbprStatus === 'unknown' &&
+    d.recordsAccessStatus === 'unknown' &&
+    d.governanceConcernLevel === 'unknown' &&
+    d.managementContactName.trim() === '' &&
+    d.managementContactEmail.trim() === '' &&
+    d.managementContactPhone.trim() === '' &&
+    d.notes.trim() === ''
+  )
+}
+
+/** Alias presentation for governance/insurance concern levels (same tokens as financial risk). */
+export function condoGovernanceConcernLevelPresentation(level: DemoCondoGovernanceConcernLevel): {
+  label: string
+  bg: string
+  color: string
+  border: string
+} {
+  return condoFinancialRiskLevelPresentation(level)
+}
+
 const CONDO_SUMMARY_MONTHS = [
   'Jan',
   'Feb',
@@ -1260,5 +1423,6 @@ export function buildDefaultCondoDiligence(options?: BuildDefaultCondoDiligenceO
     estoppelReview: buildDefaultCondoEstoppelReview(),
     sirsMilestoneReview: buildDefaultCondoSirsMilestoneReview(),
     associationFinancialReview: buildDefaultCondoAssociationFinancialReview(),
+    associationRecordsGovernanceReview: buildDefaultCondoAssociationRecordsGovernanceReview(),
   }
 }
