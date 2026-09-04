@@ -77,6 +77,11 @@ import {
   listCompletedCondoDiligenceSummaryReviewTasks,
   listCondoDiligenceSummaryReviewTasks,
 } from '@/lib/demo/demoMatterReviewTask'
+import {
+  condoDiligenceActivityActionLabel,
+  formatCondoDiligenceActivityTimestamp,
+  listCondoDiligenceActivitiesForMatter,
+} from '@/lib/demo/demoCondoDiligenceActivity'
 
 type MatterDetailModalProps = {
   matter: DemoMatter | null
@@ -240,6 +245,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     documents,
     documentRequests,
     matterReviewTasks,
+    condoDiligenceActivities,
     staff,
     matters,
     addDemoDocument,
@@ -262,6 +268,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null)
   const [compareSummariesOpen, setCompareSummariesOpen] = useState(false)
   const [reviewTaskDocumentId, setReviewTaskDocumentId] = useState<string | null>(null)
+  const [condoActivityExpanded, setCondoActivityExpanded] = useState(false)
   const condoReportSaveLockRef = React.useRef(false)
 
   const matterId = matter?.id ?? ''
@@ -309,6 +316,16 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     if (!effectiveMatter) return []
     return listCompletedCondoDiligenceSummaryReviewTasks(matterReviewTasks, effectiveMatter.id)
   }, [effectiveMatter, matterReviewTasks])
+
+  const condoDiligenceActivityRows = useMemo(() => {
+    if (!effectiveMatter) return []
+    return listCondoDiligenceActivitiesForMatter(condoDiligenceActivities, effectiveMatter.id)
+  }, [effectiveMatter, condoDiligenceActivities])
+
+  const visibleCondoDiligenceActivityRows = useMemo(() => {
+    if (condoActivityExpanded) return condoDiligenceActivityRows
+    return condoDiligenceActivityRows.slice(0, 5)
+  }, [condoDiligenceActivityRows, condoActivityExpanded])
 
   const activeCondoReviewTaskCountLabel = formatCondoDiligenceActiveReviewTaskCountLabel(
     activeCondoReviewTasks.length,
@@ -408,6 +425,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     if (!open) return
     setActiveTab(initialTab ?? 'Overview')
     setIsAddDocumentOpen(false)
+    setCondoActivityExpanded(false)
   }, [open, matterId, initialTab])
 
   useEffect(() => {
@@ -1033,6 +1051,123 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       )
                     })}
                   </div>
+                </div>
+              )}
+
+              {condoDiligenceActivityRows.length > 0 && (
+                <div
+                  style={{
+                    border: '1px solid rgba(94,82,64,0.1)',
+                    borderRadius: 8,
+                    padding: 12,
+                    background: '#fcfcf9',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#627c71', marginBottom: 3 }}>
+                      Condo Diligence Activity
+                    </div>
+                    <div style={{ fontSize: 11, color: '#9aa8a1', lineHeight: 1.45 }}>
+                      Internal activity for Condo Diligence summary review tasks on this matter. Not a
+                      compliance determination or closing recommendation.
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {visibleCondoDiligenceActivityRows.map((activity) => {
+                      const linkedDoc = activity.linked_document_id
+                        ? matterDocuments.find((d) => d.id === activity.linked_document_id)
+                        : undefined
+                      const stamped =
+                        formatCondoDiligenceActivityTimestamp(activity.created_at) ?? 'Unknown'
+                      const summaryStamp = linkedDoc
+                        ? linkedDoc.generatedInternalSummary?.generatedAt?.trim() || linkedDoc.uploaded_at
+                        : null
+                      const summaryDate = summaryStamp
+                        ? formatCondoDiligenceActivityTimestamp(summaryStamp)
+                        : null
+                      return (
+                        <div
+                          key={activity.id}
+                          style={{
+                            borderTop: '1px solid rgba(94,82,64,0.08)',
+                            paddingTop: 7,
+                            display: 'flex',
+                            gap: 10,
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <div style={{ minWidth: 0, flex: '1 1 200px' }}>
+                            <div style={{ fontWeight: 700, color: '#627c71', fontSize: 12, marginBottom: 2 }}>
+                              {condoDiligenceActivityActionLabel(activity.activity_type)}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#9aa8a1', fontWeight: 600 }}>
+                              {activity.task_title}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#9aa8a1', marginTop: 3 }}>
+                              {stamped}
+                              {activity.actor_label ? ` · ${activity.actor_label}` : ''}
+                            </div>
+                            {linkedDoc ? (
+                              <div style={{ fontSize: 11, color: '#9aa8a1', marginTop: 3 }}>
+                                Summary: {linkedDoc.name}
+                                {summaryDate ? ` · ${summaryDate}` : ''}
+                              </div>
+                            ) : null}
+                            {activity.activity_type === 'review_task_completed' ? (
+                              <div style={{ fontSize: 11, color: '#9aa8a1', marginTop: 3, lineHeight: 1.4 }}>
+                                {activity.note_excerpt
+                                  ? `Note: ${activity.note_excerpt}`
+                                  : 'No note'}
+                              </div>
+                            ) : null}
+                          </div>
+                          {linkedDoc ? (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewDocumentId(linkedDoc.id)}
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(94,82,64,0.18)',
+                                background: '#fff',
+                                fontWeight: 700,
+                                fontSize: 11,
+                                color: '#627c71',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              View summary
+                            </button>
+                          ) : null}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {condoDiligenceActivityRows.length > 5 ? (
+                    <button
+                      type="button"
+                      onClick={() => setCondoActivityExpanded((v) => !v)}
+                      style={{
+                        alignSelf: 'flex-start',
+                        padding: '4px 8px',
+                        borderRadius: 6,
+                        border: '1px solid rgba(94,82,64,0.18)',
+                        background: '#fff',
+                        fontWeight: 700,
+                        fontSize: 11,
+                        color: '#627c71',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {condoActivityExpanded ? 'Show less' : 'View all activity'}
+                    </button>
+                  ) : null}
                 </div>
               )}
 

@@ -515,3 +515,24 @@ export type DemoMatterReviewTask = {
   created_at: string
   updated_at: string
 }
+
+/** Immutable internal audit events for Condo Diligence summary review-task lifecycle (demo-only). */
+export type DemoCondoDiligenceActivityType =
+  | 'review_task_created'
+  | 'review_started'
+  | 'review_task_completed'
+
+export type DemoCondoDiligenceActivity = {
+  id: string
+  matter_id: string
+  review_task_id: string
+  activity_type: DemoCondoDiligenceActivityType
+  task_title: string
+  linked_document_id: string | null
+  actor_id: string | null
+  actor_label: string | null
+  /** Present only on completion events when the task had an internal note. */
+  note_excerpt: string | null
+  visibility: 'internal'
+  created_at: string
+}

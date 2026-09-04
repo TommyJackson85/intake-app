@@ -33,6 +33,7 @@ import type {
   DemoCondoDiligenceRequiredDocument,
   DemoMatterReviewTask,
   DemoMatterReviewTaskStatus,
+  DemoCondoDiligenceActivity,
 } from '@/lib/demo/types'
 import { deriveMatterStatus } from '@/lib/demo-utils'
 import { findExistingDemoClient } from '@/lib/demo/demoIntakeFlow'
@@ -69,6 +70,13 @@ import {
   patchDemoMatterReviewTasksStatus,
   type AddDemoMatterReviewTaskInput,
 } from '@/lib/demo/demoMatterReviewTask'
+import {
+  appendCondoDiligenceActivitiesForBulkStatusTransition,
+  appendCondoDiligenceActivityIfValid,
+  buildCondoDiligenceActivityForStatusTransition,
+  buildCondoDiligenceActivityForTaskCreated,
+  parseStoredDemoCondoDiligenceActivities,
+} from '@/lib/demo/demoCondoDiligenceActivity'
 
 type DemoContextType = {
   demoFirm: DemoSeedData['demoFirm']
@@ -79,6 +87,7 @@ type DemoContextType = {
   documents: DemoDocument[]
   documentRequests: DemoDocumentRequest[]
   matterReviewTasks: DemoMatterReviewTask[]
+  condoDiligenceActivities: DemoCondoDiligenceActivity[]
   intakeLeads: DemoIntakeLead[]
   archivedMatters: DemoMatter[]
   archivedClients: DemoClient[]
@@ -195,6 +204,9 @@ const DEMO_CONDO_DILIGENCE_STORAGE_KEY = 'lawintake-demo-condo-diligence-v1'
 /** Internal matter review tasks linked to saved summary documents (demo-only; not portal-visible). */
 const DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY = 'lawintake-demo-matter-review-tasks-v1'
 
+/** Internal Condo Diligence review-task activity events (demo-only; not portal-visible). */
+const DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY = 'lawintake-demo-condo-diligence-activities-v1'
+
 function persistDemoMatters(matters: DemoMatter[]) {
   try {
     if (typeof localStorage !== 'undefined') {
@@ -239,6 +251,16 @@ function persistDemoMatterReviewTasks(tasks: DemoMatterReviewTask[]) {
   try {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY, JSON.stringify(tasks))
+    }
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function persistDemoCondoDiligenceActivities(activities: DemoCondoDiligenceActivity[]) {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY, JSON.stringify(activities))
     }
   } catch {
     /* ignore quota / private mode */
@@ -529,6 +551,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       recentlyDeletedClients: DemoClient[]
       condoDiligenceByMatterId: Record<string, DemoCondoDiligence>
       matterReviewTasks: DemoMatterReviewTask[]
+      condoDiligenceActivities: DemoCondoDiligenceActivity[]
     }
   >(() => ({
     ...cloneSeedData(),
@@ -536,6 +559,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     recentlyDeletedClients: [],
     condoDiligenceByMatterId: {},
     matterReviewTasks: [],
+    condoDiligenceActivities: [],
   }))
 
   useEffect(() => {
@@ -582,13 +606,16 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_CONDO_DILIGENCE_STORAGE_KEY) : null
       const rawMatterReviewTasks =
         typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY) : null
+      const rawCondoDiligenceActivities =
+        typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY) : null
       if (
         !rawMatters &&
         !rawFincen &&
         !rawDocuments &&
         !rawDocumentRequests &&
         !rawCondoDiligence &&
-        !rawMatterReviewTasks
+        !rawMatterReviewTasks &&
+        !rawCondoDiligenceActivities
       )
         return
       setState((prev) => {
@@ -642,6 +669,15 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             /* keep prev */
           }
         }
+        let condoDiligenceActivities = prev.condoDiligenceActivities
+        if (rawCondoDiligenceActivities) {
+          try {
+            const parsed = JSON.parse(rawCondoDiligenceActivities) as unknown
+            condoDiligenceActivities = parseStoredDemoCondoDiligenceActivities(parsed)
+          } catch {
+            /* keep prev */
+          }
+        }
         return {
           ...prev,
           matters,
@@ -650,6 +686,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           documentRequests,
           condoDiligenceByMatterId,
           matterReviewTasks,
+          condoDiligenceActivities,
         }
       })
     } catch {
@@ -711,6 +748,17 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     }, 250)
     return () => window.clearTimeout(t)
   }, [state.matterReviewTasks])
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        persistDemoCondoDiligenceActivities(state.condoDiligenceActivities)
+      } catch {
+        /* ignore */
+      }
+    }, 250)
+    return () => window.clearTimeout(t)
+  }, [state.condoDiligenceActivities])
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -834,6 +882,21 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY || !e.newValue) return
+      try {
+        const parsed = JSON.parse(e.newValue) as unknown
+        const condoDiligenceActivities = parseStoredDemoCondoDiligenceActivities(parsed)
+        setState((prev) => ({ ...prev, condoDiligenceActivities }))
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   const value = useMemo<DemoContextType>(() => {
     return {
       demoFirm: state.demoFirm,
@@ -846,6 +909,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       documents: state.documents.filter((d) => !d.deletedAt),
       documentRequests: state.documentRequests,
       matterReviewTasks: state.matterReviewTasks,
+      condoDiligenceActivities: state.condoDiligenceActivities,
       intakeLeads: state.intakeLeads,
       fincenCertRequests: state.fincenCertRequests,
       archivedMatters: state.matters
@@ -1673,14 +1737,27 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         setState((prev) => {
           const matterReviewTasks = appendDemoMatterReviewTaskIfValid(prev.matterReviewTasks, input)
           if (matterReviewTasks === prev.matterReviewTasks) return prev
-          return { ...prev, matterReviewTasks }
+          const created = matterReviewTasks[matterReviewTasks.length - 1]
+          const activity = created ? buildCondoDiligenceActivityForTaskCreated(created) : null
+          const condoDiligenceActivities = appendCondoDiligenceActivityIfValid(
+            prev.condoDiligenceActivities,
+            activity,
+          )
+          return { ...prev, matterReviewTasks, condoDiligenceActivities }
         })
       },
       updateMatterReviewTaskStatus: (taskId, status) => {
         setState((prev) => {
+          const before = prev.matterReviewTasks.find((t) => t.id === taskId)
           const matterReviewTasks = patchDemoMatterReviewTaskStatus(prev.matterReviewTasks, taskId, status)
           if (matterReviewTasks === prev.matterReviewTasks) return prev
-          return { ...prev, matterReviewTasks }
+          const after = matterReviewTasks.find((t) => t.id === taskId)
+          const activity = buildCondoDiligenceActivityForStatusTransition(before, after)
+          const condoDiligenceActivities = appendCondoDiligenceActivityIfValid(
+            prev.condoDiligenceActivities,
+            activity,
+          )
+          return { ...prev, matterReviewTasks, condoDiligenceActivities }
         })
       },
       updateMatterReviewTasksStatus: (taskIds, status) => {
@@ -1689,7 +1766,13 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           const result = patchDemoMatterReviewTasksStatus(prev.matterReviewTasks, taskIds, status)
           updatedCount = result.updatedCount
           if (result.tasks === prev.matterReviewTasks) return prev
-          return { ...prev, matterReviewTasks: result.tasks }
+          const condoDiligenceActivities = appendCondoDiligenceActivitiesForBulkStatusTransition(
+            prev.condoDiligenceActivities,
+            prev.matterReviewTasks,
+            result.tasks,
+            result.updatedTaskIds,
+          )
+          return { ...prev, matterReviewTasks: result.tasks, condoDiligenceActivities }
         })
         return updatedCount
       },
