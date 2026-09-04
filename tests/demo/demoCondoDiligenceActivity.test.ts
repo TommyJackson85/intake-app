@@ -6,6 +6,8 @@ import {
   buildCondoDiligenceActivityForTaskCreated,
   condoDiligenceActivityActionLabel,
   listCondoDiligenceActivitiesForMatter,
+  filterCondoDiligenceActivitiesByView,
+  CONDO_DILIGENCE_ACTIVITY_VIEW_FILTERS,
   parseStoredDemoCondoDiligenceActivities,
 } from '@/lib/demo/demoCondoDiligenceActivity'
 import {
@@ -256,6 +258,45 @@ describe('demoCondoDiligenceActivity', () => {
     expect(activities).toHaveLength(0)
     expect(next).toHaveLength(1)
     expect(appendCondoDiligenceActivityIfValid(activities, null)).toBe(activities)
+  })
+
+  it('filters activity lists by local Overview view without mutating input', () => {
+    const created = buildCondoDiligenceActivityForTaskCreated(makeTask({ id: 'rt-c' }), {
+      idFactory: () => 'a-created',
+      nowIso: () => '2026-09-04T10:00:00.000Z',
+    })!
+    const started = buildCondoDiligenceActivityForStatusTransition(
+      makeTask({ id: 'rt-s', status: 'open' }),
+      makeTask({ id: 'rt-s', status: 'in_review' }, '2026-09-04T11:00:00.000Z'),
+      { idFactory: () => 'a-started', nowIso: () => '2026-09-04T11:00:00.000Z' },
+    )!
+    const completed = buildCondoDiligenceActivityForStatusTransition(
+      makeTask({ id: 'rt-d', status: 'in_review' }),
+      makeTask({ id: 'rt-d', status: 'completed' }, '2026-09-04T12:00:00.000Z'),
+      { idFactory: () => 'a-done', nowIso: () => '2026-09-04T12:00:00.000Z' },
+    )!
+    const input = [created, started, completed]
+    expect(filterCondoDiligenceActivitiesByView(input, 'all').map((a) => a.id)).toEqual([
+      'a-created',
+      'a-started',
+      'a-done',
+    ])
+    expect(filterCondoDiligenceActivitiesByView(input, 'review_task_created').map((a) => a.id)).toEqual([
+      'a-created',
+    ])
+    expect(filterCondoDiligenceActivitiesByView(input, 'review_started').map((a) => a.id)).toEqual([
+      'a-started',
+    ])
+    expect(filterCondoDiligenceActivitiesByView(input, 'review_task_completed').map((a) => a.id)).toEqual([
+      'a-done',
+    ])
+    expect(input.map((a) => a.id)).toEqual(['a-created', 'a-started', 'a-done'])
+    expect(CONDO_DILIGENCE_ACTIVITY_VIEW_FILTERS.map((f) => f.label)).toEqual([
+      'All activity',
+      'Task created',
+      'Review started',
+      'Task completed',
+    ])
   })
 
   it('portal-facing activity exclusion: only internal visibility is listable', () => {

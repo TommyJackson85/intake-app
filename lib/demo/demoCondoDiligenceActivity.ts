@@ -210,6 +210,46 @@ export function listCondoDiligenceActivitiesForMatter(
     })
 }
 
+/** Local Overview filter for Condo Diligence Activity timeline (display-only). */
+export type CondoDiligenceActivityViewFilter =
+  | 'all'
+  | 'review_task_created'
+  | 'review_started'
+  | 'review_task_completed'
+
+export const CONDO_DILIGENCE_ACTIVITY_VIEW_FILTERS: ReadonlyArray<{
+  id: CondoDiligenceActivityViewFilter
+  label: string
+}> = [
+  { id: 'all', label: 'All activity' },
+  { id: 'review_task_created', label: 'Task created' },
+  { id: 'review_started', label: 'Review started' },
+  { id: 'review_task_completed', label: 'Task completed' },
+]
+
+export function isCondoDiligenceActivityViewFilter(value: unknown): value is CondoDiligenceActivityViewFilter {
+  return (
+    value === 'all' ||
+    value === 'review_task_created' ||
+    value === 'review_started' ||
+    value === 'review_task_completed'
+  )
+}
+
+/**
+ * Filters a matter activity list by local Overview control. Does not mutate input.
+ * Unknown filters fall back to all activities.
+ */
+export function filterCondoDiligenceActivitiesByView(
+  activities: readonly DemoCondoDiligenceActivity[],
+  filter: CondoDiligenceActivityViewFilter,
+): DemoCondoDiligenceActivity[] {
+  if (!isCondoDiligenceActivityViewFilter(filter) || filter === 'all') {
+    return activities.slice()
+  }
+  return activities.filter((a) => a.activity_type === filter)
+}
+
 /** Safe parse for demo localStorage; missing/invalid → []. Never mutates input. */
 export function parseStoredDemoCondoDiligenceActivities(raw: unknown): DemoCondoDiligenceActivity[] {
   if (!Array.isArray(raw)) return []
