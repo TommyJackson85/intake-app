@@ -334,6 +334,32 @@ export type DemoCondoAssociationRecordsGovernanceReview = {
   notes: string
 }
 
+/** Structured disclosure package review (demo) — operational completeness of materials received. */
+export type DemoCondoDisclosurePackageCompleteness =
+  | 'unknown'
+  | 'not_received'
+  | 'partial_or_incomplete'
+  | 'appears_complete'
+  | 'lawyer_review_required'
+
+export type DemoCondoDisclosurePackageReview = {
+  /** Overall lawyer review workflow status for the package. */
+  reviewStatus: DemoCondoFinancialDocReviewStatus
+  /** YYYY-MM-DD when set; empty string when unset. */
+  packageReceivedDate: string
+  packageCompletenessStatus: DemoCondoDisclosurePackageCompleteness
+  faqOrStatutoryQuestionsReviewStatus: DemoCondoFinancialDocReviewStatus
+  governingDocsIncludedReviewStatus: DemoCondoFinancialDocReviewStatus
+  financialsIncludedReviewStatus: DemoCondoFinancialDocReviewStatus
+  insuranceIncludedReviewStatus: DemoCondoFinancialDocReviewStatus
+  litigationOrClaimsDisclosureStatus: DemoCondoLitigationOrDbprStatus
+  structuralOrSirsMaterialsStatus: DemoCondoFinancialDocReviewStatus
+  estoppelIncludedStatus: DemoCondoFinancialDocReviewStatus
+  followUpNeeded: boolean
+  packageConcernLevel: DemoCondoGovernanceConcernLevel
+  notes: string
+}
+
 export type DemoCondoDiligence = {
   applicable: boolean
   status: DemoCondoDiligenceMatterStatus
@@ -349,6 +375,8 @@ export type DemoCondoDiligence = {
   associationFinancialReview?: DemoCondoAssociationFinancialReview
   /** Optional structured records/governance fields; absent on older persisted demo rows. */
   associationRecordsGovernanceReview?: DemoCondoAssociationRecordsGovernanceReview
+  /** Optional structured disclosure package fields; absent on older persisted demo rows. */
+  disclosurePackageReview?: DemoCondoDisclosurePackageReview
 }
 
 export type DemoFirm = {

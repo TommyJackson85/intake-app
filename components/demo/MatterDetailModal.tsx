@@ -11,6 +11,8 @@ import type {
   DemoCondoDelinquencyConcern,
   DemoCondoDiligenceDocStatus,
   DemoCondoDiligenceMatterStatus,
+  DemoCondoDisclosurePackageCompleteness,
+  DemoCondoDisclosurePackageReview,
   DemoCondoDuesFrequency,
   DemoCondoEstoppelReview,
   DemoCondoEstoppelReviewStatus,
@@ -45,6 +47,7 @@ import {
   buildCondoDiligenceOperationalSummary,
   buildCondoDiligenceSummaryDraftDocumentInput,
   condoDiligenceMatterStatusPresentation,
+  condoDisclosurePackageCompletenessPresentation,
   condoEstoppelDueDateWarning,
   condoEstoppelReviewStatusPresentation,
   condoFinancialDocReviewStatusPresentation,
@@ -63,6 +66,7 @@ import {
   listCondoDiligenceInternalSummaryDocuments,
   normalizeCondoAssociationFinancialReview,
   normalizeCondoAssociationRecordsGovernanceReview,
+  normalizeCondoDisclosurePackageReview,
   normalizeCondoEstoppelReview,
   normalizeCondoSirsMilestoneReview,
   syncRequiredDocumentsFromDerivedLinkage,
@@ -3745,6 +3749,415 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                 </li>
                               ))}
                               {governanceLinkedRequests.map((r) => (
+                                <li key={r.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Request ({r.status}):</strong> {r.title}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {(() => {
+                    const disclosureReview = normalizeCondoDisclosurePackageReview(
+                      condoDiligence.disclosurePackageReview,
+                    )
+                    const reviewPresent = condoFinancialDocReviewStatusPresentation(disclosureReview.reviewStatus)
+                    const completenessPresent = condoDisclosurePackageCompletenessPresentation(
+                      disclosureReview.packageCompletenessStatus,
+                    )
+                    const concernPresent = condoGovernanceConcernLevelPresentation(
+                      disclosureReview.packageConcernLevel,
+                    )
+                    const fieldLabel: React.CSSProperties = {
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: '#627c71',
+                      marginBottom: 4,
+                    }
+                    const fieldInput: React.CSSProperties = {
+                      width: '100%',
+                      padding: '7px 8px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(94,82,64,0.25)',
+                      fontSize: 13,
+                      color: '#134252',
+                      background: '#fff',
+                    }
+                    const disclosureDocIds = [
+                      'declaration_bylaws_rules_amendments',
+                      'association_financial_statements',
+                      'current_budget',
+                      'reserve_schedule_funding_detail',
+                      'insurance_summary',
+                      'litigation_claims_arbitration_dbpr',
+                      'milestone_inspection_summary',
+                      'sirs_reserve_study',
+                      'estoppel',
+                      'association_approval_leasing_restrictions',
+                      'recent_board_minutes',
+                      'special_assessment_notice_schedule',
+                      'management_association_contacts',
+                    ]
+                    const disclosureLinkedDocuments = matterDocuments.filter((d) => {
+                      const haystack = [d.name, d.document_subtype ?? '', d.category].filter(Boolean).join(' ')
+                      return disclosureDocIds.some((id) => condoRequiredDocMatchesLinkageHaystack(haystack, id))
+                    })
+                    const disclosureLinkedRequests = matterDocumentRequests.filter((r) => {
+                      const haystack = [r.title, r.description ?? '', r.category].filter(Boolean).join(' ')
+                      return disclosureDocIds.some((id) => condoRequiredDocMatchesLinkageHaystack(haystack, id))
+                    })
+                    const patchDisclosure = (patch: Partial<DemoCondoDisclosurePackageReview>) => {
+                      if (!matterId) return
+                      patchCondoDiligence(matterId, {
+                        disclosurePackageReview: { ...disclosureReview, ...patch },
+                      })
+                    }
+                    const docReviewOptions = (
+                      <>
+                        <option value="not_started">Not started</option>
+                        <option value="requested">Requested</option>
+                        <option value="received">Received</option>
+                        <option value="reviewed">Reviewed</option>
+                        <option value="issue_found">Issue found</option>
+                      </>
+                    )
+                    const concernOptions = (
+                      <>
+                        <option value="unknown">Unknown</option>
+                        <option value="none">None</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </>
+                    )
+                    const showDisclosureAttention =
+                      disclosureReview.followUpNeeded ||
+                      disclosureReview.reviewStatus === 'issue_found' ||
+                      disclosureReview.packageCompletenessStatus === 'lawyer_review_required' ||
+                      disclosureReview.packageCompletenessStatus === 'partial_or_incomplete' ||
+                      disclosureReview.packageCompletenessStatus === 'not_received' ||
+                      disclosureReview.packageConcernLevel === 'medium' ||
+                      disclosureReview.packageConcernLevel === 'high' ||
+                      disclosureReview.litigationOrClaimsDisclosureStatus === 'disclosed' ||
+                      disclosureReview.litigationOrClaimsDisclosureStatus === 'lawyer_review_required'
+
+                    return (
+                      <div
+                        id="condo-disclosure-package-review"
+                        style={{
+                          border: '1px solid rgba(94,82,64,0.12)',
+                          borderRadius: 8,
+                          padding: 14,
+                          background: 'white',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                              Disclosure Package Review
+                            </div>
+                            <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '36rem' }}>
+                              Structured practice notes for association disclosure package completeness (governing
+                              docs, financials, insurance, litigation/claims, structural/SIRS materials, estoppel).
+                              Complements checklist rows — does not replace requests, linkage, or sync. Not a
+                              statutory-compliance or closing determination.
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: reviewPresent.bg,
+                                color: reviewPresent.color,
+                                border: `1px solid ${reviewPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Review: {reviewPresent.label}
+                            </span>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: completenessPresent.bg,
+                                color: completenessPresent.color,
+                                border: `1px solid ${completenessPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Package: {completenessPresent.label}
+                            </span>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: concernPresent.bg,
+                                color: concernPresent.color,
+                                border: `1px solid ${concernPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Concern: {concernPresent.label}
+                            </span>
+                          </div>
+                        </div>
+
+                        {showDisclosureAttention && (
+                          <div
+                            role="status"
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(240,180,41,0.45)',
+                              background: '#fff8e6',
+                              color: '#b45309',
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            Attention: disclosure package completeness, follow-up, or concern signals need lawyer
+                            review. Confirm linked materials and notes before treating the package as complete. Demo
+                            reminder only — not a legal compliance opinion.
+                          </div>
+                        )}
+
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                            gap: 10,
+                          }}
+                        >
+                          <label>
+                            <span style={fieldLabel}>Package review status</span>
+                            <select
+                              value={disclosureReview.reviewStatus}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  reviewStatus: e.target.value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Package received date</span>
+                            <input
+                              type="date"
+                              value={disclosureReview.packageReceivedDate}
+                              onChange={(e) => patchDisclosure({ packageReceivedDate: e.target.value })}
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Package completeness</span>
+                            <select
+                              value={disclosureReview.packageCompletenessStatus}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  packageCompletenessStatus: e.target
+                                    .value as DemoCondoDisclosurePackageCompleteness,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="not_received">Not received</option>
+                              <option value="partial_or_incomplete">Partial or incomplete</option>
+                              <option value="appears_complete">Appears complete</option>
+                              <option value="lawyer_review_required">Lawyer review required</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>FAQ / statutory questions</span>
+                            <select
+                              value={disclosureReview.faqOrStatutoryQuestionsReviewStatus}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  faqOrStatutoryQuestionsReviewStatus: e.target
+                                    .value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Governing docs included</span>
+                            <select
+                              value={disclosureReview.governingDocsIncludedReviewStatus}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  governingDocsIncludedReviewStatus: e.target
+                                    .value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Financials included</span>
+                            <select
+                              value={disclosureReview.financialsIncludedReviewStatus}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  financialsIncludedReviewStatus: e.target
+                                    .value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Insurance included</span>
+                            <select
+                              value={disclosureReview.insuranceIncludedReviewStatus}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  insuranceIncludedReviewStatus: e.target
+                                    .value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Litigation / claims disclosure</span>
+                            <select
+                              value={disclosureReview.litigationOrClaimsDisclosureStatus}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  litigationOrClaimsDisclosureStatus: e.target
+                                    .value as DemoCondoLitigationOrDbprStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="none_disclosed">None disclosed</option>
+                              <option value="disclosed">Disclosed</option>
+                              <option value="lawyer_review_required">Lawyer review required</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Structural / SIRS materials</span>
+                            <select
+                              value={disclosureReview.structuralOrSirsMaterialsStatus}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  structuralOrSirsMaterialsStatus: e.target
+                                    .value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Estoppel included</span>
+                            <select
+                              value={disclosureReview.estoppelIncludedStatus}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  estoppelIncludedStatus: e.target.value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Package concern level</span>
+                            <select
+                              value={disclosureReview.packageConcernLevel}
+                              onChange={(e) =>
+                                patchDisclosure({
+                                  packageConcernLevel: e.target.value as DemoCondoGovernanceConcernLevel,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {concernOptions}
+                            </select>
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 18 }}>
+                            <input
+                              type="checkbox"
+                              checked={disclosureReview.followUpNeeded}
+                              onChange={(e) => patchDisclosure({ followUpNeeded: e.target.checked })}
+                            />
+                            <span style={{ fontSize: 12, fontWeight: 800, color: '#627c71' }}>Follow-up needed</span>
+                          </label>
+                        </div>
+
+                        <label style={{ display: 'block' }}>
+                          <span style={fieldLabel}>Lawyer notes</span>
+                          <textarea
+                            value={disclosureReview.notes}
+                            onChange={(e) => patchDisclosure({ notes: e.target.value })}
+                            rows={3}
+                            placeholder="Internal disclosure package review notes (demo)"
+                            style={{ ...fieldInput, resize: 'vertical' }}
+                          />
+                        </label>
+
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 900, color: '#134252', marginBottom: 6 }}>
+                            Linked disclosure package documents &amp; requests
+                          </div>
+                          <div style={{ fontSize: 11, color: '#627c71', marginBottom: 8, lineHeight: 1.4 }}>
+                            Read-only matches across common package materials (governing docs, financials, insurance,
+                            litigation, SIRS/milestone, estoppel, approvals, minutes, contacts).
+                          </div>
+                          {disclosureLinkedDocuments.length === 0 && disclosureLinkedRequests.length === 0 ? (
+                            <div style={{ fontSize: 13, color: '#627c71' }}>
+                              No matching disclosure package documents or requests linked yet.
+                            </div>
+                          ) : (
+                            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {disclosureLinkedDocuments.map((d) => (
+                                <li key={d.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Document:</strong> {d.name}
+                                  {d.document_subtype ? ` · ${d.document_subtype}` : ''}
+                                </li>
+                              ))}
+                              {disclosureLinkedRequests.map((r) => (
                                 <li key={r.id} style={{ fontSize: 13, color: '#134252' }}>
                                   <strong>Request ({r.status}):</strong> {r.title}
                                 </li>

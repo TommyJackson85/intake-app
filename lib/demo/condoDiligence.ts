@@ -14,6 +14,8 @@ import type {
   DemoCondoDiligenceFinding,
   DemoCondoDiligenceMatterStatus,
   DemoCondoDiligenceRequiredDocument,
+  DemoCondoDisclosurePackageCompleteness,
+  DemoCondoDisclosurePackageReview,
   DemoCondoDuesFrequency,
   DemoCondoEstoppelReview,
   DemoCondoEstoppelReviewStatus,
@@ -328,6 +330,7 @@ export function isCondoDiligenceUntouched(
     sirsMilestoneReview?: DemoCondoSirsMilestoneReview | null
     associationFinancialReview?: DemoCondoAssociationFinancialReview | null
     associationRecordsGovernanceReview?: DemoCondoAssociationRecordsGovernanceReview | null
+    disclosurePackageReview?: DemoCondoDisclosurePackageReview | null
   },
 ): boolean {
   const notesEmpty = input.notes.trim() === ''
@@ -339,6 +342,7 @@ export function isCondoDiligenceUntouched(
   const governanceUntouched = isCondoAssociationRecordsGovernanceReviewUntouched(
     input.associationRecordsGovernanceReview,
   )
+  const disclosureUntouched = isCondoDisclosurePackageReviewUntouched(input.disclosurePackageReview)
   return (
     input.status === 'not_started' &&
     notesEmpty &&
@@ -347,7 +351,8 @@ export function isCondoDiligenceUntouched(
     estoppelUntouched &&
     sirsUntouched &&
     financialUntouched &&
-    governanceUntouched
+    governanceUntouched &&
+    disclosureUntouched
   )
 }
 
@@ -1022,6 +1027,135 @@ export function condoGovernanceConcernLevelPresentation(level: DemoCondoGovernan
   return condoFinancialRiskLevelPresentation(level)
 }
 
+/** Default empty structured disclosure package review for newly seeded rows. */
+export function buildDefaultCondoDisclosurePackageReview(): DemoCondoDisclosurePackageReview {
+  return {
+    reviewStatus: 'not_started',
+    packageReceivedDate: '',
+    packageCompletenessStatus: 'unknown',
+    faqOrStatutoryQuestionsReviewStatus: 'not_started',
+    governingDocsIncludedReviewStatus: 'not_started',
+    financialsIncludedReviewStatus: 'not_started',
+    insuranceIncludedReviewStatus: 'not_started',
+    litigationOrClaimsDisclosureStatus: 'unknown',
+    structuralOrSirsMaterialsStatus: 'not_started',
+    estoppelIncludedStatus: 'not_started',
+    followUpNeeded: false,
+    packageConcernLevel: 'unknown',
+    notes: '',
+  }
+}
+
+export function normalizeCondoDisclosurePackageReview(
+  input?: Partial<DemoCondoDisclosurePackageReview> | null,
+): DemoCondoDisclosurePackageReview {
+  return {
+    ...buildDefaultCondoDisclosurePackageReview(),
+    ...(input ?? {}),
+  }
+}
+
+function isDisclosurePackageCompleteness(
+  value: unknown,
+): value is DemoCondoDisclosurePackageCompleteness {
+  return (
+    value === 'unknown' ||
+    value === 'not_received' ||
+    value === 'partial_or_incomplete' ||
+    value === 'appears_complete' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+/**
+ * Parse optional persisted `disclosurePackageReview`.
+ * Missing/invalid object → undefined (older rows). Partial objects get defaults.
+ */
+export function parseDemoCondoDisclosurePackageReview(
+  raw: unknown,
+): DemoCondoDisclosurePackageReview | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const o = raw as Record<string, unknown>
+  const base = buildDefaultCondoDisclosurePackageReview()
+
+  return {
+    reviewStatus: isFinancialDocReviewStatus(o.reviewStatus) ? o.reviewStatus : base.reviewStatus,
+    packageReceivedDate: isYmdDateString(o.packageReceivedDate)
+      ? o.packageReceivedDate.trim()
+      : base.packageReceivedDate,
+    packageCompletenessStatus: isDisclosurePackageCompleteness(o.packageCompletenessStatus)
+      ? o.packageCompletenessStatus
+      : base.packageCompletenessStatus,
+    faqOrStatutoryQuestionsReviewStatus: isFinancialDocReviewStatus(o.faqOrStatutoryQuestionsReviewStatus)
+      ? o.faqOrStatutoryQuestionsReviewStatus
+      : base.faqOrStatutoryQuestionsReviewStatus,
+    governingDocsIncludedReviewStatus: isFinancialDocReviewStatus(o.governingDocsIncludedReviewStatus)
+      ? o.governingDocsIncludedReviewStatus
+      : base.governingDocsIncludedReviewStatus,
+    financialsIncludedReviewStatus: isFinancialDocReviewStatus(o.financialsIncludedReviewStatus)
+      ? o.financialsIncludedReviewStatus
+      : base.financialsIncludedReviewStatus,
+    insuranceIncludedReviewStatus: isFinancialDocReviewStatus(o.insuranceIncludedReviewStatus)
+      ? o.insuranceIncludedReviewStatus
+      : base.insuranceIncludedReviewStatus,
+    litigationOrClaimsDisclosureStatus: isLitigationOrDbprStatus(o.litigationOrClaimsDisclosureStatus)
+      ? o.litigationOrClaimsDisclosureStatus
+      : base.litigationOrClaimsDisclosureStatus,
+    structuralOrSirsMaterialsStatus: isFinancialDocReviewStatus(o.structuralOrSirsMaterialsStatus)
+      ? o.structuralOrSirsMaterialsStatus
+      : base.structuralOrSirsMaterialsStatus,
+    estoppelIncludedStatus: isFinancialDocReviewStatus(o.estoppelIncludedStatus)
+      ? o.estoppelIncludedStatus
+      : base.estoppelIncludedStatus,
+    followUpNeeded: typeof o.followUpNeeded === 'boolean' ? o.followUpNeeded : base.followUpNeeded,
+    packageConcernLevel: isFinancialRiskLevel(o.packageConcernLevel)
+      ? (o.packageConcernLevel as DemoCondoGovernanceConcernLevel)
+      : base.packageConcernLevel,
+    notes: typeof o.notes === 'string' ? o.notes : base.notes,
+  }
+}
+
+export function isCondoDisclosurePackageReviewUntouched(
+  input?: DemoCondoDisclosurePackageReview | null,
+): boolean {
+  if (!input) return true
+  const d = normalizeCondoDisclosurePackageReview(input)
+  return (
+    d.reviewStatus === 'not_started' &&
+    d.packageReceivedDate.trim() === '' &&
+    d.packageCompletenessStatus === 'unknown' &&
+    d.faqOrStatutoryQuestionsReviewStatus === 'not_started' &&
+    d.governingDocsIncludedReviewStatus === 'not_started' &&
+    d.financialsIncludedReviewStatus === 'not_started' &&
+    d.insuranceIncludedReviewStatus === 'not_started' &&
+    d.litigationOrClaimsDisclosureStatus === 'unknown' &&
+    d.structuralOrSirsMaterialsStatus === 'not_started' &&
+    d.estoppelIncludedStatus === 'not_started' &&
+    d.followUpNeeded === false &&
+    d.packageConcernLevel === 'unknown' &&
+    d.notes.trim() === ''
+  )
+}
+
+export function condoDisclosurePackageCompletenessPresentation(
+  status: DemoCondoDisclosurePackageCompleteness,
+): { label: string; bg: string; color: string; border: string } {
+  switch (status) {
+    case 'appears_complete':
+      return { label: 'Appears complete', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'partial_or_incomplete':
+      return { label: 'Partial or incomplete', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    case 'not_received':
+      return { label: 'Not received', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+    case 'lawyer_review_required':
+      return { label: 'Lawyer review required', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    case 'unknown':
+    default:
+      return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
 const CONDO_SUMMARY_MONTHS = [
   'Jan',
   'Feb',
@@ -1458,6 +1592,9 @@ export function buildCondoDiligenceInternalReport(input: {
   const governance = condo?.associationRecordsGovernanceReview
     ? normalizeCondoAssociationRecordsGovernanceReview(condo.associationRecordsGovernanceReview)
     : normalizeCondoAssociationRecordsGovernanceReview(undefined)
+  const disclosure = condo?.disclosurePackageReview
+    ? normalizeCondoDisclosurePackageReview(condo.disclosurePackageReview)
+    : normalizeCondoDisclosurePackageReview(undefined)
 
   const estoppelLines = [
     `Review status: ${condoEstoppelReviewStatusPresentation(estoppel.reviewStatus).label}`,
@@ -1511,6 +1648,22 @@ export function buildCondoDiligenceInternalReport(input: {
     `Notes: ${nonEmptyOrDash(governance.notes)}`,
   ]
 
+  const disclosureLines = [
+    `Review status: ${condoFinancialDocReviewStatusPresentation(disclosure.reviewStatus).label}`,
+    `Package received date: ${nonEmptyOrDash(disclosure.packageReceivedDate)}`,
+    `Completeness: ${condoDisclosurePackageCompletenessPresentation(disclosure.packageCompletenessStatus).label}`,
+    `FAQ / statutory questions: ${condoFinancialDocReviewStatusPresentation(disclosure.faqOrStatutoryQuestionsReviewStatus).label}`,
+    `Governing docs included: ${condoFinancialDocReviewStatusPresentation(disclosure.governingDocsIncludedReviewStatus).label}`,
+    `Financials included: ${condoFinancialDocReviewStatusPresentation(disclosure.financialsIncludedReviewStatus).label}`,
+    `Insurance included: ${condoFinancialDocReviewStatusPresentation(disclosure.insuranceIncludedReviewStatus).label}`,
+    `Litigation / claims disclosure: ${disclosure.litigationOrClaimsDisclosureStatus}`,
+    `Structural / SIRS materials: ${condoFinancialDocReviewStatusPresentation(disclosure.structuralOrSirsMaterialsStatus).label}`,
+    `Estoppel included: ${condoFinancialDocReviewStatusPresentation(disclosure.estoppelIncludedStatus).label}`,
+    `Follow-up needed: ${disclosure.followUpNeeded ? 'Yes' : 'No'}`,
+    `Package concern: ${condoGovernanceConcernLevelPresentation(disclosure.packageConcernLevel).label}`,
+    `Notes: ${nonEmptyOrDash(disclosure.notes)}`,
+  ]
+
   const findingLines =
     findings.length === 0
       ? ['No findings recorded']
@@ -1541,6 +1694,7 @@ export function buildCondoDiligenceInternalReport(input: {
     { title: 'Structural / SIRS review', lines: sirsLines },
     { title: 'Financial review', lines: financialLines },
     { title: 'Records / governance review', lines: governanceLines },
+    { title: 'Disclosure package review', lines: disclosureLines },
     { title: 'Open findings', lines: findingLines },
     {
       title: 'Open requests',
@@ -1558,6 +1712,7 @@ export function buildCondoDiligenceInternalReport(input: {
         `SIRS / Milestone notes: ${nonEmptyOrDash(sirs.notes)}`,
         `Financial notes: ${nonEmptyOrDash(financial.notes)}`,
         `Records / governance notes: ${nonEmptyOrDash(governance.notes)}`,
+        `Disclosure package notes: ${nonEmptyOrDash(disclosure.notes)}`,
       ],
     },
   ]
@@ -1970,5 +2125,6 @@ export function buildDefaultCondoDiligence(options?: BuildDefaultCondoDiligenceO
     sirsMilestoneReview: buildDefaultCondoSirsMilestoneReview(),
     associationFinancialReview: buildDefaultCondoAssociationFinancialReview(),
     associationRecordsGovernanceReview: buildDefaultCondoAssociationRecordsGovernanceReview(),
+    disclosurePackageReview: buildDefaultCondoDisclosurePackageReview(),
   }
 }

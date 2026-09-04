@@ -13,9 +13,11 @@ import {
   buildDefaultCondoAssociationFinancialReview,
   buildDefaultCondoAssociationRecordsGovernanceReview,
   buildDefaultCondoDiligence,
+  buildDefaultCondoDisclosurePackageReview,
   buildDefaultCondoEstoppelReview,
   buildDefaultCondoSirsMilestoneReview,
   condoDiligenceMatterStatusPresentation,
+  condoDisclosurePackageCompletenessPresentation,
   condoEstoppelDueDateWarning,
   condoEstoppelReviewStatusPresentation,
   condoFinancialDocReviewStatusPresentation,
@@ -34,16 +36,19 @@ import {
   isCondoAssociationRecordsGovernanceReviewUntouched,
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
+  isCondoDisclosurePackageReviewUntouched,
   isCondoEstoppelReviewUntouched,
   isCondoOrCoopMatter,
   isCondoSirsMilestoneReviewUntouched,
   isFloridaPropertyAddress,
   normalizeCondoAssociationFinancialReview,
   normalizeCondoAssociationRecordsGovernanceReview,
+  normalizeCondoDisclosurePackageReview,
   normalizeCondoEstoppelReview,
   normalizeCondoSirsMilestoneReview,
   parseDemoCondoAssociationFinancialReview,
   parseDemoCondoAssociationRecordsGovernanceReview,
+  parseDemoCondoDisclosurePackageReview,
   parseDemoCondoEstoppelReview,
   parseDemoCondoSirsMilestoneReview,
   syncRequiredDocumentsFromDerivedLinkage,
@@ -586,6 +591,8 @@ describe('condoDiligence', () => {
       expect(isCondoAssociationFinancialReviewUntouched(d.associationFinancialReview)).toBe(true)
       expect(d.associationRecordsGovernanceReview).toEqual(buildDefaultCondoAssociationRecordsGovernanceReview())
       expect(isCondoAssociationRecordsGovernanceReviewUntouched(d.associationRecordsGovernanceReview)).toBe(true)
+      expect(d.disclosurePackageReview).toEqual(buildDefaultCondoDisclosurePackageReview())
+      expect(isCondoDisclosurePackageReviewUntouched(d.disclosurePackageReview)).toBe(true)
     })
 
     it('keeps the original six rows and adds exactly seven new core doc-pack rows without duplicates', () => {
@@ -1016,6 +1023,88 @@ describe('condoDiligence', () => {
     })
   })
 
+  describe('disclosurePackageReview', () => {
+    it('parses missing or invalid disclosurePackageReview as undefined for older persisted rows', () => {
+      expect(parseDemoCondoDisclosurePackageReview(undefined)).toBeUndefined()
+      expect(parseDemoCondoDisclosurePackageReview(null)).toBeUndefined()
+      expect(parseDemoCondoDisclosurePackageReview('nope')).toBeUndefined()
+      expect(parseDemoCondoDisclosurePackageReview([])).toBeUndefined()
+    })
+
+    it('fills defaults for partial valid disclosurePackageReview objects', () => {
+      expect(
+        parseDemoCondoDisclosurePackageReview({
+          reviewStatus: 'received',
+          packageCompletenessStatus: 'partial_or_incomplete',
+          followUpNeeded: true,
+          notes: 'Need FAQ',
+        }),
+      ).toEqual({
+        ...buildDefaultCondoDisclosurePackageReview(),
+        reviewStatus: 'received',
+        packageCompletenessStatus: 'partial_or_incomplete',
+        followUpNeeded: true,
+        notes: 'Need FAQ',
+      })
+    })
+
+    it('normalizeCondoDisclosurePackageReview merges onto defaults', () => {
+      expect(normalizeCondoDisclosurePackageReview(undefined)).toEqual(buildDefaultCondoDisclosurePackageReview())
+      expect(normalizeCondoDisclosurePackageReview({ packageReceivedDate: '2026-09-01' })).toEqual({
+        ...buildDefaultCondoDisclosurePackageReview(),
+        packageReceivedDate: '2026-09-01',
+      })
+    })
+
+    it('marks diligence as touched when disclosure package review has progress', () => {
+      const base = buildDefaultCondoDiligence({ nowIso: () => '2026-04-27T12:00:00.000Z' })
+      expect(isCondoDiligenceUntouched(base)).toBe(true)
+      expect(
+        isCondoDiligenceUntouched({
+          ...base,
+          disclosurePackageReview: {
+            ...buildDefaultCondoDisclosurePackageReview(),
+            reviewStatus: 'requested',
+            followUpNeeded: true,
+          },
+        }),
+      ).toBe(false)
+    })
+
+    it('keeps older saved checklists without disclosurePackageReview loadable and untouched', () => {
+      const older: DemoCondoDiligence = {
+        applicable: true,
+        status: 'not_started',
+        notes: '',
+        findings: [],
+        updated_at: '2026-01-01T00:00:00.000Z',
+        requiredDocuments: ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS.map((id) => ({
+          id,
+          label: id,
+          status: 'outstanding' as const,
+          detail: null,
+        })),
+      }
+      expect(older.disclosurePackageReview).toBeUndefined()
+      expect(isCondoDiligenceUntouched(older)).toBe(true)
+      expect(isCondoDisclosurePackageReviewUntouched(older.disclosurePackageReview)).toBe(true)
+    })
+
+    it('presentation helpers stay operational and do not change matter-status derivation', () => {
+      expect(condoDisclosurePackageCompletenessPresentation('appears_complete').label).toBe('Appears complete')
+      expect(condoDisclosurePackageCompletenessPresentation('lawyer_review_required').label).toBe(
+        'Lawyer review required',
+      )
+      const checklist = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' }).requiredDocuments
+      expect(
+        deriveCondoDiligenceMatterStatusFromChecklist({
+          requiredDocuments: checklist,
+          findings: [],
+        }),
+      ).toBe('not_started')
+    })
+  })
+
   describe('buildCondoDiligenceOperationalSummary', () => {
     const matterId = 'm-summary'
     const now = new Date('2026-09-15T12:00:00')
@@ -1294,6 +1383,12 @@ describe('condoDiligence', () => {
         rentalRestrictionStatus: 'restriction_noted',
         managementContactName: 'Bay Mgmt',
       }
+      condo.disclosurePackageReview = {
+        ...buildDefaultCondoDisclosurePackageReview(),
+        packageCompletenessStatus: 'partial_or_incomplete',
+        followUpNeeded: true,
+        notes: 'Waiting on FAQ addendum',
+      }
       condo.findings = [{ id: 'f1', text: 'Special assessment disclosed' }]
       condo.notes = 'Matter-level diligence note'
 
@@ -1329,6 +1424,7 @@ describe('condoDiligence', () => {
         'Structural / SIRS review',
         'Financial review',
         'Records / governance review',
+        'Disclosure package review',
         'Open findings',
         'Open requests',
         'Evidence links',
@@ -1343,6 +1439,7 @@ describe('condoDiligence', () => {
       )
       expect(report.plainText).toContain('Chase association')
       expect(report.plainText).toContain('Bay Mgmt')
+      expect(report.plainText).toContain('Waiting on FAQ addendum')
       expect(report.plainText).toContain('Matter-level diligence note')
     })
 

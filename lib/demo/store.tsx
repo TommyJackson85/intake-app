@@ -55,10 +55,12 @@ import {
   isCondoDiligenceEligible,
   normalizeCondoAssociationFinancialReview,
   normalizeCondoAssociationRecordsGovernanceReview,
+  normalizeCondoDisclosurePackageReview,
   normalizeCondoEstoppelReview,
   normalizeCondoSirsMilestoneReview,
   parseDemoCondoAssociationFinancialReview,
   parseDemoCondoAssociationRecordsGovernanceReview,
+  parseDemoCondoDisclosurePackageReview,
   parseDemoCondoEstoppelReview,
   parseDemoCondoSirsMilestoneReview,
 } from '@/lib/demo/condoDiligence'
@@ -318,6 +320,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
   const associationRecordsGovernanceReview = parseDemoCondoAssociationRecordsGovernanceReview(
     o.associationRecordsGovernanceReview,
   )
+  const disclosurePackageReview = parseDemoCondoDisclosurePackageReview(o.disclosurePackageReview)
 
   return {
     applicable: o.applicable,
@@ -330,6 +333,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
     ...(sirsMilestoneReview ? { sirsMilestoneReview } : {}),
     ...(associationFinancialReview ? { associationFinancialReview } : {}),
     ...(associationRecordsGovernanceReview ? { associationRecordsGovernanceReview } : {}),
+    ...(disclosurePackageReview ? { disclosurePackageReview } : {}),
   }
 }
 
@@ -1813,6 +1817,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             sirsMilestoneReview: sirsPatch,
             associationFinancialReview: financialPatch,
             associationRecordsGovernanceReview: governancePatch,
+            disclosurePackageReview: disclosurePatch,
             ...restPatch
           } = definedEntries
           const nextBase: DemoCondoDiligence = {
@@ -1849,6 +1854,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               ? {
                   ...normalizeCondoAssociationRecordsGovernanceReview(existing.associationRecordsGovernanceReview),
                   ...governancePatch,
+                }
+              : undefined
+          }
+          if ('disclosurePackageReview' in definedEntries) {
+            nextBase.disclosurePackageReview = disclosurePatch
+              ? {
+                  ...normalizeCondoDisclosurePackageReview(existing.disclosurePackageReview),
+                  ...disclosurePatch,
                 }
               : undefined
           }
