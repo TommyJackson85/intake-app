@@ -7,6 +7,7 @@ import {
   buildCondoDiligenceSummaryDraftDocumentInput,
   CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE,
   isCondoDiligenceInternalSummaryDocument,
+  listCondoDiligenceInternalSummaryDocuments,
   buildDefaultCondoAssociationFinancialReview,
   buildDefaultCondoAssociationRecordsGovernanceReview,
   buildDefaultCondoDiligence,
@@ -1449,6 +1450,81 @@ describe('condoDiligence', () => {
           },
         }),
       ).toBe(true)
+    })
+  })
+
+  describe('listCondoDiligenceInternalSummaryDocuments', () => {
+    const baseDoc = {
+      matter_id: 'm-hist',
+      category: 'Compliance' as const,
+      document_subtype: null as string | null,
+      description: null as string | null,
+      document_date: null as string | null,
+      source: null as string | null,
+      uploaded_by_staff_id: 'staff-1',
+      status: 'draft' as const,
+      deletedAt: null as string | null,
+    }
+
+    it('returns only internal summary docs newest-first by generatedAt', () => {
+      const ordinary = {
+        ...baseDoc,
+        id: 'doc-ordinary',
+        name: 'Budget.pdf',
+        category: 'Closing' as const,
+        uploaded_at: '2026-09-05T12:00:00.000Z',
+      }
+      const older = {
+        ...baseDoc,
+        id: 'doc-older',
+        name: 'Internal Condo Diligence Summary — older',
+        document_subtype: CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE,
+        uploaded_at: '2026-09-01T10:00:00.000Z',
+        generatedInternalSummary: {
+          generatedType: 'condo_diligence_internal_summary' as const,
+          generatedAt: '2026-09-01T10:00:00.000Z',
+          sourceMatterId: 'm-hist',
+          content: 'older snapshot',
+          visibility: 'internal' as const,
+        },
+      }
+      const newer = {
+        ...baseDoc,
+        id: 'doc-newer',
+        name: 'Internal Condo Diligence Summary — newer',
+        document_subtype: CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE,
+        uploaded_at: '2026-09-03T10:00:00.000Z',
+        generatedInternalSummary: {
+          generatedType: 'condo_diligence_internal_summary' as const,
+          generatedAt: '2026-09-04T08:00:00.000Z',
+          sourceMatterId: 'm-hist',
+          content: 'newer snapshot',
+          visibility: 'internal' as const,
+        },
+      }
+      const deleted = {
+        ...newer,
+        id: 'doc-deleted',
+        name: 'Internal Condo Diligence Summary — deleted',
+        deletedAt: '2026-09-04T09:00:00.000Z',
+      }
+
+      const listed = listCondoDiligenceInternalSummaryDocuments([ordinary, older, newer, deleted])
+      expect(listed.map((d) => d.id)).toEqual(['doc-newer', 'doc-older'])
+    })
+
+    it('returns an empty list when no summaries exist', () => {
+      expect(
+        listCondoDiligenceInternalSummaryDocuments([
+          {
+            ...baseDoc,
+            id: 'doc-1',
+            name: 'Title.pdf',
+            category: 'Title' as const,
+            uploaded_at: '2026-09-01T00:00:00.000Z',
+          },
+        ]),
+      ).toEqual([])
     })
   })
 })

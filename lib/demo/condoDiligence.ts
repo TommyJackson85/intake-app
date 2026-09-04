@@ -1595,6 +1595,26 @@ export function isCondoDiligenceInternalSummaryDocument(
   return document.name.toLowerCase().includes('internal condo diligence summary')
 }
 
+/** Sort key for saved internal summary snapshots (prefer generatedAt, fall back to uploaded_at). */
+export function condoDiligenceInternalSummarySortTime(
+  document: Pick<DemoDocument, 'uploaded_at' | 'generatedInternalSummary'>,
+): number {
+  const iso = document.generatedInternalSummary?.generatedAt?.trim() || document.uploaded_at
+  const t = new Date(iso).getTime()
+  return Number.isFinite(t) ? t : 0
+}
+
+/**
+ * Matter-document rows that are Internal Condo Diligence Summary snapshots, newest first.
+ * Does not create a separate store — filters the existing document list.
+ */
+export function listCondoDiligenceInternalSummaryDocuments<T extends DemoDocument>(documents: T[]): T[] {
+  return documents
+    .filter((d) => !d.deletedAt && isCondoDiligenceInternalSummaryDocument(d))
+    .slice()
+    .sort((a, b) => condoDiligenceInternalSummarySortTime(b) - condoDiligenceInternalSummarySortTime(a))
+}
+
 /**
  * Builds an `AddDemoDocumentInput` snapshot of the current Internal Diligence Summary.
  * Immutable content lives in `generatedInternalSummary.content` (and a short description).
