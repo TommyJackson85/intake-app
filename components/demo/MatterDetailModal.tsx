@@ -70,6 +70,8 @@ import {
 import DocumentPreviewModal from '@/app/demo/_components/DocumentPreviewModal'
 import {
   demoMatterReviewTaskStatusPresentation,
+  formatCondoDiligenceActiveReviewTaskCountLabel,
+  listActiveCondoDiligenceSummaryReviewTasks,
   listCondoDiligenceSummaryReviewTasks,
 } from '@/lib/demo/demoMatterReviewTask'
 
@@ -294,6 +296,15 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     if (!effectiveMatter) return []
     return listCondoDiligenceSummaryReviewTasks(matterReviewTasks, effectiveMatter.id)
   }, [effectiveMatter, matterReviewTasks])
+
+  const activeCondoReviewTasks = useMemo(() => {
+    if (!effectiveMatter) return []
+    return listActiveCondoDiligenceSummaryReviewTasks(matterReviewTasks, effectiveMatter.id)
+  }, [effectiveMatter, matterReviewTasks])
+
+  const activeCondoReviewTaskCountLabel = formatCondoDiligenceActiveReviewTaskCountLabel(
+    activeCondoReviewTasks.length,
+  )
 
   const matterDocumentRequests = useMemo(() => {
     if (!effectiveMatter) return []
@@ -678,7 +689,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                 <div style={{ color: '#134252', fontWeight: 900 }}>{formatYmd(effectiveMatter.fileOpenedDate)}</div>
               </div>
 
-              {(showCondoDiligenceTab || fincenSummary) && (
+              {(showCondoDiligenceTab || fincenSummary || activeCondoReviewTasks.length > 0) && (
                 <div style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: 8, padding: 12, background: 'white' }}>
                   <div style={{ fontSize: 13, fontWeight: 900, color: '#134252', marginBottom: 8 }}>Compliance Summary</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -689,6 +700,25 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           <div style={{ fontSize: 11, color: '#627c71' }}>
                             {condoNextStepSummary(condoDiligence)}
                           </div>
+                          {activeCondoReviewTaskCountLabel ? (
+                            <div style={{ marginTop: 6 }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '3px 8px',
+                                  borderRadius: 999,
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  background: '#f5f5f5',
+                                  color: '#627c71',
+                                  border: '1px solid rgba(94,82,64,0.2)',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {activeCondoReviewTaskCountLabel}
+                              </span>
+                            </div>
+                          ) : null}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <span
@@ -726,6 +756,49 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         </div>
                       </div>
                     )}
+
+                    {!showCondoDiligenceTab && activeCondoReviewTaskCountLabel ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: '#134252' }}>Condo Diligence review tasks</div>
+                          <div style={{ fontSize: 11, color: '#627c71' }}>Internal coordination only — not a compliance determination.</div>
+                          <div style={{ marginTop: 6 }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '3px 8px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                background: '#f5f5f5',
+                                color: '#627c71',
+                                border: '1px solid rgba(94,82,64,0.2)',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {activeCondoReviewTaskCountLabel}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('Tasks')}
+                          aria-label="Go to Condo Diligence review tasks"
+                          style={{
+                            background: 'white',
+                            border: '1px solid rgba(94,82,64,0.25)',
+                            borderRadius: 6,
+                            padding: '4px 8px',
+                            fontSize: 11,
+                            fontWeight: 800,
+                            color: '#134252',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Go to Tasks
+                        </button>
+                      </div>
+                    ) : null}
 
                     {fincenSummary && (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
@@ -769,6 +842,106 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         </div>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {activeCondoReviewTasks.length > 0 && (
+                <div
+                  style={{
+                    border: '1px solid rgba(94,82,64,0.12)',
+                    borderRadius: 8,
+                    padding: 12,
+                    background: 'white',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 900, color: '#134252', marginBottom: 4 }}>
+                        Condo Diligence Review Tasks
+                      </div>
+                      <div style={{ fontSize: 12, color: '#627c71', lineHeight: 1.45 }}>
+                        Open and in-review internal tasks only. Not a compliance or closing-readiness determination.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('Tasks')}
+                      aria-label="Go to Tasks tab for Condo Diligence review tasks"
+                      style={{
+                        background: 'white',
+                        border: '1px solid rgba(94,82,64,0.25)',
+                        borderRadius: 6,
+                        padding: '4px 8px',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: '#134252',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Go to Tasks
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {activeCondoReviewTasks.map((task) => {
+                      const statusPresent = demoMatterReviewTaskStatusPresentation(task.status)
+                      const assignee =
+                        staff.find((s) => s.id === task.assignee_id)?.full_name ??
+                        (task.assignee_id ? task.assignee_id : 'Unassigned')
+                      const linkedDoc = matterDocuments.find((d) => d.id === task.linked_document_id)
+                      return (
+                        <div
+                          key={task.id}
+                          style={{
+                            borderTop: '1px solid rgba(94,82,64,0.1)',
+                            paddingTop: 8,
+                            display: 'flex',
+                            gap: 10,
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <div style={{ minWidth: 0, flex: '1 1 180px' }}>
+                            <div style={{ fontWeight: 800, color: '#134252', fontSize: 13, marginBottom: 2 }}>
+                              {task.title}
+                            </div>
+                            <div style={{ fontSize: 12, color: '#627c71', fontWeight: 700 }}>
+                              {statusPresent.label}
+                              {' · '}
+                              {assignee}
+                              {' · '}
+                              Due: {task.due_date || 'None'}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={!linkedDoc}
+                            onClick={() => {
+                              if (!linkedDoc) return
+                              setPreviewDocumentId(linkedDoc.id)
+                            }}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              background: linkedDoc ? '#fff' : '#f5f5f5',
+                              fontWeight: 800,
+                              fontSize: 11,
+                              color: linkedDoc ? '#134252' : '#9aa8a1',
+                              cursor: linkedDoc ? 'pointer' : 'not-allowed',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            View summary
+                          </button>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}

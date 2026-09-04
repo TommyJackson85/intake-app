@@ -4,6 +4,8 @@ import {
   buildDemoMatterReviewTask,
   defaultCondoDiligenceSummaryReviewTaskTitle,
   demoMatterReviewTaskStatusPresentation,
+  formatCondoDiligenceActiveReviewTaskCountLabel,
+  listActiveCondoDiligenceSummaryReviewTasks,
   listCondoDiligenceSummaryReviewTasks,
   parseStoredDemoMatterReviewTasks,
   patchDemoMatterReviewTaskStatus,
@@ -89,6 +91,29 @@ describe('demoMatterReviewTask', () => {
       'newer',
       'older',
     ])
+  })
+
+  it('lists only open and in_review tasks for Overview and formats count labels', () => {
+    const open = buildDemoMatterReviewTask(
+      { ...base, id: 'open', status: 'open' },
+      { nowIso: () => '2026-09-04T12:00:00.000Z' },
+    )!
+    const inReview = buildDemoMatterReviewTask(
+      { ...base, id: 'in-review', status: 'in_review' },
+      { nowIso: () => '2026-09-04T11:00:00.000Z' },
+    )!
+    const completed = buildDemoMatterReviewTask(
+      { ...base, id: 'done', status: 'completed' },
+      { nowIso: () => '2026-09-04T10:00:00.000Z' },
+    )!
+    expect(listActiveCondoDiligenceSummaryReviewTasks([open, inReview, completed], 'matter-1').map((t) => t.id)).toEqual([
+      'open',
+      'in-review',
+    ])
+    expect(formatCondoDiligenceActiveReviewTaskCountLabel(0)).toBeNull()
+    expect(formatCondoDiligenceActiveReviewTaskCountLabel(1)).toBe('1 condo review task')
+    expect(formatCondoDiligenceActiveReviewTaskCountLabel(2)).toBe('2 condo review tasks')
+    expect(formatCondoDiligenceActiveReviewTaskCountLabel(3)).toBe('3 condo review tasks')
   })
 
   it('parses stored rows and drops invalid ones', () => {

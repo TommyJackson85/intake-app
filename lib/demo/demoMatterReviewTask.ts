@@ -129,6 +129,21 @@ export function listCondoDiligenceSummaryReviewTasks(
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 }
 
+/** Non-completed internal summary review tasks for Overview badges/lists. */
+export function listActiveCondoDiligenceSummaryReviewTasks(
+  tasks: DemoMatterReviewTask[],
+  matterId: string,
+): DemoMatterReviewTask[] {
+  return listCondoDiligenceSummaryReviewTasks(tasks, matterId).filter((t) => t.status !== 'completed')
+}
+
+/** Neutral count copy for Overview: `1 condo review task` / `N condo review tasks`. */
+export function formatCondoDiligenceActiveReviewTaskCountLabel(count: number): string | null {
+  if (!Number.isFinite(count) || count < 1) return null
+  const n = Math.floor(count)
+  return n === 1 ? '1 condo review task' : `${n} condo review tasks`
+}
+
 /** Parse persisted rows; drops invalid entries. */
 export function parseStoredDemoMatterReviewTasks(raw: unknown): DemoMatterReviewTask[] {
   if (!Array.isArray(raw)) return []
