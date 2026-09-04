@@ -4,6 +4,7 @@ import {
   ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS,
   buildCondoDiligenceOperationalSummary,
   buildDefaultCondoAssociationFinancialReview,
+  buildDefaultCondoAssociationRecordsGovernanceReview,
   buildDefaultCondoDiligence,
   buildDefaultCondoEstoppelReview,
   buildDefaultCondoSirsMilestoneReview,
@@ -12,6 +13,7 @@ import {
   condoEstoppelReviewStatusPresentation,
   condoFinancialDocReviewStatusPresentation,
   condoFinancialRiskLevelPresentation,
+  condoGovernanceConcernLevelPresentation,
   condoRequiredDocMatchesLinkageHaystack,
   condoRequiredDocSavedStatusAfterLinkedSync,
   condoSirsApplicabilityPresentation,
@@ -22,6 +24,7 @@ import {
   deriveCondoRequiredDocumentStatus,
   formatCondoDiligenceSummaryTargetDate,
   isCondoAssociationFinancialReviewUntouched,
+  isCondoAssociationRecordsGovernanceReviewUntouched,
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
   isCondoEstoppelReviewUntouched,
@@ -29,9 +32,11 @@ import {
   isCondoSirsMilestoneReviewUntouched,
   isFloridaPropertyAddress,
   normalizeCondoAssociationFinancialReview,
+  normalizeCondoAssociationRecordsGovernanceReview,
   normalizeCondoEstoppelReview,
   normalizeCondoSirsMilestoneReview,
   parseDemoCondoAssociationFinancialReview,
+  parseDemoCondoAssociationRecordsGovernanceReview,
   parseDemoCondoEstoppelReview,
   parseDemoCondoSirsMilestoneReview,
   syncRequiredDocumentsFromDerivedLinkage,
@@ -572,6 +577,8 @@ describe('condoDiligence', () => {
       expect(isCondoSirsMilestoneReviewUntouched(d.sirsMilestoneReview)).toBe(true)
       expect(d.associationFinancialReview).toEqual(buildDefaultCondoAssociationFinancialReview())
       expect(isCondoAssociationFinancialReviewUntouched(d.associationFinancialReview)).toBe(true)
+      expect(d.associationRecordsGovernanceReview).toEqual(buildDefaultCondoAssociationRecordsGovernanceReview())
+      expect(isCondoAssociationRecordsGovernanceReviewUntouched(d.associationRecordsGovernanceReview)).toBe(true)
     })
 
     it('keeps the original six rows and adds exactly seven new core doc-pack rows without duplicates', () => {
@@ -892,6 +899,113 @@ describe('condoDiligence', () => {
         condoRequiredDocMatchesLinkageHaystack('special assessment notice schedule', 'special_assessment_notice_schedule'),
       ).toBe(true)
       expect(condoRequiredDocMatchesLinkageHaystack('Condo Estoppel Certificate.pdf', 'current_budget')).toBe(false)
+    })
+  })
+
+  describe('associationRecordsGovernanceReview', () => {
+    it('parses missing or invalid associationRecordsGovernanceReview as undefined for older persisted rows', () => {
+      expect(parseDemoCondoAssociationRecordsGovernanceReview(undefined)).toBeUndefined()
+      expect(parseDemoCondoAssociationRecordsGovernanceReview(null)).toBeUndefined()
+      expect(parseDemoCondoAssociationRecordsGovernanceReview('nope')).toBeUndefined()
+      expect(parseDemoCondoAssociationRecordsGovernanceReview([])).toBeUndefined()
+    })
+
+    it('fills defaults for partial valid associationRecordsGovernanceReview objects', () => {
+      expect(
+        parseDemoCondoAssociationRecordsGovernanceReview({
+          governingDocumentsReviewStatus: 'reviewed',
+          rentalRestrictionStatus: 'restriction_noted',
+          governanceConcernLevel: 'medium',
+          managementContactName: 'Bay Management Co',
+        }),
+      ).toEqual({
+        ...buildDefaultCondoAssociationRecordsGovernanceReview(),
+        governingDocumentsReviewStatus: 'reviewed',
+        rentalRestrictionStatus: 'restriction_noted',
+        governanceConcernLevel: 'medium',
+        managementContactName: 'Bay Management Co',
+      })
+    })
+
+    it('normalizeCondoAssociationRecordsGovernanceReview merges onto defaults', () => {
+      expect(normalizeCondoAssociationRecordsGovernanceReview(undefined)).toEqual(
+        buildDefaultCondoAssociationRecordsGovernanceReview(),
+      )
+      expect(normalizeCondoAssociationRecordsGovernanceReview({ notes: 'Approval package pending' })).toEqual({
+        ...buildDefaultCondoAssociationRecordsGovernanceReview(),
+        notes: 'Approval package pending',
+      })
+    })
+
+    it('marks diligence as touched when records/governance review has progress', () => {
+      const base = buildDefaultCondoDiligence({ nowIso: () => '2026-04-27T12:00:00.000Z' })
+      expect(isCondoDiligenceUntouched(base)).toBe(true)
+      expect(
+        isCondoDiligenceUntouched({
+          ...base,
+          associationRecordsGovernanceReview: {
+            ...buildDefaultCondoAssociationRecordsGovernanceReview(),
+            insuranceReviewStatus: 'received',
+            insuranceConcernLevel: 'low',
+          },
+        }),
+      ).toBe(false)
+    })
+
+    it('keeps older saved checklists without associationRecordsGovernanceReview loadable and untouched', () => {
+      const older: DemoCondoDiligence = {
+        applicable: true,
+        status: 'not_started',
+        notes: '',
+        findings: [],
+        updated_at: '2026-01-01T00:00:00.000Z',
+        requiredDocuments: ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS.map((id) => ({
+          id,
+          label: id,
+          status: 'outstanding' as const,
+          detail: null,
+        })),
+      }
+      expect(older.associationRecordsGovernanceReview).toBeUndefined()
+      expect(isCondoDiligenceUntouched(older)).toBe(true)
+      expect(isCondoAssociationRecordsGovernanceReviewUntouched(older.associationRecordsGovernanceReview)).toBe(true)
+      expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments: older.requiredDocuments, findings: [] })).toBe(
+        'not_started',
+      )
+    })
+
+    it('presentation helpers stay operational and do not change matter-status derivation', () => {
+      expect(condoFinancialDocReviewStatusPresentation('reviewed').label).toBe('Reviewed')
+      expect(condoGovernanceConcernLevelPresentation('high').label).toBe('High')
+
+      const checklist = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' }).requiredDocuments
+      expect(
+        deriveCondoDiligenceMatterStatusFromChecklist({
+          requiredDocuments: checklist,
+          findings: [],
+        }),
+      ).toBe('not_started')
+    })
+
+    it('does not change association records/governance document linkage matching', () => {
+      expect(
+        condoRequiredDocMatchesLinkageHaystack('declaration bylaws and amendments', 'declaration_bylaws_rules_amendments'),
+      ).toBe(true)
+      expect(condoRequiredDocMatchesLinkageHaystack('master policy insurance summary', 'insurance_summary')).toBe(true)
+      expect(condoRequiredDocMatchesLinkageHaystack('recent board minutes', 'recent_board_minutes')).toBe(true)
+      expect(
+        condoRequiredDocMatchesLinkageHaystack(
+          'association approval leasing restrictions',
+          'association_approval_leasing_restrictions',
+        ),
+      ).toBe(true)
+      expect(
+        condoRequiredDocMatchesLinkageHaystack('pending litigation and DBPR disclosure', 'litigation_claims_arbitration_dbpr'),
+      ).toBe(true)
+      expect(
+        condoRequiredDocMatchesLinkageHaystack('management company and association contacts', 'management_association_contacts'),
+      ).toBe(true)
+      expect(condoRequiredDocMatchesLinkageHaystack('Condo Estoppel Certificate.pdf', 'insurance_summary')).toBe(false)
     })
   })
 

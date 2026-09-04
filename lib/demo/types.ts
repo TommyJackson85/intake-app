@@ -292,6 +292,48 @@ export type DemoCondoAssociationFinancialReview = {
   notes: string
 }
 
+/** Structured association records & governance review (demo). */
+export type DemoCondoRentalRestrictionStatus =
+  | 'unknown'
+  | 'no_material_restriction_noted'
+  | 'restriction_noted'
+  | 'lawyer_review_required'
+export type DemoCondoBuyerApprovalStatus =
+  | 'unknown'
+  | 'not_required_noted'
+  | 'required'
+  | 'lawyer_review_required'
+export type DemoCondoLitigationOrDbprStatus =
+  | 'unknown'
+  | 'none_disclosed'
+  | 'disclosed'
+  | 'lawyer_review_required'
+export type DemoCondoRecordsAccessStatus =
+  | 'unknown'
+  | 'available'
+  | 'partial_or_incomplete'
+  | 'not_provided'
+  | 'lawyer_review_required'
+/** Same value set as financial risk; separate alias for governance/insurance concern copy. */
+export type DemoCondoGovernanceConcernLevel = DemoCondoFinancialRiskLevel
+
+export type DemoCondoAssociationRecordsGovernanceReview = {
+  governingDocumentsReviewStatus: DemoCondoFinancialDocReviewStatus
+  restrictionsReviewStatus: DemoCondoFinancialDocReviewStatus
+  insuranceReviewStatus: DemoCondoFinancialDocReviewStatus
+  boardMinutesReviewStatus: DemoCondoFinancialDocReviewStatus
+  rentalRestrictionStatus: DemoCondoRentalRestrictionStatus
+  buyerApprovalStatus: DemoCondoBuyerApprovalStatus
+  insuranceConcernLevel: DemoCondoGovernanceConcernLevel
+  litigationOrDbprStatus: DemoCondoLitigationOrDbprStatus
+  recordsAccessStatus: DemoCondoRecordsAccessStatus
+  governanceConcernLevel: DemoCondoGovernanceConcernLevel
+  managementContactName: string
+  managementContactEmail: string
+  managementContactPhone: string
+  notes: string
+}
+
 export type DemoCondoDiligence = {
   applicable: boolean
   status: DemoCondoDiligenceMatterStatus
@@ -305,6 +347,8 @@ export type DemoCondoDiligence = {
   sirsMilestoneReview?: DemoCondoSirsMilestoneReview
   /** Optional structured association financial fields; absent on older persisted demo rows. */
   associationFinancialReview?: DemoCondoAssociationFinancialReview
+  /** Optional structured records/governance fields; absent on older persisted demo rows. */
+  associationRecordsGovernanceReview?: DemoCondoAssociationRecordsGovernanceReview
 }
 
 export type DemoFirm = {

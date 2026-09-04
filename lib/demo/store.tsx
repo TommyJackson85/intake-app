@@ -51,9 +51,11 @@ import {
   deriveCondoDiligenceMatterStatusFromChecklist,
   isCondoDiligenceEligible,
   normalizeCondoAssociationFinancialReview,
+  normalizeCondoAssociationRecordsGovernanceReview,
   normalizeCondoEstoppelReview,
   normalizeCondoSirsMilestoneReview,
   parseDemoCondoAssociationFinancialReview,
+  parseDemoCondoAssociationRecordsGovernanceReview,
   parseDemoCondoEstoppelReview,
   parseDemoCondoSirsMilestoneReview,
 } from '@/lib/demo/condoDiligence'
@@ -262,6 +264,9 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
   const estoppelReview = parseDemoCondoEstoppelReview(o.estoppelReview)
   const sirsMilestoneReview = parseDemoCondoSirsMilestoneReview(o.sirsMilestoneReview)
   const associationFinancialReview = parseDemoCondoAssociationFinancialReview(o.associationFinancialReview)
+  const associationRecordsGovernanceReview = parseDemoCondoAssociationRecordsGovernanceReview(
+    o.associationRecordsGovernanceReview,
+  )
 
   return {
     applicable: o.applicable,
@@ -273,6 +278,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
     ...(estoppelReview ? { estoppelReview } : {}),
     ...(sirsMilestoneReview ? { sirsMilestoneReview } : {}),
     ...(associationFinancialReview ? { associationFinancialReview } : {}),
+    ...(associationRecordsGovernanceReview ? { associationRecordsGovernanceReview } : {}),
   }
 }
 
@@ -1612,6 +1618,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             estoppelReview: estoppelPatch,
             sirsMilestoneReview: sirsPatch,
             associationFinancialReview: financialPatch,
+            associationRecordsGovernanceReview: governancePatch,
             ...restPatch
           } = definedEntries
           const nextBase: DemoCondoDiligence = {
@@ -1640,6 +1647,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               ? {
                   ...normalizeCondoAssociationFinancialReview(existing.associationFinancialReview),
                   ...financialPatch,
+                }
+              : undefined
+          }
+          if ('associationRecordsGovernanceReview' in definedEntries) {
+            nextBase.associationRecordsGovernanceReview = governancePatch
+              ? {
+                  ...normalizeCondoAssociationRecordsGovernanceReview(existing.associationRecordsGovernanceReview),
+                  ...governancePatch,
                 }
               : undefined
           }

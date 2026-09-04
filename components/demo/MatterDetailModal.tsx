@@ -5,7 +5,9 @@ import { useDemoStore } from '@/lib/demo/store'
 import type {
   DemoCondoAssociationFinancialReview,
   DemoCondoAssociationLoanStatus,
+  DemoCondoAssociationRecordsGovernanceReview,
   DemoCondoAssociationSpecialAssessmentStatus,
+  DemoCondoBuyerApprovalStatus,
   DemoCondoDelinquencyConcern,
   DemoCondoDiligenceDocStatus,
   DemoCondoDiligenceMatterStatus,
@@ -16,6 +18,10 @@ import type {
   DemoCondoEstoppelViolationOrLienStatus,
   DemoCondoFinancialDocReviewStatus,
   DemoCondoFinancialRiskLevel,
+  DemoCondoGovernanceConcernLevel,
+  DemoCondoLitigationOrDbprStatus,
+  DemoCondoRecordsAccessStatus,
+  DemoCondoRentalRestrictionStatus,
   DemoCondoReserveFundingStatus,
   DemoCondoSirsApplicability,
   DemoCondoSirsDocumentStatus,
@@ -38,6 +44,7 @@ import {
   condoEstoppelReviewStatusPresentation,
   condoFinancialDocReviewStatusPresentation,
   condoFinancialRiskLevelPresentation,
+  condoGovernanceConcernLevelPresentation,
   condoRequiredDocMatchesLinkageHaystack,
   condoRequiredDocDerivedStatusPresentation,
   condoSirsApplicabilityPresentation,
@@ -48,6 +55,7 @@ import {
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
   normalizeCondoAssociationFinancialReview,
+  normalizeCondoAssociationRecordsGovernanceReview,
   normalizeCondoEstoppelReview,
   normalizeCondoSirsMilestoneReview,
   syncRequiredDocumentsFromDerivedLinkage,
@@ -2282,6 +2290,429 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                 </li>
                               ))}
                               {financialLinkedRequests.map((r) => (
+                                <li key={r.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Request ({r.status}):</strong> {r.title}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {(() => {
+                    const governanceReview = normalizeCondoAssociationRecordsGovernanceReview(
+                      condoDiligence.associationRecordsGovernanceReview,
+                    )
+                    const governingPresent = condoFinancialDocReviewStatusPresentation(
+                      governanceReview.governingDocumentsReviewStatus,
+                    )
+                    const insuranceConcernPresent = condoGovernanceConcernLevelPresentation(
+                      governanceReview.insuranceConcernLevel,
+                    )
+                    const governanceConcernPresent = condoGovernanceConcernLevelPresentation(
+                      governanceReview.governanceConcernLevel,
+                    )
+                    const governanceDocIds = [
+                      'declaration_bylaws_rules_amendments',
+                      'insurance_summary',
+                      'recent_board_minutes',
+                      'association_approval_leasing_restrictions',
+                      'litigation_claims_arbitration_dbpr',
+                      'management_association_contacts',
+                    ] as const
+                    const governanceLinkedDocuments = matterDocuments.filter((d) => {
+                      if (d.deletedAt) return false
+                      const haystack = [d.name, d.document_subtype ?? '', d.description ?? '', d.category]
+                        .filter(Boolean)
+                        .join(' ')
+                        .toLowerCase()
+                      return governanceDocIds.some((id) => condoRequiredDocMatchesLinkageHaystack(haystack, id))
+                    })
+                    const governanceLinkedRequests = matterDocumentRequests.filter((r) => {
+                      const haystack = [r.title, r.description ?? '', r.category].filter(Boolean).join(' ').toLowerCase()
+                      return governanceDocIds.some((id) => condoRequiredDocMatchesLinkageHaystack(haystack, id))
+                    })
+                    const patchGovernance = (patch: Partial<DemoCondoAssociationRecordsGovernanceReview>) => {
+                      patchCondoDiligence(matterId, {
+                        associationRecordsGovernanceReview: { ...governanceReview, ...patch },
+                      })
+                    }
+                    const fieldLabel: React.CSSProperties = {
+                      display: 'block',
+                      fontSize: 12,
+                      color: '#627c71',
+                      fontWeight: 800,
+                      marginBottom: 4,
+                    }
+                    const fieldInput: React.CSSProperties = {
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(94,82,64,0.22)',
+                      fontSize: 13,
+                      color: '#134252',
+                      boxSizing: 'border-box',
+                    }
+                    const docReviewOptions = (
+                      <>
+                        <option value="not_started">Not started</option>
+                        <option value="requested">Requested</option>
+                        <option value="received">Received</option>
+                        <option value="reviewed">Reviewed</option>
+                        <option value="issue_found">Issue found</option>
+                      </>
+                    )
+                    const concernOptions = (
+                      <>
+                        <option value="unknown">Unknown</option>
+                        <option value="none">None noted</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </>
+                    )
+                    const showGovernanceAttention =
+                      governanceReview.governanceConcernLevel === 'medium' ||
+                      governanceReview.governanceConcernLevel === 'high' ||
+                      governanceReview.insuranceConcernLevel === 'medium' ||
+                      governanceReview.insuranceConcernLevel === 'high' ||
+                      governanceReview.governingDocumentsReviewStatus === 'issue_found' ||
+                      governanceReview.restrictionsReviewStatus === 'issue_found' ||
+                      governanceReview.insuranceReviewStatus === 'issue_found' ||
+                      governanceReview.boardMinutesReviewStatus === 'issue_found' ||
+                      governanceReview.rentalRestrictionStatus === 'lawyer_review_required' ||
+                      governanceReview.buyerApprovalStatus === 'lawyer_review_required' ||
+                      governanceReview.litigationOrDbprStatus === 'lawyer_review_required' ||
+                      governanceReview.recordsAccessStatus === 'lawyer_review_required' ||
+                      governanceReview.recordsAccessStatus === 'not_provided'
+
+                    return (
+                      <div
+                        id="condo-association-records-governance-review"
+                        style={{
+                          border: '1px solid rgba(94,82,64,0.12)',
+                          borderRadius: 8,
+                          padding: 14,
+                          background: 'white',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                              Association Records &amp; Governance Review
+                            </div>
+                            <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '36rem' }}>
+                              Structured practice notes for governing documents, restrictions, insurance, minutes,
+                              litigation/DBPR, records access, and management contacts. Complements checklist rows —
+                              does not replace requests, linkage, or sync. Not a statutory-compliance or closing
+                              determination.
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: governingPresent.bg,
+                                color: governingPresent.color,
+                                border: `1px solid ${governingPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Docs: {governingPresent.label}
+                            </span>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: insuranceConcernPresent.bg,
+                                color: insuranceConcernPresent.color,
+                                border: `1px solid ${insuranceConcernPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Insurance: {insuranceConcernPresent.label}
+                            </span>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: governanceConcernPresent.bg,
+                                color: governanceConcernPresent.color,
+                                border: `1px solid ${governanceConcernPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Governance: {governanceConcernPresent.label}
+                            </span>
+                          </div>
+                        </div>
+
+                        {showGovernanceAttention && (
+                          <div
+                            role="status"
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(240,180,41,0.45)',
+                              background: '#fff8e6',
+                              color: '#b45309',
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            Attention: governance, insurance, restrictions, litigation/DBPR, or records-access signals
+                            need lawyer follow-up. Confirm linked documents and notes before treating records as
+                            cleared. Demo reminder only — not a legal compliance opinion.
+                          </div>
+                        )}
+
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                            gap: 10,
+                          }}
+                        >
+                          <label>
+                            <span style={fieldLabel}>Governing documents review</span>
+                            <select
+                              value={governanceReview.governingDocumentsReviewStatus}
+                              onChange={(e) =>
+                                patchGovernance({
+                                  governingDocumentsReviewStatus: e.target.value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Restrictions review</span>
+                            <select
+                              value={governanceReview.restrictionsReviewStatus}
+                              onChange={(e) =>
+                                patchGovernance({
+                                  restrictionsReviewStatus: e.target.value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Insurance review</span>
+                            <select
+                              value={governanceReview.insuranceReviewStatus}
+                              onChange={(e) =>
+                                patchGovernance({
+                                  insuranceReviewStatus: e.target.value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Board minutes review</span>
+                            <select
+                              value={governanceReview.boardMinutesReviewStatus}
+                              onChange={(e) =>
+                                patchGovernance({
+                                  boardMinutesReviewStatus: e.target.value as DemoCondoFinancialDocReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {docReviewOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Rental restriction status</span>
+                            <select
+                              value={governanceReview.rentalRestrictionStatus}
+                              onChange={(e) =>
+                                patchGovernance({
+                                  rentalRestrictionStatus: e.target.value as DemoCondoRentalRestrictionStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="no_material_restriction_noted">No material restriction noted</option>
+                              <option value="restriction_noted">Restriction noted</option>
+                              <option value="lawyer_review_required">Lawyer review required</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Buyer approval status</span>
+                            <select
+                              value={governanceReview.buyerApprovalStatus}
+                              onChange={(e) =>
+                                patchGovernance({
+                                  buyerApprovalStatus: e.target.value as DemoCondoBuyerApprovalStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="not_required_noted">Not required noted</option>
+                              <option value="required">Required</option>
+                              <option value="lawyer_review_required">Lawyer review required</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Insurance concern level</span>
+                            <select
+                              value={governanceReview.insuranceConcernLevel}
+                              onChange={(e) =>
+                                patchGovernance({
+                                  insuranceConcernLevel: e.target.value as DemoCondoGovernanceConcernLevel,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {concernOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Litigation / DBPR status</span>
+                            <select
+                              value={governanceReview.litigationOrDbprStatus}
+                              onChange={(e) =>
+                                patchGovernance({
+                                  litigationOrDbprStatus: e.target.value as DemoCondoLitigationOrDbprStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="none_disclosed">None disclosed</option>
+                              <option value="disclosed">Disclosed</option>
+                              <option value="lawyer_review_required">Lawyer review required</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Records access status</span>
+                            <select
+                              value={governanceReview.recordsAccessStatus}
+                              onChange={(e) =>
+                                patchGovernance({
+                                  recordsAccessStatus: e.target.value as DemoCondoRecordsAccessStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="available">Available</option>
+                              <option value="partial_or_incomplete">Partial or incomplete</option>
+                              <option value="not_provided">Not provided</option>
+                              <option value="lawyer_review_required">Lawyer review required</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Governance concern level</span>
+                            <select
+                              value={governanceReview.governanceConcernLevel}
+                              onChange={(e) =>
+                                patchGovernance({
+                                  governanceConcernLevel: e.target.value as DemoCondoGovernanceConcernLevel,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {concernOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Management contact name</span>
+                            <input
+                              type="text"
+                              value={governanceReview.managementContactName}
+                              onChange={(e) => patchGovernance({ managementContactName: e.target.value })}
+                              placeholder="Optional"
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Management contact email</span>
+                            <input
+                              type="email"
+                              value={governanceReview.managementContactEmail}
+                              onChange={(e) => patchGovernance({ managementContactEmail: e.target.value })}
+                              placeholder="Optional"
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Management contact phone</span>
+                            <input
+                              type="tel"
+                              value={governanceReview.managementContactPhone}
+                              onChange={(e) => patchGovernance({ managementContactPhone: e.target.value })}
+                              placeholder="Optional"
+                              style={fieldInput}
+                            />
+                          </label>
+                        </div>
+
+                        <label style={{ display: 'block' }}>
+                          <span style={fieldLabel}>Lawyer notes</span>
+                          <textarea
+                            value={governanceReview.notes}
+                            onChange={(e) => patchGovernance({ notes: e.target.value })}
+                            rows={3}
+                            placeholder="Internal association records & governance review notes (demo)"
+                            style={{ ...fieldInput, resize: 'vertical' }}
+                          />
+                        </label>
+
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 900, color: '#134252', marginBottom: 6 }}>
+                            Linked association records &amp; governance documents &amp; requests
+                          </div>
+                          <div style={{ fontSize: 11, color: '#627c71', marginBottom: 8, lineHeight: 1.4 }}>
+                            Read-only matches for declaration/bylaws, insurance, board minutes, approval/leasing
+                            restrictions, litigation/DBPR, and management contacts.
+                          </div>
+                          {governanceLinkedDocuments.length === 0 && governanceLinkedRequests.length === 0 ? (
+                            <div style={{ fontSize: 13, color: '#627c71' }}>
+                              No matching association records or governance documents or requests linked yet.
+                            </div>
+                          ) : (
+                            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {governanceLinkedDocuments.map((d) => (
+                                <li key={d.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Document:</strong> {d.name}
+                                  {d.document_subtype ? ` · ${d.document_subtype}` : ''}
+                                </li>
+                              ))}
+                              {governanceLinkedRequests.map((r) => (
                                 <li key={r.id} style={{ fontSize: 13, color: '#134252' }}>
                                   <strong>Request ({r.status}):</strong> {r.title}
                                 </li>
