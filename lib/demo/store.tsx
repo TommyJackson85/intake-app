@@ -57,11 +57,13 @@ import {
   normalizeCondoAssociationRecordsGovernanceReview,
   normalizeCondoDisclosurePackageReview,
   normalizeCondoEstoppelReview,
+  normalizeCondoQuestionnaireLenderReview,
   normalizeCondoSirsMilestoneReview,
   parseDemoCondoAssociationFinancialReview,
   parseDemoCondoAssociationRecordsGovernanceReview,
   parseDemoCondoDisclosurePackageReview,
   parseDemoCondoEstoppelReview,
+  parseDemoCondoQuestionnaireLenderReview,
   parseDemoCondoSirsMilestoneReview,
 } from '@/lib/demo/condoDiligence'
 import {
@@ -321,6 +323,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
     o.associationRecordsGovernanceReview,
   )
   const disclosurePackageReview = parseDemoCondoDisclosurePackageReview(o.disclosurePackageReview)
+  const questionnaireLenderReview = parseDemoCondoQuestionnaireLenderReview(o.questionnaireLenderReview)
 
   return {
     applicable: o.applicable,
@@ -334,6 +337,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
     ...(associationFinancialReview ? { associationFinancialReview } : {}),
     ...(associationRecordsGovernanceReview ? { associationRecordsGovernanceReview } : {}),
     ...(disclosurePackageReview ? { disclosurePackageReview } : {}),
+    ...(questionnaireLenderReview ? { questionnaireLenderReview } : {}),
   }
 }
 
@@ -1818,6 +1822,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             associationFinancialReview: financialPatch,
             associationRecordsGovernanceReview: governancePatch,
             disclosurePackageReview: disclosurePatch,
+            questionnaireLenderReview: questionnairePatch,
             ...restPatch
           } = definedEntries
           const nextBase: DemoCondoDiligence = {
@@ -1862,6 +1867,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               ? {
                   ...normalizeCondoDisclosurePackageReview(existing.disclosurePackageReview),
                   ...disclosurePatch,
+                }
+              : undefined
+          }
+          if ('questionnaireLenderReview' in definedEntries) {
+            nextBase.questionnaireLenderReview = questionnairePatch
+              ? {
+                  ...normalizeCondoQuestionnaireLenderReview(existing.questionnaireLenderReview),
+                  ...questionnairePatch,
                 }
               : undefined
           }
