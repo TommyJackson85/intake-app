@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   CORE_CONDO_DILIGENCE_DOC_PACK_IDS,
   ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS,
+  buildCondoDiligenceInternalReport,
   buildCondoDiligenceOperationalSummary,
   buildDefaultCondoAssociationFinancialReview,
   buildDefaultCondoAssociationRecordsGovernanceReview,
@@ -1240,6 +1241,125 @@ describe('condoDiligence', () => {
       expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments, findings: [{ text: 'flagged' }] })).toBe(
         'flagged',
       )
+    })
+  })
+
+  describe('buildCondoDiligenceInternalReport', () => {
+    const matterId = 'm-report'
+    const now = new Date('2026-09-04T15:30:00')
+
+    it('labels the report as an internal lawyer summary requiring review', () => {
+      const condo = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' })
+      const report = buildCondoDiligenceInternalReport({
+        matterId,
+        condo,
+        matterLabel: 'FL-100 · 88 Gulf View Ct, Sarasota, FL',
+        now,
+      })
+      expect(report.title).toBe('Internal Diligence Summary — Lawyer Review Required')
+      expect(report.disclaimer.toLowerCase()).toContain('not a client-facing compliance certificate')
+      expect(report.plainText).toContain(report.title)
+      expect(report.plainText).toContain(report.disclaimer)
+      expect(report.generatedAtLabel).toBe('2026-09-04 15:30')
+    })
+
+    it('includes document pack, all structured reviews, findings, requests, evidence, and notes', () => {
+      const condo = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' })
+      condo.estoppelReview = {
+        ...buildDefaultCondoEstoppelReview(),
+        reviewStatus: 'requested',
+        dueDate: '2026-09-12',
+        notes: 'Chase association',
+      }
+      condo.sirsMilestoneReview = {
+        ...buildDefaultCondoSirsMilestoneReview(),
+        applicability: 'applicable',
+        result: 'pass_with_findings',
+        notes: 'Phase 2 follow-up',
+      }
+      condo.associationFinancialReview = {
+        ...buildDefaultCondoAssociationFinancialReview(),
+        financialRiskLevel: 'medium',
+        duesAmount: 450,
+        duesFrequency: 'monthly',
+      }
+      condo.associationRecordsGovernanceReview = {
+        ...buildDefaultCondoAssociationRecordsGovernanceReview(),
+        rentalRestrictionStatus: 'restriction_noted',
+        managementContactName: 'Bay Mgmt',
+      }
+      condo.findings = [{ id: 'f1', text: 'Special assessment disclosed' }]
+      condo.notes = 'Matter-level diligence note'
+
+      const report = buildCondoDiligenceInternalReport({
+        matterId,
+        condo,
+        documents: [
+          {
+            matter_id: matterId,
+            name: 'Condo Estoppel Certificate.pdf',
+            category: 'Compliance',
+            document_subtype: null,
+            description: null,
+            deletedAt: null,
+          },
+        ],
+        documentRequests: [
+          {
+            matter_id: matterId,
+            title: 'Board minutes request',
+            description: 'Recent board minutes',
+            category: 'Compliance',
+            status: 'open',
+          },
+        ],
+        now,
+      })
+
+      const titles = report.sections.map((s) => s.title)
+      expect(titles).toEqual([
+        'Document pack status',
+        'Estoppel review',
+        'Structural / SIRS review',
+        'Financial review',
+        'Records / governance review',
+        'Open findings',
+        'Open requests',
+        'Evidence links',
+        'Lawyer notes',
+      ])
+      expect(report.sections.find((s) => s.title === 'Open findings')?.lines[0]).toContain('Special assessment disclosed')
+      expect(report.sections.find((s) => s.title === 'Evidence links')?.lines.some((l) => l.includes('Estoppel'))).toBe(
+        true,
+      )
+      expect(report.sections.find((s) => s.title === 'Open requests')?.lines.some((l) => l.includes('Board minutes'))).toBe(
+        true,
+      )
+      expect(report.plainText).toContain('Chase association')
+      expect(report.plainText).toContain('Bay Mgmt')
+      expect(report.plainText).toContain('Matter-level diligence note')
+    })
+
+    it('behaves safely with missing condo state and does not mutate input', () => {
+      const missing = buildCondoDiligenceInternalReport({ matterId, condo: null, now })
+      expect(missing.sections.length).toBeGreaterThan(0)
+      expect(missing.sections.find((s) => s.title === 'Open findings')?.lines).toEqual(['No findings recorded'])
+      expect(missing.sections.find((s) => s.title === 'Evidence links')?.lines).toEqual([
+        'No matching linked documents',
+      ])
+
+      const condo = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' })
+      const before = structuredClone(condo)
+      buildCondoDiligenceInternalReport({ matterId, condo, now })
+      expect(condo).toEqual(before)
+    })
+
+    it('does not change operational summary next-action priority rules', () => {
+      const condo = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' })
+      const before = buildCondoDiligenceOperationalSummary({ matterId, condo, now }).nextAction
+      buildCondoDiligenceInternalReport({ matterId, condo, now })
+      expect(buildCondoDiligenceOperationalSummary({ matterId, condo, now }).nextAction).toBe(before)
+      expect(before).toBe('Request the Estoppel certificate.')
     })
   })
 })
