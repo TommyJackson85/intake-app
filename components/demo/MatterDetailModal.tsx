@@ -56,6 +56,7 @@ import {
   deriveCondoRequiredDocumentStatus,
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
+  isCondoDiligenceInternalSummaryDocument,
   normalizeCondoAssociationFinancialReview,
   normalizeCondoAssociationRecordsGovernanceReview,
   normalizeCondoEstoppelReview,
@@ -957,6 +958,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           : { bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
 
                     const uploadedBy = staff.find((s) => s.id === doc.uploaded_by_staff_id)?.full_name ?? 'Staff'
+                    const isInternalSummary = isCondoDiligenceInternalSummaryDocument(doc)
                     return (
                       <div
                         key={doc.id}
@@ -970,7 +972,10 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontWeight: 900, color: '#134252', marginBottom: '4px' }}>{doc.name}</div>
-                            <div style={{ color: '#627c71', fontWeight: 800, fontSize: '12px', marginBottom: '8px' }}>{doc.category}</div>
+                            <div style={{ color: '#627c71', fontWeight: 800, fontSize: '12px', marginBottom: '8px' }}>
+                              {doc.category}
+                              {isInternalSummary ? ' · Internal summary' : ''}
+                            </div>
                           </div>
                           <span
                             style={{
@@ -1010,7 +1015,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                               cursor: 'pointer',
                             }}
                           >
-                            View
+                            {isInternalSummary ? 'View internal summary' : 'View'}
                           </button>
                         </div>
                       </div>
