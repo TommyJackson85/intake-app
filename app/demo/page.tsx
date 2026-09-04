@@ -13,6 +13,7 @@ import SystemContractMapCard from './_components/SystemContractMapCard'
 import { getMatterPartyDisplayRows } from '@/lib/demo/matterPartyDisplay'
 import {
   buildCondoDiligenceWorkQueueRows,
+  collectCondoDiligenceWorkQueueCompletablePrimaryTaskIds,
   collectCondoDiligenceWorkQueueOpenPrimaryTaskIds,
   condoDiligenceReviewTaskDueAttentionPresentation,
   countCondoDiligenceWorkQueueDueSoon,
@@ -127,6 +128,10 @@ function DemoPageContent() {
   )
   const selectedOpenPrimaryTaskIds = useMemo(
     () => collectCondoDiligenceWorkQueueOpenPrimaryTaskIds(selectedVisibleWorkQueueRows),
+    [selectedVisibleWorkQueueRows],
+  )
+  const selectedCompletablePrimaryTaskIds = useMemo(
+    () => collectCondoDiligenceWorkQueueCompletablePrimaryTaskIds(selectedVisibleWorkQueueRows),
     [selectedVisibleWorkQueueRows],
   )
   const allVisibleSelected =
@@ -388,47 +393,92 @@ function DemoPageContent() {
               )
             })}
           </div>
-          <button
-            type="button"
-            disabled={selectedOpenPrimaryTaskIds.length === 0}
-            title={
-              selectedVisibleWorkQueueRows.length === 0
-                ? 'Select one or more queue rows first'
-                : selectedOpenPrimaryTaskIds.length === 0
-                  ? 'Selected rows have no open primary review tasks to start (already in review are skipped)'
-                  : `Mark ${selectedOpenPrimaryTaskIds.length} open primary review task${
-                      selectedOpenPrimaryTaskIds.length === 1 ? '' : 's'
-                    } as in review`
-            }
-            onClick={() => {
-              const taskIds = selectedOpenPrimaryTaskIds
-              if (taskIds.length === 0) return
-              const ok = window.confirm(
-                `Mark ${taskIds.length} open review task${taskIds.length === 1 ? '' : 's'} as in review? Already in-review tasks are left unchanged.`,
-              )
-              if (!ok) return
-              const updated = updateMatterReviewTasksStatus(taskIds, 'in_review')
-              setSelectedWorkQueueMatterIds([])
-              setWorkQueueBulkFeedback(
-                updated === 0
-                  ? 'No open review tasks needed updating.'
-                  : `Marked ${updated} review task${updated === 1 ? '' : 's'} as in review.`,
-              )
-            }}
-            style={{
-              padding: '6px 12px',
-              borderRadius: 8,
-              border: '1px solid rgba(94,82,64,0.25)',
-              background: selectedOpenPrimaryTaskIds.length === 0 ? '#f5f5f5' : '#134252',
-              color: selectedOpenPrimaryTaskIds.length === 0 ? '#9aa8a1' : '#fff',
-              fontWeight: 800,
-              fontSize: 12,
-              cursor: selectedOpenPrimaryTaskIds.length === 0 ? 'not-allowed' : 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Mark selected as in review
-          </button>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            <button
+              type="button"
+              disabled={selectedOpenPrimaryTaskIds.length === 0}
+              title={
+                selectedVisibleWorkQueueRows.length === 0
+                  ? 'Select one or more queue rows first'
+                  : selectedOpenPrimaryTaskIds.length === 0
+                    ? 'Selected rows have no open primary review tasks to start (already in review are skipped)'
+                    : `Mark ${selectedOpenPrimaryTaskIds.length} open primary review task${
+                        selectedOpenPrimaryTaskIds.length === 1 ? '' : 's'
+                      } as in review`
+              }
+              onClick={() => {
+                const taskIds = selectedOpenPrimaryTaskIds
+                if (taskIds.length === 0) return
+                const ok = window.confirm(
+                  `Mark ${taskIds.length} open review task${taskIds.length === 1 ? '' : 's'} as in review? Already in-review tasks are left unchanged.`,
+                )
+                if (!ok) return
+                const updated = updateMatterReviewTasksStatus(taskIds, 'in_review')
+                setSelectedWorkQueueMatterIds([])
+                setWorkQueueBulkFeedback(
+                  updated === 0
+                    ? 'No open review tasks needed updating.'
+                    : `Marked ${updated} review task${updated === 1 ? '' : 's'} as in review.`,
+                )
+              }}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 8,
+                border: '1px solid rgba(94,82,64,0.25)',
+                background: selectedOpenPrimaryTaskIds.length === 0 ? '#f5f5f5' : '#134252',
+                color: selectedOpenPrimaryTaskIds.length === 0 ? '#9aa8a1' : '#fff',
+                fontWeight: 800,
+                fontSize: 12,
+                cursor: selectedOpenPrimaryTaskIds.length === 0 ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Mark selected as in review
+            </button>
+            <button
+              type="button"
+              disabled={selectedCompletablePrimaryTaskIds.length === 0}
+              title={
+                selectedVisibleWorkQueueRows.length === 0
+                  ? 'Select one or more queue rows first'
+                  : selectedCompletablePrimaryTaskIds.length === 0
+                    ? 'Selected rows have no active primary review tasks to complete'
+                    : `Mark ${selectedCompletablePrimaryTaskIds.length} primary review task${
+                        selectedCompletablePrimaryTaskIds.length === 1 ? '' : 's'
+                      } as completed`
+              }
+              onClick={() => {
+                const taskIds = selectedCompletablePrimaryTaskIds
+                if (taskIds.length === 0) return
+                const ok = window.confirm(
+                  `Mark ${taskIds.length} review task${
+                    taskIds.length === 1 ? '' : 's'
+                  } as completed? Completed tasks leave the work queue.`,
+                )
+                if (!ok) return
+                const updated = updateMatterReviewTasksStatus(taskIds, 'completed')
+                setSelectedWorkQueueMatterIds([])
+                setWorkQueueBulkFeedback(
+                  updated === 0
+                    ? 'No review tasks needed updating.'
+                    : `Marked ${updated} review task${updated === 1 ? '' : 's'} as completed.`,
+                )
+              }}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 8,
+                border: '1px solid rgba(94,82,64,0.25)',
+                background: selectedCompletablePrimaryTaskIds.length === 0 ? '#f5f5f5' : '#fff',
+                color: selectedCompletablePrimaryTaskIds.length === 0 ? '#9aa8a1' : '#134252',
+                fontWeight: 800,
+                fontSize: 12,
+                cursor: selectedCompletablePrimaryTaskIds.length === 0 ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Mark selected as completed
+            </button>
+          </div>
         </div>
         {workQueueBulkFeedback ? (
           <div

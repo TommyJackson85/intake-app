@@ -22,6 +22,7 @@ import {
   patchDemoMatterReviewTaskStatus,
   patchDemoMatterReviewTasksStatus,
   collectCondoDiligenceWorkQueueOpenPrimaryTaskIds,
+  collectCondoDiligenceWorkQueueCompletablePrimaryTaskIds,
 } from '@/lib/demo/demoMatterReviewTask'
 
 describe('demoMatterReviewTask', () => {
@@ -132,6 +133,49 @@ describe('demoMatterReviewTask', () => {
       ]),
     ).toEqual(['open-1'])
     expect(collectCondoDiligenceWorkQueueOpenPrimaryTaskIds([])).toEqual([])
+  })
+
+  it('collects open and in_review primary task ids for bulk complete', () => {
+    const open = buildDemoMatterReviewTask({ ...base, id: 'open-1', status: 'open' })!
+    const inReview = buildDemoMatterReviewTask({
+      ...base,
+      id: 'in-review-1',
+      status: 'in_review',
+    })!
+    const completed = buildDemoMatterReviewTask({
+      ...base,
+      id: 'done-1',
+      status: 'completed',
+    })!
+    expect(
+      collectCondoDiligenceWorkQueueCompletablePrimaryTaskIds([
+        { primaryTask: open },
+        { primaryTask: inReview },
+        { primaryTask: completed },
+      ]),
+    ).toEqual(['open-1', 'in-review-1'])
+    expect(collectCondoDiligenceWorkQueueCompletablePrimaryTaskIds([])).toEqual([])
+  })
+
+  it('bulk-patches to completed for open and in_review tasks', () => {
+    const open = buildDemoMatterReviewTask(
+      { ...base, id: 'rt-open' },
+      { nowIso: () => '2026-09-04T15:00:00.000Z' },
+    )!
+    const inReview = buildDemoMatterReviewTask(
+      { ...base, id: 'rt-in-review', status: 'in_review', matter_id: 'matter-2' },
+      { nowIso: () => '2026-09-04T14:00:00.000Z' },
+    )!
+    const result = patchDemoMatterReviewTasksStatus(
+      [open, inReview],
+      ['rt-open', 'rt-in-review'],
+      'completed',
+      { nowIso: () => '2026-09-04T17:00:00.000Z' },
+    )
+    expect(result.updatedCount).toBe(2)
+    expect(result.updatedTaskIds).toEqual(['rt-open', 'rt-in-review'])
+    expect(result.tasks.every((t) => t.status === 'completed')).toBe(true)
+    expect(result.tasks.every((t) => t.updated_at === '2026-09-04T17:00:00.000Z')).toBe(true)
   })
 
   it('lists matter review tasks newest-first and ignores other matters', () => {

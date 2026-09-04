@@ -313,6 +313,15 @@ export function collectCondoDiligenceWorkQueueOpenPrimaryTaskIds(
     .map((row) => row.primaryTask.id)
 }
 
+/** Primary task ids eligible to mark completed (`open` or `in_review`; queue never lists completed). */
+export function collectCondoDiligenceWorkQueueCompletablePrimaryTaskIds(
+  rows: ReadonlyArray<Pick<CondoDiligenceWorkQueueRow, 'primaryTask'>>,
+): string[] {
+  return rows
+    .filter((row) => row.primaryTask.status === 'open' || row.primaryTask.status === 'in_review')
+    .map((row) => row.primaryTask.id)
+}
+
 export type CondoDiligenceWorkQueueViewFilter = 'all_active' | 'assigned_to_me' | 'due_soon'
 
 /** Calendar-day YMD from a Date (local components) for date-only comparisons. */
