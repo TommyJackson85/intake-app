@@ -5,11 +5,16 @@ import {
   buildCondoDiligenceOperationalSummary,
   buildDefaultCondoDiligence,
   buildDefaultCondoEstoppelReview,
+  buildDefaultCondoSirsMilestoneReview,
   condoDiligenceMatterStatusPresentation,
   condoEstoppelDueDateWarning,
   condoEstoppelReviewStatusPresentation,
   condoRequiredDocMatchesLinkageHaystack,
   condoRequiredDocSavedStatusAfterLinkedSync,
+  condoSirsApplicabilityPresentation,
+  condoSirsDocumentStatusPresentation,
+  condoSirsResultPresentation,
+  condoSirsRiskLevelPresentation,
   deriveCondoDiligenceMatterStatusFromChecklist,
   deriveCondoRequiredDocumentStatus,
   formatCondoDiligenceSummaryTargetDate,
@@ -17,9 +22,12 @@ import {
   isCondoDiligenceEligible,
   isCondoEstoppelReviewUntouched,
   isCondoOrCoopMatter,
+  isCondoSirsMilestoneReviewUntouched,
   isFloridaPropertyAddress,
   normalizeCondoEstoppelReview,
+  normalizeCondoSirsMilestoneReview,
   parseDemoCondoEstoppelReview,
+  parseDemoCondoSirsMilestoneReview,
   syncRequiredDocumentsFromDerivedLinkage,
 } from '@/lib/demo/condoDiligence'
 import type { DemoCondoDiligence, DemoDocument, DemoDocumentRequest, DemoMatter } from '@/lib/demo/types'
@@ -554,6 +562,8 @@ describe('condoDiligence', () => {
       expect(d.requiredDocuments.every((x) => x.status === 'outstanding')).toBe(true)
       expect(d.estoppelReview).toEqual(buildDefaultCondoEstoppelReview())
       expect(isCondoEstoppelReviewUntouched(d.estoppelReview)).toBe(true)
+      expect(d.sirsMilestoneReview).toEqual(buildDefaultCondoSirsMilestoneReview())
+      expect(isCondoSirsMilestoneReviewUntouched(d.sirsMilestoneReview)).toBe(true)
     })
 
     it('keeps the original six rows and adds exactly seven new core doc-pack rows without duplicates', () => {
@@ -684,6 +694,98 @@ describe('condoDiligence', () => {
     it('does not change estoppel document linkage matching', () => {
       expect(condoRequiredDocMatchesLinkageHaystack('Condo Estoppel Certificate.pdf', 'estoppel')).toBe(true)
       expect(condoRequiredDocMatchesLinkageHaystack('Association financial statements', 'estoppel')).toBe(false)
+    })
+  })
+
+  describe('sirsMilestoneReview', () => {
+    it('parses missing or invalid sirsMilestoneReview as undefined for older persisted rows', () => {
+      expect(parseDemoCondoSirsMilestoneReview(undefined)).toBeUndefined()
+      expect(parseDemoCondoSirsMilestoneReview(null)).toBeUndefined()
+      expect(parseDemoCondoSirsMilestoneReview('nope')).toBeUndefined()
+      expect(parseDemoCondoSirsMilestoneReview([])).toBeUndefined()
+    })
+
+    it('fills defaults for partial valid sirsMilestoneReview objects', () => {
+      expect(
+        parseDemoCondoSirsMilestoneReview({
+          applicability: 'applicable',
+          completionDate: '2026-06-01',
+          reserveRiskLevel: 'elevated',
+        }),
+      ).toEqual({
+        ...buildDefaultCondoSirsMilestoneReview(),
+        applicability: 'applicable',
+        completionDate: '2026-06-01',
+        reserveRiskLevel: 'elevated',
+      })
+    })
+
+    it('normalizeCondoSirsMilestoneReview merges onto defaults', () => {
+      expect(normalizeCondoSirsMilestoneReview(undefined)).toEqual(buildDefaultCondoSirsMilestoneReview())
+      expect(normalizeCondoSirsMilestoneReview({ notes: 'Phase 2 follow-up needed' })).toEqual({
+        ...buildDefaultCondoSirsMilestoneReview(),
+        notes: 'Phase 2 follow-up needed',
+      })
+    })
+
+    it('marks diligence as touched when SIRS / Milestone review has progress', () => {
+      const base = buildDefaultCondoDiligence({ nowIso: () => '2026-04-27T12:00:00.000Z' })
+      expect(isCondoDiligenceUntouched(base)).toBe(true)
+      expect(
+        isCondoDiligenceUntouched({
+          ...base,
+          sirsMilestoneReview: {
+            ...buildDefaultCondoSirsMilestoneReview(),
+            applicability: 'applicable',
+            documentStatus: 'received',
+          },
+        }),
+      ).toBe(false)
+    })
+
+    it('keeps older saved checklists without sirsMilestoneReview loadable and untouched', () => {
+      const older: DemoCondoDiligence = {
+        applicable: true,
+        status: 'not_started',
+        notes: '',
+        findings: [],
+        updated_at: '2026-01-01T00:00:00.000Z',
+        requiredDocuments: ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS.map((id) => ({
+          id,
+          label: id,
+          status: 'outstanding' as const,
+          detail: null,
+        })),
+      }
+      expect(older.sirsMilestoneReview).toBeUndefined()
+      expect(isCondoDiligenceUntouched(older)).toBe(true)
+      expect(isCondoSirsMilestoneReviewUntouched(older.sirsMilestoneReview)).toBe(true)
+      expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments: older.requiredDocuments, findings: [] })).toBe(
+        'not_started',
+      )
+    })
+
+    it('presentation helpers stay operational and do not change matter-status derivation', () => {
+      expect(condoSirsApplicabilityPresentation('needs_confirmation').label).toBe('Needs confirmation')
+      expect(condoSirsDocumentStatusPresentation('received').label).toBe('Received')
+      expect(condoSirsResultPresentation('pass_with_findings').label).toBe('Pass with findings')
+      expect(condoSirsRiskLevelPresentation('high').label).toBe('High')
+
+      const checklist = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' }).requiredDocuments
+      expect(
+        deriveCondoDiligenceMatterStatusFromChecklist({
+          requiredDocuments: checklist,
+          findings: [],
+        }),
+      ).toBe('not_started')
+    })
+
+    it('does not change milestone or SIRS document linkage matching', () => {
+      expect(condoRequiredDocMatchesLinkageHaystack('milestone inspection summary 2024', 'milestone_inspection_summary')).toBe(
+        true,
+      )
+      expect(condoRequiredDocMatchesLinkageHaystack('SIRS / reserve study package', 'sirs_reserve_study')).toBe(true)
+      expect(condoRequiredDocMatchesLinkageHaystack('SIRS / reserve study package', 'milestone_inspection_summary')).toBe(false)
     })
   })
 

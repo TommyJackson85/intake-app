@@ -221,6 +221,38 @@ export type DemoCondoEstoppelReview = {
   notes: string
 }
 
+/** Structured SIRS / Milestone review (demo) — complements milestone + SIRS checklist rows. */
+export type DemoCondoSirsApplicability =
+  | 'unknown'
+  | 'applicable'
+  | 'not_applicable'
+  | 'needs_confirmation'
+export type DemoCondoSirsDocumentStatus =
+  | 'not_started'
+  | 'outstanding'
+  | 'requested'
+  | 'received'
+  | 'reviewed'
+export type DemoCondoSirsResult =
+  | 'unknown'
+  | 'pass'
+  | 'pass_with_findings'
+  | 'fail'
+  | 'incomplete'
+export type DemoCondoSirsRiskLevel = 'unknown' | 'low' | 'moderate' | 'elevated' | 'high'
+
+export type DemoCondoSirsMilestoneReview = {
+  applicability: DemoCondoSirsApplicability
+  /** Lawyer-recorded status for SIRS / Milestone materials (separate from checklist rows). */
+  documentStatus: DemoCondoSirsDocumentStatus
+  /** YYYY-MM-DD when set; empty string when unset. */
+  completionDate: string
+  result: DemoCondoSirsResult
+  reserveRiskLevel: DemoCondoSirsRiskLevel
+  structuralRiskLevel: DemoCondoSirsRiskLevel
+  notes: string
+}
+
 export type DemoCondoDiligence = {
   applicable: boolean
   status: DemoCondoDiligenceMatterStatus
@@ -230,6 +262,8 @@ export type DemoCondoDiligence = {
   updated_at: string
   /** Optional structured estoppel fields; absent on older persisted demo rows. */
   estoppelReview?: DemoCondoEstoppelReview
+  /** Optional structured SIRS / Milestone fields; absent on older persisted demo rows. */
+  sirsMilestoneReview?: DemoCondoSirsMilestoneReview
 }
 
 export type DemoFirm = {

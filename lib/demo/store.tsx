@@ -51,7 +51,9 @@ import {
   deriveCondoDiligenceMatterStatusFromChecklist,
   isCondoDiligenceEligible,
   normalizeCondoEstoppelReview,
+  normalizeCondoSirsMilestoneReview,
   parseDemoCondoEstoppelReview,
+  parseDemoCondoSirsMilestoneReview,
 } from '@/lib/demo/condoDiligence'
 
 type DemoContextType = {
@@ -256,6 +258,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
   }
 
   const estoppelReview = parseDemoCondoEstoppelReview(o.estoppelReview)
+  const sirsMilestoneReview = parseDemoCondoSirsMilestoneReview(o.sirsMilestoneReview)
 
   return {
     applicable: o.applicable,
@@ -265,6 +268,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
     notes: o.notes,
     updated_at: o.updated_at.trim(),
     ...(estoppelReview ? { estoppelReview } : {}),
+    ...(sirsMilestoneReview ? { sirsMilestoneReview } : {}),
   }
 }
 
@@ -1600,7 +1604,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           const definedEntries = Object.fromEntries(
             Object.entries(patch).filter(([, v]) => v !== undefined),
           ) as Partial<DemoCondoDiligence>
-          const { estoppelReview: estoppelPatch, ...restPatch } = definedEntries
+          const { estoppelReview: estoppelPatch, sirsMilestoneReview: sirsPatch, ...restPatch } =
+            definedEntries
           const nextBase: DemoCondoDiligence = {
             ...existing,
             ...restPatch,
@@ -1611,6 +1616,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               ? {
                   ...normalizeCondoEstoppelReview(existing.estoppelReview),
                   ...estoppelPatch,
+                }
+              : undefined
+          }
+          if ('sirsMilestoneReview' in definedEntries) {
+            nextBase.sirsMilestoneReview = sirsPatch
+              ? {
+                  ...normalizeCondoSirsMilestoneReview(existing.sirsMilestoneReview),
+                  ...sirsPatch,
                 }
               : undefined
           }
