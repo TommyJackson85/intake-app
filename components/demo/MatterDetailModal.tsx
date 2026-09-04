@@ -5,6 +5,10 @@ import { useDemoStore } from '@/lib/demo/store'
 import type {
   DemoCondoDiligenceDocStatus,
   DemoCondoDiligenceMatterStatus,
+  DemoCondoEstoppelReview,
+  DemoCondoEstoppelReviewStatus,
+  DemoCondoEstoppelSpecialAssessmentStatus,
+  DemoCondoEstoppelViolationOrLienStatus,
   DemoMatter,
   DemoMatterStatus,
 } from '@/lib/demo/types'
@@ -15,12 +19,16 @@ import DemoFinCENTab from '@/components/demo/DemoFinCENTab'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
 import {
+  buildCondoDiligenceOperationalSummary,
   condoDiligenceMatterStatusPresentation,
+  condoEstoppelDueDateWarning,
+  condoEstoppelReviewStatusPresentation,
   condoRequiredDocMatchesLinkageHaystack,
   condoRequiredDocDerivedStatusPresentation,
   deriveCondoRequiredDocumentStatus,
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
+  normalizeCondoEstoppelReview,
   syncRequiredDocumentsFromDerivedLinkage,
 } from '@/lib/demo/condoDiligence'
 
@@ -288,24 +296,14 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
         )
       })
     : []
-  const condoDocPackSummary = useMemo(() => {
+  const condoOperationalSummary = useMemo(() => {
     if (!condoDiligence || !effectiveMatter) return null
-    let received = 0
-    let requested = 0
-    let outstanding = 0
-    for (const doc of condoDiligence.requiredDocuments) {
-      const derived = deriveCondoRequiredDocumentStatus({
-        matterId: effectiveMatter.id,
-        condoDocId: doc.id,
-        storedStatus: doc.status,
-        documents: matterDocuments,
-        documentRequests: matterDocumentRequests,
-      })
-      if (derived === 'received') received += 1
-      else if (derived === 'requested') requested += 1
-      else outstanding += 1
-    }
-    return { received, requested, outstanding, total: condoDiligence.requiredDocuments.length }
+    return buildCondoDiligenceOperationalSummary({
+      matterId: effectiveMatter.id,
+      condo: condoDiligence,
+      documents: matterDocuments,
+      documentRequests: matterDocumentRequests,
+    })
   }, [condoDiligence, effectiveMatter, matterDocuments, matterDocumentRequests])
 
   useEffect(() => {
@@ -975,7 +973,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       </div>
                       <div style={{ fontSize: 12, lineHeight: 1.5 }}>
                         Review required association records, track requested and received items, and capture findings here.
-                        Start with estoppel, milestone/SIRS materials, budget, insurance summary, and recent board minutes.
+                        Work the checklist below (estoppel, inspections/reserves, financials, governing docs, insurance,
+                        minutes, assessments, litigation disclosures, leasing restrictions, and contacts).
                         Linked documents and open requests can help update the checklist.
                       </div>
                     </div>
@@ -1017,38 +1016,132 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       {condoDiligenceMatterStatusPresentation(condoDiligence.status).label}
                     </span>
                   </div>
-                  {condoDocPackSummary && (
+                  {condoOperationalSummary && (
                     <div
                       style={{
                         border: '1px solid rgba(94,82,64,0.12)',
                         borderRadius: 8,
-                        padding: '10px 12px',
+                        padding: 14,
                         background: 'white',
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 8,
-                        alignItems: 'center',
                       }}
                     >
-                      <span style={{ fontSize: 12, fontWeight: 900, color: '#134252' }}>
-                        Condo doc pack
-                      </span>
-                      <span style={{ fontSize: 11, color: '#2f855a', fontWeight: 800 }}>
-                        Received: {condoDocPackSummary.received}
-                      </span>
-                      <span style={{ fontSize: 11, color: '#1e40af', fontWeight: 800 }}>
-                        Requested: {condoDocPackSummary.requested}
-                      </span>
-                      <span style={{ fontSize: 11, color: '#b45309', fontWeight: 800 }}>
-                        Outstanding: {condoDocPackSummary.outstanding}
-                      </span>
-                      <span style={{ fontSize: 11, color: '#627c71', marginLeft: 'auto' }}>
-                        {condoDocPackSummary.total} total
-                      </span>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'baseline',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                          marginBottom: 8,
+                        }}
+                      >
+                        <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                          Condo Diligence Summary
+                        </div>
+                        <div style={{ fontSize: 11, color: '#627c71' }}>
+                          Operational summary only — lawyer review required.
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: '#134252' }}>
+                        <div>
+                          <span style={{ fontWeight: 800, color: '#627c71', marginRight: 6 }}>Documents</span>
+                          <span>
+                            {condoOperationalSummary.documentCounts.received} received ·{' '}
+                            {condoOperationalSummary.documentCounts.requested} requested ·{' '}
+                            {condoOperationalSummary.documentCounts.outstanding} outstanding ·{' '}
+                            {condoOperationalSummary.documentCounts.total} total
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontWeight: 800, color: '#627c71', marginRight: 6 }}>Findings</span>
+                          <span>{condoOperationalSummary.findingsLine}</span>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                          <span style={{ fontWeight: 800, color: '#627c71' }}>Estoppel</span>
+                          <span>{condoOperationalSummary.estoppelStatusLabel}</span>
+                          {condoOperationalSummary.estoppelAttention && (
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '2px 8px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                background: '#fff4d6',
+                                color: '#b45309',
+                                border: '1px solid rgba(240,180,41,0.35)',
+                              }}
+                            >
+                              {condoOperationalSummary.estoppelAttention}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <span style={{ fontWeight: 800, color: '#627c71', marginRight: 6 }}>Next</span>
+                          <span>{condoOperationalSummary.nextAction}</span>
+                        </div>
+                      </div>
+                      {(condoOperationalSummary.nextActionKind === 'request_outstanding' ||
+                        condoOperationalSummary.nextActionKind === 'chase_estoppel' ||
+                        condoOperationalSummary.nextActionKind === 'request_estoppel') && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                          {(condoOperationalSummary.nextActionKind === 'request_outstanding' ||
+                            condoOperationalSummary.nextActionKind === 'request_estoppel') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                document.getElementById('condo-request-missing-docs')?.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'center',
+                                })
+                              }}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(94,82,64,0.25)',
+                                background: '#fff',
+                                fontWeight: 800,
+                                fontSize: 11,
+                                color: '#134252',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Request missing docs
+                            </button>
+                          )}
+                          {(condoOperationalSummary.nextActionKind === 'chase_estoppel' ||
+                            condoOperationalSummary.nextActionKind === 'request_estoppel') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                document.getElementById('condo-estoppel-review')?.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'start',
+                                })
+                              }}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(94,82,64,0.25)',
+                                background: '#fff',
+                                fontWeight: 800,
+                                fontSize: 11,
+                                color: '#134252',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Review Estoppel
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  <div style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: 8, padding: 14, background: 'white' }}>
+                  <div
+                    id="condo-required-documents"
+                    style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: 8, padding: 14, background: 'white' }}
+                  >
                     <div
                       style={{
                         display: 'flex',
@@ -1062,6 +1155,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>Required documents</div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <button
+                          id="condo-request-missing-docs"
                           type="button"
                           disabled={requestableCondoDocs.length === 0}
                           onClick={() => {
@@ -1201,6 +1295,281 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       })}
                     </div>
                   </div>
+
+                  {(() => {
+                    const estoppelReview = normalizeCondoEstoppelReview(condoDiligence.estoppelReview)
+                    const estoppelStatusPresent = condoEstoppelReviewStatusPresentation(estoppelReview.reviewStatus)
+                    const estoppelDueWarning = condoEstoppelDueDateWarning(estoppelReview.dueDate)
+                    const estoppelLinkedDocuments = matterDocuments.filter((d) => {
+                      if (d.deletedAt) return false
+                      const haystack = [d.name, d.document_subtype ?? '', d.description ?? '', d.category]
+                        .filter(Boolean)
+                        .join(' ')
+                        .toLowerCase()
+                      return condoRequiredDocMatchesLinkageHaystack(haystack, 'estoppel')
+                    })
+                    const estoppelLinkedRequests = matterDocumentRequests.filter((r) => {
+                      const haystack = [r.title, r.description ?? '', r.category].filter(Boolean).join(' ').toLowerCase()
+                      return condoRequiredDocMatchesLinkageHaystack(haystack, 'estoppel')
+                    })
+                    const patchEstoppel = (patch: Partial<DemoCondoEstoppelReview>) => {
+                      patchCondoDiligence(matterId, {
+                        estoppelReview: { ...estoppelReview, ...patch },
+                      })
+                    }
+                    const fieldLabel: React.CSSProperties = {
+                      display: 'block',
+                      fontSize: 12,
+                      color: '#627c71',
+                      fontWeight: 800,
+                      marginBottom: 4,
+                    }
+                    const fieldInput: React.CSSProperties = {
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(94,82,64,0.22)',
+                      fontSize: 13,
+                      color: '#134252',
+                      boxSizing: 'border-box',
+                    }
+                    return (
+                      <div
+                        id="condo-estoppel-review"
+                        style={{
+                          border: '1px solid rgba(94,82,64,0.12)',
+                          borderRadius: 8,
+                          padding: 14,
+                          background: 'white',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>Estoppel Review</div>
+                            <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '36rem' }}>
+                              Structured practice notes for the Estoppel checklist item. Does not replace document requests,
+                              linkage badges, or saved checklist status.
+                            </div>
+                          </div>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '5px 10px',
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 900,
+                              background: estoppelStatusPresent.bg,
+                              color: estoppelStatusPresent.color,
+                              border: `1px solid ${estoppelStatusPresent.border}`,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {estoppelStatusPresent.label}
+                          </span>
+                        </div>
+
+                        {estoppelDueWarning && (
+                          <div
+                            role="status"
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: 8,
+                              border:
+                                estoppelDueWarning.kind === 'overdue'
+                                  ? '1px solid rgba(185,28,28,0.35)'
+                                  : '1px solid rgba(240,180,41,0.45)',
+                              background: estoppelDueWarning.kind === 'overdue' ? '#fee2e2' : '#fff8e6',
+                              color: estoppelDueWarning.kind === 'overdue' ? '#7f1d1d' : '#b45309',
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            Due-date attention: {estoppelDueWarning.label}
+                            {estoppelReview.dueDate ? ` (${estoppelReview.dueDate})` : ''}. Demo reminder only — not a legal
+                            deadline determination.
+                          </div>
+                        )}
+
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                            gap: 10,
+                          }}
+                        >
+                          <label>
+                            <span style={fieldLabel}>Request date</span>
+                            <input
+                              type="date"
+                              value={estoppelReview.requestDate}
+                              onChange={(e) => patchEstoppel({ requestDate: e.target.value })}
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Due date</span>
+                            <input
+                              type="date"
+                              value={estoppelReview.dueDate}
+                              onChange={(e) => patchEstoppel({ dueDate: e.target.value })}
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Received date</span>
+                            <input
+                              type="date"
+                              value={estoppelReview.receivedDate}
+                              onChange={(e) => patchEstoppel({ receivedDate: e.target.value })}
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Amount due</span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.01"
+                              value={estoppelReview.amountDue ?? ''}
+                              onChange={(e) => {
+                                const raw = e.target.value.trim()
+                                if (!raw) {
+                                  patchEstoppel({ amountDue: null })
+                                  return
+                                }
+                                const n = Number(raw)
+                                if (Number.isFinite(n)) patchEstoppel({ amountDue: n })
+                              }}
+                              placeholder="Optional"
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Regular assessment amount</span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.01"
+                              value={estoppelReview.regularAssessmentAmount ?? ''}
+                              onChange={(e) => {
+                                const raw = e.target.value.trim()
+                                if (!raw) {
+                                  patchEstoppel({ regularAssessmentAmount: null })
+                                  return
+                                }
+                                const n = Number(raw)
+                                if (Number.isFinite(n)) patchEstoppel({ regularAssessmentAmount: n })
+                              }}
+                              placeholder="Optional"
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Special assessment</span>
+                            <select
+                              value={estoppelReview.specialAssessmentStatus}
+                              onChange={(e) =>
+                                patchEstoppel({
+                                  specialAssessmentStatus: e.target.value as DemoCondoEstoppelSpecialAssessmentStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="none">None disclosed</option>
+                              <option value="disclosed">Disclosed</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Violations / liens</span>
+                            <select
+                              value={estoppelReview.violationOrLienStatus}
+                              onChange={(e) =>
+                                patchEstoppel({
+                                  violationOrLienStatus: e.target.value as DemoCondoEstoppelViolationOrLienStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="none">None disclosed</option>
+                              <option value="disclosed">Disclosed</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Review status</span>
+                            <select
+                              value={estoppelReview.reviewStatus}
+                              onChange={(e) =>
+                                patchEstoppel({
+                                  reviewStatus: e.target.value as DemoCondoEstoppelReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="not_started">Not started</option>
+                              <option value="requested">Requested</option>
+                              <option value="received">Received</option>
+                              <option value="reviewed">Reviewed</option>
+                              <option value="issue_found">Issue found</option>
+                            </select>
+                          </label>
+                        </div>
+
+                        <label style={{ display: 'block' }}>
+                          <span style={fieldLabel}>Estoppel notes</span>
+                          <textarea
+                            value={estoppelReview.notes}
+                            onChange={(e) => patchEstoppel({ notes: e.target.value })}
+                            rows={3}
+                            placeholder="Internal estoppel review notes (demo)"
+                            style={{ ...fieldInput, resize: 'vertical' }}
+                          />
+                        </label>
+
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 900, color: '#134252', marginBottom: 6 }}>
+                            Linked Estoppel documents &amp; requests
+                          </div>
+                          <div style={{ fontSize: 11, color: '#627c71', marginBottom: 8, lineHeight: 1.4 }}>
+                            Read-only matches from this matter using the same Estoppel checklist linkage rules.
+                          </div>
+                          {estoppelLinkedDocuments.length === 0 && estoppelLinkedRequests.length === 0 ? (
+                            <div style={{ fontSize: 13, color: '#627c71' }}>
+                              No matching Estoppel documents or requests linked yet.
+                            </div>
+                          ) : (
+                            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {estoppelLinkedDocuments.map((d) => (
+                                <li key={d.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Document:</strong> {d.name}
+                                  {d.document_subtype ? ` · ${d.document_subtype}` : ''}
+                                </li>
+                              ))}
+                              {estoppelLinkedRequests.map((r) => (
+                                <li key={r.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Request ({r.status}):</strong> {r.title}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   <div style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: 8, padding: 14, background: 'white' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>

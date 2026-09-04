@@ -8,6 +8,10 @@ import type {
   DemoCondoDiligenceFinding,
   DemoCondoDiligenceMatterStatus,
   DemoCondoDiligenceRequiredDocument,
+  DemoCondoEstoppelReview,
+  DemoCondoEstoppelReviewStatus,
+  DemoCondoEstoppelSpecialAssessmentStatus,
+  DemoCondoEstoppelViolationOrLienStatus,
   DemoDocument,
   DemoDocumentRequest,
   DemoMatter,
@@ -137,6 +141,69 @@ export function condoRequiredDocMatchesLinkageHaystack(haystack: string, condoDo
         t.includes('association minutes') ||
         (t.includes('board') && t.includes('minute'))
       )
+    case 'association_financial_statements':
+      return (
+        t.includes('financial statement') ||
+        t.includes('financial statements') ||
+        t.includes('audited financial') ||
+        t.includes('association financials') ||
+        (t.includes('financial') && t.includes('statement') && /\b(association|hoa|condo)\b/.test(t))
+      )
+    case 'declaration_bylaws_rules_amendments':
+      return (
+        t.includes('declaration') ||
+        t.includes('bylaws') ||
+        t.includes('by-laws') ||
+        t.includes('rules and regulations') ||
+        t.includes('rules & regulations') ||
+        (t.includes('amendment') && /\b(declaration|bylaw|by-law|covenant|condo)\b/.test(t))
+      )
+    case 'reserve_schedule_funding_detail':
+      if (/\bsirs\b/.test(t) || t.includes('reserve study') || t.includes('structural integrity reserve')) {
+        return false
+      }
+      return (
+        t.includes('reserve schedule') ||
+        t.includes('reserve funding') ||
+        t.includes('funding schedule') ||
+        (t.includes('reserve') && t.includes('funding') && t.includes('detail')) ||
+        (t.includes('reserve') && t.includes('schedule'))
+      )
+    case 'special_assessment_notice_schedule':
+      return (
+        t.includes('special assessment') ||
+        t.includes('special assessments') ||
+        (t.includes('assessment') && t.includes('notice') && /\b(special|hoa|association|condo)\b/.test(t))
+      )
+    case 'litigation_claims_arbitration_dbpr':
+      return (
+        /\bdbpr\b/.test(t) ||
+        t.includes('litigation') ||
+        t.includes('arbitration') ||
+        t.includes('pending claim') ||
+        t.includes('claims disclosure') ||
+        (t.includes('claim') && /\b(litigation|arbitration|association|hoa|condo|disclosure)\b/.test(t))
+      )
+    case 'association_approval_leasing_restrictions':
+      return (
+        t.includes('leasing restriction') ||
+        t.includes('leasing restrictions') ||
+        t.includes('rental restriction') ||
+        t.includes('rental restrictions') ||
+        t.includes('association approval') ||
+        t.includes('lease approval') ||
+        (t.includes('leasing') && /\b(restriction|approval|package)\b/.test(t))
+      )
+    case 'management_association_contacts':
+      return (
+        t.includes('management company') ||
+        t.includes('management contact') ||
+        t.includes('association contact') ||
+        t.includes('association contacts') ||
+        t.includes('property manager contact') ||
+        (t.includes('management') && t.includes('contact')) ||
+        (t.includes('association') && t.includes('contact') && /\b(manager|management|hoa|condo)\b/.test(t))
+      )
     default:
       return false
   }
@@ -235,11 +302,466 @@ export function deriveCondoDiligenceMatterStatusFromChecklist(input: {
 }
 
 /** True when a condo diligence row is still in first-run/default state for guidance UI. */
-export function isCondoDiligenceUntouched(input: Pick<DemoCondoDiligence, 'status' | 'requiredDocuments' | 'findings' | 'notes'>): boolean {
+export function isCondoDiligenceUntouched(
+  input: Pick<DemoCondoDiligence, 'status' | 'requiredDocuments' | 'findings' | 'notes'> & {
+    estoppelReview?: DemoCondoEstoppelReview | null
+  },
+): boolean {
   const notesEmpty = input.notes.trim() === ''
   const noFindings = input.findings.length === 0 || input.findings.every((f) => f.text.trim() === '')
   const allOutstanding = input.requiredDocuments.length > 0 && input.requiredDocuments.every((d) => d.status === 'outstanding')
-  return input.status === 'not_started' && notesEmpty && noFindings && allOutstanding
+  const estoppelUntouched = isCondoEstoppelReviewUntouched(input.estoppelReview)
+  return input.status === 'not_started' && notesEmpty && noFindings && allOutstanding && estoppelUntouched
+}
+
+/** Default empty structured estoppel review for newly seeded diligence rows. */
+export function buildDefaultCondoEstoppelReview(): DemoCondoEstoppelReview {
+  return {
+    requestDate: '',
+    dueDate: '',
+    receivedDate: '',
+    amountDue: null,
+    regularAssessmentAmount: null,
+    specialAssessmentStatus: 'unknown',
+    violationOrLienStatus: 'unknown',
+    reviewStatus: 'not_started',
+    notes: '',
+  }
+}
+
+export function normalizeCondoEstoppelReview(
+  input?: Partial<DemoCondoEstoppelReview> | null,
+): DemoCondoEstoppelReview {
+  return {
+    ...buildDefaultCondoEstoppelReview(),
+    ...(input ?? {}),
+  }
+}
+
+function isYmdDateString(value: unknown): value is string {
+  return typeof value === 'string' && (/^\d{4}-\d{2}-\d{2}$/.test(value.trim()) || value.trim() === '')
+}
+
+function parseOptionalMoney(value: unknown): number | null | undefined {
+  if (value === null) return null
+  if (value === undefined) return undefined
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
+  return value
+}
+
+function isSpecialAssessmentStatus(value: unknown): value is DemoCondoEstoppelSpecialAssessmentStatus {
+  return value === 'unknown' || value === 'none' || value === 'disclosed'
+}
+
+function isViolationOrLienStatus(value: unknown): value is DemoCondoEstoppelViolationOrLienStatus {
+  return value === 'unknown' || value === 'none' || value === 'disclosed'
+}
+
+function isEstoppelReviewStatus(value: unknown): value is DemoCondoEstoppelReviewStatus {
+  return (
+    value === 'not_started' ||
+    value === 'requested' ||
+    value === 'received' ||
+    value === 'reviewed' ||
+    value === 'issue_found'
+  )
+}
+
+/**
+ * Parse optional persisted `estoppelReview`. Missing/invalid object → undefined (older rows).
+ * Partial valid objects are filled with defaults for missing fields.
+ */
+export function parseDemoCondoEstoppelReview(raw: unknown): DemoCondoEstoppelReview | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const o = raw as Record<string, unknown>
+  const base = buildDefaultCondoEstoppelReview()
+
+  const requestDate = isYmdDateString(o.requestDate) ? o.requestDate.trim() : base.requestDate
+  const dueDate = isYmdDateString(o.dueDate) ? o.dueDate.trim() : base.dueDate
+  const receivedDate = isYmdDateString(o.receivedDate) ? o.receivedDate.trim() : base.receivedDate
+  const amountDueParsed = parseOptionalMoney(o.amountDue)
+  const regularParsed = parseOptionalMoney(o.regularAssessmentAmount)
+
+  return {
+    requestDate,
+    dueDate,
+    receivedDate,
+    amountDue: amountDueParsed === undefined ? base.amountDue : amountDueParsed,
+    regularAssessmentAmount: regularParsed === undefined ? base.regularAssessmentAmount : regularParsed,
+    specialAssessmentStatus: isSpecialAssessmentStatus(o.specialAssessmentStatus)
+      ? o.specialAssessmentStatus
+      : base.specialAssessmentStatus,
+    violationOrLienStatus: isViolationOrLienStatus(o.violationOrLienStatus)
+      ? o.violationOrLienStatus
+      : base.violationOrLienStatus,
+    reviewStatus: isEstoppelReviewStatus(o.reviewStatus) ? o.reviewStatus : base.reviewStatus,
+    notes: typeof o.notes === 'string' ? o.notes : base.notes,
+  }
+}
+
+export function isCondoEstoppelReviewUntouched(input?: DemoCondoEstoppelReview | null): boolean {
+  if (!input) return true
+  const d = normalizeCondoEstoppelReview(input)
+  return (
+    d.requestDate === '' &&
+    d.dueDate === '' &&
+    d.receivedDate === '' &&
+    d.amountDue === null &&
+    d.regularAssessmentAmount === null &&
+    d.specialAssessmentStatus === 'unknown' &&
+    d.violationOrLienStatus === 'unknown' &&
+    d.reviewStatus === 'not_started' &&
+    d.notes.trim() === ''
+  )
+}
+
+export function condoEstoppelReviewStatusPresentation(status: DemoCondoEstoppelReviewStatus): {
+  label: string
+  bg: string
+  color: string
+  border: string
+} {
+  switch (status) {
+    case 'issue_found':
+      return { label: 'Issue found', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    case 'reviewed':
+      return { label: 'Reviewed', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'received':
+      return { label: 'Received', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.25)' }
+    case 'requested':
+      return { label: 'Requested', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    default:
+      return { label: 'Not started', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+/**
+ * Read-only due-date warning for lawyer attention (demo). Not a statutory compliance determination.
+ * `due_soon` when due within `soonDays` (default 3), including today.
+ */
+export function condoEstoppelDueDateWarning(
+  dueDate: string,
+  options?: { now?: Date; soonDays?: number },
+): { kind: 'overdue' | 'due_soon'; label: string; diffDays: number } | null {
+  const trimmed = dueDate.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null
+  const due = new Date(`${trimmed}T00:00:00`)
+  if (Number.isNaN(due.getTime())) return null
+
+  const now = options?.now ?? new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffDays = Math.floor((due.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+  const soonDays = options?.soonDays ?? 3
+
+  if (diffDays < 0) {
+    return { kind: 'overdue', label: `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`, diffDays }
+  }
+  if (diffDays <= soonDays) {
+    if (diffDays === 0) return { kind: 'due_soon', label: 'Due today', diffDays }
+    return { kind: 'due_soon', label: `Due in ${diffDays} day${diffDays === 1 ? '' : 's'}`, diffDays }
+  }
+  return null
+}
+
+const CONDO_SUMMARY_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const
+
+/** Short month-day label for operational summary copy (e.g. `Sep 12`). */
+export function formatCondoDiligenceSummaryTargetDate(isoDate: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate.trim())
+  if (!m) return null
+  const month = Number(m[2])
+  const day = Number(m[3])
+  if (!Number.isFinite(month) || !Number.isFinite(day) || month < 1 || month > 12 || day < 1 || day > 31) {
+    return null
+  }
+  return `${CONDO_SUMMARY_MONTHS[month - 1]} ${day}`
+}
+
+export type CondoDiligenceSummaryDocumentCounts = {
+  received: number
+  requested: number
+  outstanding: number
+  total: number
+}
+
+export type CondoDiligenceEstoppelSummaryKind =
+  | 'not_requested'
+  | 'requested'
+  | 'received_review_pending'
+  | 'reviewed'
+  | 'issue_flagged'
+
+export type CondoDiligenceNextActionKind =
+  | 'chase_estoppel'
+  | 'request_estoppel'
+  | 'request_outstanding'
+  | 'follow_up_requested'
+  | 'review_findings'
+  | 'review_pack'
+
+export type CondoDiligenceOperationalSummary = {
+  documentCounts: CondoDiligenceSummaryDocumentCounts
+  documentsLine: string
+  openFindingsCount: number
+  findingsLine: string
+  estoppelKind: CondoDiligenceEstoppelSummaryKind
+  estoppelStatusLabel: string
+  /** Neutral attention copy when target date has passed and review is not received/reviewed. */
+  estoppelAttention: string | null
+  nextAction: string
+  nextActionKind: CondoDiligenceNextActionKind
+}
+
+function countCondoDiligenceDocumentsForSummary(input: {
+  matterId: string
+  requiredDocuments: readonly DemoCondoDiligenceRequiredDocument[]
+  documents: DeriveCondoRequiredDocumentStatusInput['documents']
+  documentRequests: DeriveCondoRequiredDocumentStatusInput['documentRequests']
+}): CondoDiligenceSummaryDocumentCounts {
+  let received = 0
+  let requested = 0
+  let outstanding = 0
+  for (const doc of input.requiredDocuments) {
+    const derived = deriveCondoRequiredDocumentStatus({
+      matterId: input.matterId,
+      condoDocId: doc.id,
+      storedStatus: doc.status,
+      documents: input.documents,
+      documentRequests: input.documentRequests,
+    })
+    if (derived === 'received') received += 1
+    else if (derived === 'requested') requested += 1
+    else outstanding += 1
+  }
+  return {
+    received,
+    requested,
+    outstanding,
+    total: input.requiredDocuments.length,
+  }
+}
+
+function deriveCondoEstoppelSummaryDisplay(input: {
+  condo: DemoCondoDiligence | null | undefined
+  matterId: string
+  documents: DeriveCondoRequiredDocumentStatusInput['documents']
+  documentRequests: DeriveCondoRequiredDocumentStatusInput['documentRequests']
+  now: Date
+}): Pick<
+  CondoDiligenceOperationalSummary,
+  'estoppelKind' | 'estoppelStatusLabel' | 'estoppelAttention'
+> {
+  const hasStructuredReview = Boolean(input.condo?.estoppelReview)
+  const review = hasStructuredReview
+    ? normalizeCondoEstoppelReview(input.condo?.estoppelReview)
+    : null
+
+  const estoppelRow = input.condo?.requiredDocuments.find((d) => d.id === 'estoppel')
+  const checklistStatus: DemoCondoDiligenceDocStatus = estoppelRow
+    ? deriveCondoRequiredDocumentStatus({
+        matterId: input.matterId,
+        condoDocId: estoppelRow.id,
+        storedStatus: estoppelRow.status,
+        documents: input.documents,
+        documentRequests: input.documentRequests,
+      })
+    : 'outstanding'
+
+  let estoppelKind: CondoDiligenceEstoppelSummaryKind
+  let estoppelStatusLabel: string
+  let dueDate = ''
+
+  if (review) {
+    dueDate = review.dueDate.trim()
+    const targetLabel = formatCondoDiligenceSummaryTargetDate(dueDate)
+    switch (review.reviewStatus) {
+      case 'issue_found':
+        estoppelKind = 'issue_flagged'
+        estoppelStatusLabel = 'Issue flagged'
+        break
+      case 'reviewed':
+        estoppelKind = 'reviewed'
+        estoppelStatusLabel = 'Reviewed'
+        break
+      case 'received':
+        estoppelKind = 'received_review_pending'
+        estoppelStatusLabel = 'Received — review pending'
+        break
+      case 'requested':
+        estoppelKind = 'requested'
+        estoppelStatusLabel = targetLabel
+          ? `Requested — target response date ${targetLabel}`
+          : 'Requested'
+        break
+      default:
+        estoppelKind = 'not_requested'
+        estoppelStatusLabel = 'Not requested'
+        break
+    }
+  } else {
+    switch (checklistStatus) {
+      case 'received':
+        estoppelKind = 'received_review_pending'
+        estoppelStatusLabel = 'Received — review pending'
+        break
+      case 'requested':
+        estoppelKind = 'requested'
+        estoppelStatusLabel = 'Requested'
+        break
+      default:
+        estoppelKind = 'not_requested'
+        estoppelStatusLabel = 'Not requested'
+        break
+    }
+  }
+
+  const reviewDone =
+    estoppelKind === 'received_review_pending' ||
+    estoppelKind === 'reviewed' ||
+    estoppelKind === 'issue_flagged'
+  const dueWarning =
+    dueDate && !reviewDone ? condoEstoppelDueDateWarning(dueDate, { now: input.now }) : null
+  const estoppelAttention =
+    dueWarning?.kind === 'overdue' ? 'Target date passed — review needed' : null
+
+  return { estoppelKind, estoppelStatusLabel, estoppelAttention }
+}
+
+function deriveCondoDiligenceNextAction(input: {
+  review: DemoCondoEstoppelReview | null
+  checklistEstoppelStatus: DemoCondoDiligenceDocStatus
+  documentCounts: CondoDiligenceSummaryDocumentCounts
+  openFindingsCount: number
+}): Pick<CondoDiligenceOperationalSummary, 'nextAction' | 'nextActionKind'> {
+  const { review, checklistEstoppelStatus, documentCounts, openFindingsCount } = input
+
+  const estoppelRequestedNotDone = review
+    ? review.reviewStatus === 'requested'
+    : checklistEstoppelStatus === 'requested'
+  const estoppelNotRequested = review
+    ? review.reviewStatus === 'not_started'
+    : checklistEstoppelStatus === 'outstanding'
+
+  if (estoppelRequestedNotDone) {
+    return {
+      nextActionKind: 'chase_estoppel',
+      nextAction: 'Review or chase the Estoppel request.',
+    }
+  }
+  if (estoppelNotRequested) {
+    return {
+      nextActionKind: 'request_estoppel',
+      nextAction: 'Request the Estoppel certificate.',
+    }
+  }
+  if (documentCounts.outstanding > 0) {
+    return {
+      nextActionKind: 'request_outstanding',
+      nextAction: 'Request outstanding association documents.',
+    }
+  }
+  if (documentCounts.requested > 0) {
+    return {
+      nextActionKind: 'follow_up_requested',
+      nextAction: 'Follow up on requested association documents.',
+    }
+  }
+  if (openFindingsCount > 0) {
+    return {
+      nextActionKind: 'review_findings',
+      nextAction: 'Review and resolve open diligence findings.',
+    }
+  }
+  return {
+    nextActionKind: 'review_pack',
+    nextAction: 'Review the document pack and record lawyer findings.',
+  }
+}
+
+/**
+ * Read-only lawyer-facing operational summary for the Condo Diligence tab.
+ * Derives from existing saved checklist, linkage, findings, and optional estoppelReview — does not persist.
+ */
+export function buildCondoDiligenceOperationalSummary(input: {
+  matterId: string
+  condo: DemoCondoDiligence | null | undefined
+  documents?: DeriveCondoRequiredDocumentStatusInput['documents']
+  documentRequests?: DeriveCondoRequiredDocumentStatusInput['documentRequests']
+  /** Explicit “now” for date-sensitive attention copy (tests must pass this). */
+  now?: Date
+}): CondoDiligenceOperationalSummary {
+  const documents = input.documents ?? []
+  const documentRequests = input.documentRequests ?? []
+  const now = input.now ?? new Date()
+  const requiredDocuments = input.condo?.requiredDocuments ?? []
+  const findings = input.condo?.findings ?? []
+
+  const documentCounts = countCondoDiligenceDocumentsForSummary({
+    matterId: input.matterId,
+    requiredDocuments,
+    documents,
+    documentRequests,
+  })
+  const documentsLine = `Documents: ${documentCounts.received} received · ${documentCounts.requested} requested · ${documentCounts.outstanding} outstanding · ${documentCounts.total} total`
+
+  const openFindingsCount = findings.length
+  const findingsLine =
+    openFindingsCount === 0
+      ? 'No findings recorded'
+      : `${openFindingsCount} open finding${openFindingsCount === 1 ? '' : 's'}`
+
+  const estoppelDisplay = deriveCondoEstoppelSummaryDisplay({
+    condo: input.condo,
+    matterId: input.matterId,
+    documents,
+    documentRequests,
+    now,
+  })
+
+  const hasStructuredReview = Boolean(input.condo?.estoppelReview)
+  const review = hasStructuredReview
+    ? normalizeCondoEstoppelReview(input.condo?.estoppelReview)
+    : null
+  const estoppelRow = input.condo?.requiredDocuments.find((d) => d.id === 'estoppel')
+  const checklistEstoppelStatus: DemoCondoDiligenceDocStatus = estoppelRow
+    ? deriveCondoRequiredDocumentStatus({
+        matterId: input.matterId,
+        condoDocId: estoppelRow.id,
+        storedStatus: estoppelRow.status,
+        documents,
+        documentRequests,
+      })
+    : 'outstanding'
+
+  const next = deriveCondoDiligenceNextAction({
+    review,
+    checklistEstoppelStatus,
+    documentCounts,
+    openFindingsCount,
+  })
+
+  return {
+    documentCounts,
+    documentsLine,
+    openFindingsCount,
+    findingsLine,
+    ...estoppelDisplay,
+    ...next,
+  }
 }
 
 type MatterEligibilityInput = {
@@ -275,7 +797,55 @@ const DEFAULT_REQUIRED_DOCS: DemoCondoDiligenceRequiredDocument[] = [
   { id: 'current_budget', label: 'Current budget', status: 'outstanding', detail: null },
   { id: 'insurance_summary', label: 'Insurance summary', status: 'outstanding', detail: null },
   { id: 'recent_board_minutes', label: 'Recent board minutes', status: 'outstanding', detail: null },
+  { id: 'association_financial_statements', label: 'Association financial statements', status: 'outstanding', detail: null },
+  {
+    id: 'declaration_bylaws_rules_amendments',
+    label: 'Declaration, bylaws, rules & amendments',
+    status: 'outstanding',
+    detail: null,
+  },
+  { id: 'reserve_schedule_funding_detail', label: 'Reserve schedule / funding detail', status: 'outstanding', detail: null },
+  {
+    id: 'special_assessment_notice_schedule',
+    label: 'Special assessment notice / schedule',
+    status: 'outstanding',
+    detail: null,
+  },
+  {
+    id: 'litigation_claims_arbitration_dbpr',
+    label: 'Litigation, claims, arbitration or DBPR disclosure',
+    status: 'outstanding',
+    detail: null,
+  },
+  {
+    id: 'association_approval_leasing_restrictions',
+    label: 'Association approval & leasing restrictions',
+    status: 'outstanding',
+    detail: null,
+  },
+  { id: 'management_association_contacts', label: 'Management & association contacts', status: 'outstanding', detail: null },
 ]
+
+/** Stable ids for the original six condo diligence checklist rows (back-compat assertions). */
+export const ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS = [
+  'estoppel',
+  'milestone_inspection_summary',
+  'sirs_reserve_study',
+  'current_budget',
+  'insurance_summary',
+  'recent_board_minutes',
+] as const
+
+/** Stable ids added in the core document-pack expansion (demo defaults for newly eligible matters). */
+export const CORE_CONDO_DILIGENCE_DOC_PACK_IDS = [
+  'association_financial_statements',
+  'declaration_bylaws_rules_amendments',
+  'reserve_schedule_funding_detail',
+  'special_assessment_notice_schedule',
+  'litigation_claims_arbitration_dbpr',
+  'association_approval_leasing_restrictions',
+  'management_association_contacts',
+] as const
 
 export type BuildDefaultCondoDiligenceOptions = {
   nowIso?: () => string
@@ -293,5 +863,6 @@ export function buildDefaultCondoDiligence(options?: BuildDefaultCondoDiligenceO
     notes: '',
     updated_at,
     status: deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments, findings }),
+    estoppelReview: buildDefaultCondoEstoppelReview(),
   }
 }
