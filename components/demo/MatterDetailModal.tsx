@@ -9,6 +9,11 @@ import type {
   DemoCondoEstoppelReviewStatus,
   DemoCondoEstoppelSpecialAssessmentStatus,
   DemoCondoEstoppelViolationOrLienStatus,
+  DemoCondoSirsApplicability,
+  DemoCondoSirsDocumentStatus,
+  DemoCondoSirsMilestoneReview,
+  DemoCondoSirsResult,
+  DemoCondoSirsRiskLevel,
   DemoMatter,
   DemoMatterStatus,
 } from '@/lib/demo/types'
@@ -25,10 +30,15 @@ import {
   condoEstoppelReviewStatusPresentation,
   condoRequiredDocMatchesLinkageHaystack,
   condoRequiredDocDerivedStatusPresentation,
+  condoSirsApplicabilityPresentation,
+  condoSirsDocumentStatusPresentation,
+  condoSirsResultPresentation,
+  condoSirsRiskLevelPresentation,
   deriveCondoRequiredDocumentStatus,
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
   normalizeCondoEstoppelReview,
+  normalizeCondoSirsMilestoneReview,
   syncRequiredDocumentsFromDerivedLinkage,
 } from '@/lib/demo/condoDiligence'
 
@@ -1560,6 +1570,297 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                 </li>
                               ))}
                               {estoppelLinkedRequests.map((r) => (
+                                <li key={r.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Request ({r.status}):</strong> {r.title}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {(() => {
+                    const sirsReview = normalizeCondoSirsMilestoneReview(condoDiligence.sirsMilestoneReview)
+                    const applicabilityPresent = condoSirsApplicabilityPresentation(sirsReview.applicability)
+                    const documentStatusPresent = condoSirsDocumentStatusPresentation(sirsReview.documentStatus)
+                    const resultPresent = condoSirsResultPresentation(sirsReview.result)
+                    const reserveRiskPresent = condoSirsRiskLevelPresentation(sirsReview.reserveRiskLevel)
+                    const structuralRiskPresent = condoSirsRiskLevelPresentation(sirsReview.structuralRiskLevel)
+                    const sirsLinkedDocuments = matterDocuments.filter((d) => {
+                      if (d.deletedAt) return false
+                      const haystack = [d.name, d.document_subtype ?? '', d.description ?? '', d.category]
+                        .filter(Boolean)
+                        .join(' ')
+                        .toLowerCase()
+                      return (
+                        condoRequiredDocMatchesLinkageHaystack(haystack, 'milestone_inspection_summary') ||
+                        condoRequiredDocMatchesLinkageHaystack(haystack, 'sirs_reserve_study')
+                      )
+                    })
+                    const sirsLinkedRequests = matterDocumentRequests.filter((r) => {
+                      const haystack = [r.title, r.description ?? '', r.category].filter(Boolean).join(' ').toLowerCase()
+                      return (
+                        condoRequiredDocMatchesLinkageHaystack(haystack, 'milestone_inspection_summary') ||
+                        condoRequiredDocMatchesLinkageHaystack(haystack, 'sirs_reserve_study')
+                      )
+                    })
+                    const patchSirs = (patch: Partial<DemoCondoSirsMilestoneReview>) => {
+                      patchCondoDiligence(matterId, {
+                        sirsMilestoneReview: { ...sirsReview, ...patch },
+                      })
+                    }
+                    const fieldLabel: React.CSSProperties = {
+                      display: 'block',
+                      fontSize: 12,
+                      color: '#627c71',
+                      fontWeight: 800,
+                      marginBottom: 4,
+                    }
+                    const fieldInput: React.CSSProperties = {
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(94,82,64,0.22)',
+                      fontSize: 13,
+                      color: '#134252',
+                      boxSizing: 'border-box',
+                    }
+                    return (
+                      <div
+                        id="condo-sirs-milestone-review"
+                        style={{
+                          border: '1px solid rgba(94,82,64,0.12)',
+                          borderRadius: 8,
+                          padding: 14,
+                          background: 'white',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                              SIRS / Milestone Review
+                            </div>
+                            <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '36rem' }}>
+                              Structured practice notes for Milestone inspection and SIRS / reserve study checklist items.
+                              Lawyer operational review only — not a structural-engineering or statutory compliance
+                              determination.
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: applicabilityPresent.bg,
+                                color: applicabilityPresent.color,
+                                border: `1px solid ${applicabilityPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {applicabilityPresent.label}
+                            </span>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: documentStatusPresent.bg,
+                                color: documentStatusPresent.color,
+                                border: `1px solid ${documentStatusPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {documentStatusPresent.label}
+                            </span>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: resultPresent.bg,
+                                color: resultPresent.color,
+                                border: `1px solid ${resultPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {resultPresent.label}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                            gap: 10,
+                          }}
+                        >
+                          <label>
+                            <span style={fieldLabel}>Applicability</span>
+                            <select
+                              value={sirsReview.applicability}
+                              onChange={(e) =>
+                                patchSirs({ applicability: e.target.value as DemoCondoSirsApplicability })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="applicable">Applicable</option>
+                              <option value="not_applicable">Not applicable</option>
+                              <option value="needs_confirmation">Needs confirmation</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Document status</span>
+                            <select
+                              value={sirsReview.documentStatus}
+                              onChange={(e) =>
+                                patchSirs({ documentStatus: e.target.value as DemoCondoSirsDocumentStatus })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="not_started">Not started</option>
+                              <option value="outstanding">Outstanding</option>
+                              <option value="requested">Requested</option>
+                              <option value="received">Received</option>
+                              <option value="reviewed">Reviewed</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Completion date</span>
+                            <input
+                              type="date"
+                              value={sirsReview.completionDate}
+                              onChange={(e) => patchSirs({ completionDate: e.target.value })}
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Result</span>
+                            <select
+                              value={sirsReview.result}
+                              onChange={(e) => patchSirs({ result: e.target.value as DemoCondoSirsResult })}
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="pass">Pass</option>
+                              <option value="pass_with_findings">Pass with findings</option>
+                              <option value="fail">Fail</option>
+                              <option value="incomplete">Incomplete</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Reserve-risk level</span>
+                            <select
+                              value={sirsReview.reserveRiskLevel}
+                              onChange={(e) =>
+                                patchSirs({ reserveRiskLevel: e.target.value as DemoCondoSirsRiskLevel })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="low">Low</option>
+                              <option value="moderate">Moderate</option>
+                              <option value="elevated">Elevated</option>
+                              <option value="high">High</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Structural-risk level</span>
+                            <select
+                              value={sirsReview.structuralRiskLevel}
+                              onChange={(e) =>
+                                patchSirs({ structuralRiskLevel: e.target.value as DemoCondoSirsRiskLevel })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="low">Low</option>
+                              <option value="moderate">Moderate</option>
+                              <option value="elevated">Elevated</option>
+                              <option value="high">High</option>
+                            </select>
+                          </label>
+                        </div>
+
+                        {(sirsReview.reserveRiskLevel === 'elevated' ||
+                          sirsReview.reserveRiskLevel === 'high' ||
+                          sirsReview.structuralRiskLevel === 'elevated' ||
+                          sirsReview.structuralRiskLevel === 'high' ||
+                          sirsReview.result === 'fail' ||
+                          sirsReview.result === 'pass_with_findings') && (
+                          <div
+                            role="status"
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(240,180,41,0.45)',
+                              background: '#fff8e6',
+                              color: '#b45309',
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            Attention: elevated SIRS / Milestone signals recorded. Confirm lawyer findings and linked
+                            documents before treating this as cleared. Demo reminder only — not an engineering opinion.
+                            <span style={{ marginLeft: 8 }}>
+                              Reserve: {reserveRiskPresent.label} · Structural: {structuralRiskPresent.label}
+                            </span>
+                          </div>
+                        )}
+
+                        <label style={{ display: 'block' }}>
+                          <span style={fieldLabel}>Lawyer notes</span>
+                          <textarea
+                            value={sirsReview.notes}
+                            onChange={(e) => patchSirs({ notes: e.target.value })}
+                            rows={3}
+                            placeholder="Internal SIRS / Milestone review notes (demo)"
+                            style={{ ...fieldInput, resize: 'vertical' }}
+                          />
+                        </label>
+
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 900, color: '#134252', marginBottom: 6 }}>
+                            Linked Milestone / SIRS documents &amp; requests
+                          </div>
+                          <div style={{ fontSize: 11, color: '#627c71', marginBottom: 8, lineHeight: 1.4 }}>
+                            Read-only matches from this matter using the Milestone inspection and SIRS / reserve study
+                            checklist linkage rules.
+                          </div>
+                          {sirsLinkedDocuments.length === 0 && sirsLinkedRequests.length === 0 ? (
+                            <div style={{ fontSize: 13, color: '#627c71' }}>
+                              No matching Milestone or SIRS documents or requests linked yet.
+                            </div>
+                          ) : (
+                            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {sirsLinkedDocuments.map((d) => (
+                                <li key={d.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Document:</strong> {d.name}
+                                  {d.document_subtype ? ` · ${d.document_subtype}` : ''}
+                                </li>
+                              ))}
+                              {sirsLinkedRequests.map((r) => (
                                 <li key={r.id} style={{ fontSize: 13, color: '#134252' }}>
                                   <strong>Request ({r.status}):</strong> {r.title}
                                 </li>

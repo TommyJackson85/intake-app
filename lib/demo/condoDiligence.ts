@@ -12,6 +12,11 @@ import type {
   DemoCondoEstoppelReviewStatus,
   DemoCondoEstoppelSpecialAssessmentStatus,
   DemoCondoEstoppelViolationOrLienStatus,
+  DemoCondoSirsApplicability,
+  DemoCondoSirsDocumentStatus,
+  DemoCondoSirsMilestoneReview,
+  DemoCondoSirsResult,
+  DemoCondoSirsRiskLevel,
   DemoDocument,
   DemoDocumentRequest,
   DemoMatter,
@@ -305,13 +310,22 @@ export function deriveCondoDiligenceMatterStatusFromChecklist(input: {
 export function isCondoDiligenceUntouched(
   input: Pick<DemoCondoDiligence, 'status' | 'requiredDocuments' | 'findings' | 'notes'> & {
     estoppelReview?: DemoCondoEstoppelReview | null
+    sirsMilestoneReview?: DemoCondoSirsMilestoneReview | null
   },
 ): boolean {
   const notesEmpty = input.notes.trim() === ''
   const noFindings = input.findings.length === 0 || input.findings.every((f) => f.text.trim() === '')
   const allOutstanding = input.requiredDocuments.length > 0 && input.requiredDocuments.every((d) => d.status === 'outstanding')
   const estoppelUntouched = isCondoEstoppelReviewUntouched(input.estoppelReview)
-  return input.status === 'not_started' && notesEmpty && noFindings && allOutstanding && estoppelUntouched
+  const sirsUntouched = isCondoSirsMilestoneReviewUntouched(input.sirsMilestoneReview)
+  return (
+    input.status === 'not_started' &&
+    notesEmpty &&
+    noFindings &&
+    allOutstanding &&
+    estoppelUntouched &&
+    sirsUntouched
+  )
 }
 
 /** Default empty structured estoppel review for newly seeded diligence rows. */
@@ -462,6 +476,182 @@ export function condoEstoppelDueDateWarning(
     return { kind: 'due_soon', label: `Due in ${diffDays} day${diffDays === 1 ? '' : 's'}`, diffDays }
   }
   return null
+}
+
+/** Default empty structured SIRS / Milestone review for newly seeded diligence rows. */
+export function buildDefaultCondoSirsMilestoneReview(): DemoCondoSirsMilestoneReview {
+  return {
+    applicability: 'unknown',
+    documentStatus: 'not_started',
+    completionDate: '',
+    result: 'unknown',
+    reserveRiskLevel: 'unknown',
+    structuralRiskLevel: 'unknown',
+    notes: '',
+  }
+}
+
+export function normalizeCondoSirsMilestoneReview(
+  input?: Partial<DemoCondoSirsMilestoneReview> | null,
+): DemoCondoSirsMilestoneReview {
+  return {
+    ...buildDefaultCondoSirsMilestoneReview(),
+    ...(input ?? {}),
+  }
+}
+
+function isSirsApplicability(value: unknown): value is DemoCondoSirsApplicability {
+  return (
+    value === 'unknown' ||
+    value === 'applicable' ||
+    value === 'not_applicable' ||
+    value === 'needs_confirmation'
+  )
+}
+
+function isSirsDocumentStatus(value: unknown): value is DemoCondoSirsDocumentStatus {
+  return (
+    value === 'not_started' ||
+    value === 'outstanding' ||
+    value === 'requested' ||
+    value === 'received' ||
+    value === 'reviewed'
+  )
+}
+
+function isSirsResult(value: unknown): value is DemoCondoSirsResult {
+  return (
+    value === 'unknown' ||
+    value === 'pass' ||
+    value === 'pass_with_findings' ||
+    value === 'fail' ||
+    value === 'incomplete'
+  )
+}
+
+function isSirsRiskLevel(value: unknown): value is DemoCondoSirsRiskLevel {
+  return (
+    value === 'unknown' ||
+    value === 'low' ||
+    value === 'moderate' ||
+    value === 'elevated' ||
+    value === 'high'
+  )
+}
+
+/**
+ * Parse optional persisted `sirsMilestoneReview`. Missing/invalid object → undefined (older rows).
+ * Partial valid objects are filled with defaults for missing fields.
+ */
+export function parseDemoCondoSirsMilestoneReview(raw: unknown): DemoCondoSirsMilestoneReview | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const o = raw as Record<string, unknown>
+  const base = buildDefaultCondoSirsMilestoneReview()
+
+  return {
+    applicability: isSirsApplicability(o.applicability) ? o.applicability : base.applicability,
+    documentStatus: isSirsDocumentStatus(o.documentStatus) ? o.documentStatus : base.documentStatus,
+    completionDate: isYmdDateString(o.completionDate) ? o.completionDate.trim() : base.completionDate,
+    result: isSirsResult(o.result) ? o.result : base.result,
+    reserveRiskLevel: isSirsRiskLevel(o.reserveRiskLevel) ? o.reserveRiskLevel : base.reserveRiskLevel,
+    structuralRiskLevel: isSirsRiskLevel(o.structuralRiskLevel)
+      ? o.structuralRiskLevel
+      : base.structuralRiskLevel,
+    notes: typeof o.notes === 'string' ? o.notes : base.notes,
+  }
+}
+
+export function isCondoSirsMilestoneReviewUntouched(input?: DemoCondoSirsMilestoneReview | null): boolean {
+  if (!input) return true
+  const d = normalizeCondoSirsMilestoneReview(input)
+  return (
+    d.applicability === 'unknown' &&
+    d.documentStatus === 'not_started' &&
+    d.completionDate === '' &&
+    d.result === 'unknown' &&
+    d.reserveRiskLevel === 'unknown' &&
+    d.structuralRiskLevel === 'unknown' &&
+    d.notes.trim() === ''
+  )
+}
+
+export function condoSirsApplicabilityPresentation(status: DemoCondoSirsApplicability): {
+  label: string
+  bg: string
+  color: string
+  border: string
+} {
+  switch (status) {
+    case 'applicable':
+      return { label: 'Applicable', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.25)' }
+    case 'not_applicable':
+      return { label: 'Not applicable', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+    case 'needs_confirmation':
+      return { label: 'Needs confirmation', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    default:
+      return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoSirsDocumentStatusPresentation(status: DemoCondoSirsDocumentStatus): {
+  label: string
+  bg: string
+  color: string
+  border: string
+} {
+  switch (status) {
+    case 'reviewed':
+      return { label: 'Reviewed', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'received':
+      return { label: 'Received', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.25)' }
+    case 'requested':
+      return { label: 'Requested', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    case 'outstanding':
+      return { label: 'Outstanding', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    default:
+      return { label: 'Not started', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoSirsResultPresentation(result: DemoCondoSirsResult): {
+  label: string
+  bg: string
+  color: string
+  border: string
+} {
+  switch (result) {
+    case 'pass':
+      return { label: 'Pass', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'pass_with_findings':
+      return { label: 'Pass with findings', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    case 'fail':
+      return { label: 'Fail', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    case 'incomplete':
+      return { label: 'Incomplete', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    default:
+      return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoSirsRiskLevelPresentation(level: DemoCondoSirsRiskLevel): {
+  label: string
+  bg: string
+  color: string
+  border: string
+} {
+  switch (level) {
+    case 'low':
+      return { label: 'Low', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'moderate':
+      return { label: 'Moderate', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    case 'elevated':
+      return { label: 'Elevated', bg: '#ffedd5', color: '#c2410c', border: 'rgba(194,65,12,0.35)' }
+    case 'high':
+      return { label: 'High', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    default:
+      return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
 }
 
 const CONDO_SUMMARY_MONTHS = [
@@ -864,5 +1054,6 @@ export function buildDefaultCondoDiligence(options?: BuildDefaultCondoDiligenceO
     updated_at,
     status: deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments, findings }),
     estoppelReview: buildDefaultCondoEstoppelReview(),
+    sirsMilestoneReview: buildDefaultCondoSirsMilestoneReview(),
   }
 }
