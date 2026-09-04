@@ -277,6 +277,79 @@ export function buildCondoDiligenceWorkQueueRows(
   })
 }
 
+export type CondoDiligenceWorkQueueViewFilter = 'all_active' | 'assigned_to_me' | 'due_soon'
+
+/** Calendar-day YMD from a Date (local components) for date-only comparisons. */
+export function toCondoDiligenceWorkQueueDateKey(date: Date): string | null {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/** Normalize stored due values (`YYYY-MM-DD` or ISO) to a date-only key. */
+export function parseCondoDiligenceWorkQueueDueDateKey(dueDate: string | null | undefined): string | null {
+  const raw = dueDate?.trim()
+  if (!raw) return null
+  const ymd = raw.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (ymd) return ymd[1]
+  const parsed = new Date(raw)
+  return toCondoDiligenceWorkQueueDateKey(parsed)
+}
+
+function addCalendarDaysToDateKey(dateKey: string, days: number): string | null {
+  const m = dateKey.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!m) return null
+  const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  if (Number.isNaN(dt.getTime())) return null
+  dt.setDate(dt.getDate() + days)
+  return toCondoDiligenceWorkQueueDateKey(dt)
+}
+
+/**
+ * True when due date is overdue or within the next `withinDays` calendar days (inclusive of today).
+ * Missing/invalid due dates are never "due soon".
+ */
+export function isCondoDiligenceWorkQueueDueSoon(
+  dueDate: string | null | undefined,
+  now: Date,
+  withinDays = 7,
+): boolean {
+  const dueKey = parseCondoDiligenceWorkQueueDueDateKey(dueDate)
+  const todayKey = toCondoDiligenceWorkQueueDateKey(now)
+  if (!dueKey || !todayKey) return false
+  const endKey = addCalendarDaysToDateKey(todayKey, withinDays)
+  if (!endKey) return false
+  return dueKey <= endKey
+}
+
+/**
+ * Filters existing work-queue rows for dashboard viewing only.
+ * `assigned_to_me` requires a stable staff ID; without one, returns [].
+ */
+export function filterCondoDiligenceWorkQueueRows(
+  rows: CondoDiligenceWorkQueueRow[],
+  filter: CondoDiligenceWorkQueueViewFilter,
+  options?: {
+    now?: Date
+    currentStaffId?: string | null
+    dueSoonWithinDays?: number
+  },
+): CondoDiligenceWorkQueueRow[] {
+  if (filter === 'all_active') return rows
+
+  if (filter === 'assigned_to_me') {
+    const staffId = options?.currentStaffId?.trim()
+    if (!staffId) return []
+    return rows.filter((row) => row.primaryTask.assignee_id === staffId)
+  }
+
+  const now = options?.now ?? new Date()
+  const withinDays = options?.dueSoonWithinDays ?? 7
+  return rows.filter((row) => isCondoDiligenceWorkQueueDueSoon(row.primaryTask.due_date, now, withinDays))
+}
+
 /** Parse persisted rows; drops invalid entries. */
 export function parseStoredDemoMatterReviewTasks(raw: unknown): DemoMatterReviewTask[] {
   if (!Array.isArray(raw)) return []

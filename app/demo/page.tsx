@@ -14,6 +14,8 @@ import { getMatterPartyDisplayRows } from '@/lib/demo/matterPartyDisplay'
 import {
   buildCondoDiligenceWorkQueueRows,
   demoMatterReviewTaskStatusPresentation,
+  filterCondoDiligenceWorkQueueRows,
+  type CondoDiligenceWorkQueueViewFilter,
 } from '@/lib/demo/demoMatterReviewTask'
 
 function statusColor(status: DemoMatter['status']) {
@@ -39,6 +41,9 @@ function DemoPageContent() {
   const [showDemoCreationDisabledBanner, setShowDemoCreationDisabledBanner] = useState(false)
   const [isNewIntakeOpen, setIsNewIntakeOpen] = useState(false)
   const [showDemoIntakeDisabledBanner, setShowDemoIntakeDisabledBanner] = useState(false)
+  const [workQueueFilter, setWorkQueueFilter] = useState<CondoDiligenceWorkQueueViewFilter>('all_active')
+  /** Demo has no session current-user identity; Assigned to me stays disabled until one exists. */
+  const demoCurrentStaffId: string | null = null
 
   const searchParams = useSearchParams()
   const selectedMatterFromQuery = searchParams.get('matter')
@@ -94,6 +99,14 @@ function DemoPageContent() {
   const condoDiligenceWorkQueue = useMemo(
     () => buildCondoDiligenceWorkQueueRows(matters, matterReviewTasks),
     [matters, matterReviewTasks],
+  )
+  const visibleCondoDiligenceWorkQueue = useMemo(
+    () =>
+      filterCondoDiligenceWorkQueueRows(condoDiligenceWorkQueue, workQueueFilter, {
+        now: new Date(),
+        currentStaffId: demoCurrentStaffId,
+      }),
+    [condoDiligenceWorkQueue, workQueueFilter, demoCurrentStaffId],
   )
 
   if (!selectedMatter) {
@@ -261,9 +274,84 @@ function DemoPageContent() {
           </Link>
         </div>
 
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 8,
+            alignItems: 'center',
+            marginBottom: 10,
+          }}
+          role="group"
+          aria-label="Condo Diligence Work Queue filters"
+        >
+          {(
+            [
+              { id: 'all_active' as const, label: 'All active', disabled: false },
+              {
+                id: 'assigned_to_me' as const,
+                label: 'Assigned to me',
+                disabled: !demoCurrentStaffId,
+              },
+              { id: 'due_soon' as const, label: 'Due soon', disabled: false },
+            ] as const
+          ).map((opt) => {
+            const active = workQueueFilter === opt.id
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                disabled={opt.disabled}
+                title={
+                  opt.disabled
+                    ? 'Assigned to me needs a demo current-user staff ID. Demo mode has no signed-in identity yet.'
+                    : opt.id === 'due_soon'
+                      ? 'Due soon includes overdue tasks and tasks due in the next 7 days.'
+                      : undefined
+                }
+                onClick={() => {
+                  if (opt.disabled) return
+                  setWorkQueueFilter(opt.id)
+                }}
+                aria-pressed={active}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 999,
+                  border: active ? '1px solid #208096' : '1px solid rgba(94,82,64,0.25)',
+                  background: opt.disabled ? '#f5f5f5' : active ? '#e8f4f7' : '#fff',
+                  color: opt.disabled ? '#9aa8a1' : active ? '#134252' : '#627c71',
+                  fontWeight: 800,
+                  fontSize: 12,
+                  cursor: opt.disabled ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+        {workQueueFilter === 'due_soon' ? (
+          <div style={{ fontSize: 12, color: '#627c71', fontWeight: 700, marginBottom: 8 }}>
+            Due soon includes overdue tasks and tasks due in the next 7 days.
+          </div>
+        ) : null}
+        {workQueueFilter === 'assigned_to_me' && !demoCurrentStaffId ? (
+          <div style={{ fontSize: 12, color: '#627c71', fontWeight: 700, marginBottom: 8 }}>
+            Assigned to me is unavailable until demo mode has a current-user staff identity.
+          </div>
+        ) : null}
+
         {condoDiligenceWorkQueue.length === 0 ? (
           <div style={{ color: '#627c71', fontSize: 13, fontWeight: 700, padding: '6px 0' }}>
             No open condo review tasks right now.
+          </div>
+        ) : visibleCondoDiligenceWorkQueue.length === 0 ? (
+          <div style={{ color: '#627c71', fontSize: 13, fontWeight: 700, padding: '6px 0' }}>
+            {workQueueFilter === 'due_soon'
+              ? 'No condo review tasks due soon.'
+              : workQueueFilter === 'assigned_to_me'
+                ? 'No condo review tasks assigned to you.'
+                : 'No matching condo review tasks.'}
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -279,7 +367,7 @@ function DemoPageContent() {
                 </tr>
               </thead>
               <tbody>
-                {condoDiligenceWorkQueue.map((row) => {
+                {visibleCondoDiligenceWorkQueue.map((row) => {
                   const assignee =
                     staff.find((s) => s.id === row.primaryTask.assignee_id)?.full_name ??
                     (row.primaryTask.assignee_id ? row.primaryTask.assignee_id : 'Unassigned')

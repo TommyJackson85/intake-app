@@ -6,8 +6,10 @@ import {
   condoDiligenceMattersListReviewTaskChipPresentation,
   defaultCondoDiligenceSummaryReviewTaskTitle,
   demoMatterReviewTaskStatusPresentation,
+  filterCondoDiligenceWorkQueueRows,
   filterMattersWithActiveCondoDiligenceSummaryReviewTasks,
   formatCondoDiligenceActiveReviewTaskCountLabel,
+  isCondoDiligenceWorkQueueDueSoon,
   listActiveCondoDiligenceSummaryReviewTasks,
   listCondoDiligenceSummaryReviewTasks,
   matterHasActiveCondoDiligenceSummaryReviewTasks,
@@ -224,6 +226,70 @@ describe('demoMatterReviewTask', () => {
     expect(rows[0]?.chip.compactLabel).toBe('Condo review · in review')
     expect(rows[0]?.primaryTask.assignee_id).toBe('staff-1')
     expect(rows[1]?.chip.fullLabel).toBe('1 condo review task')
+  })
+
+  it('filters work-queue rows by assigned staff and due-soon window with fixed now', () => {
+    const now = new Date(2026, 8, 4) // 2026-09-04 local
+    const matters = [
+      { id: 'm1', file_id: 'FL-1', status: 'Intake', property: { address: '1 Main' } },
+      { id: 'm2', file_id: 'FL-2', status: 'Intake', property: { address: '2 Main' } },
+      { id: 'm3', file_id: 'FL-3', status: 'Intake', property: { address: '3 Main' } },
+      { id: 'm4', file_id: 'FL-4', status: 'Intake', property: { address: '4 Main' } },
+    ]
+    const tasks = [
+      buildDemoMatterReviewTask({
+        matter_id: 'm1',
+        title: 'Mine due today',
+        linked_document_id: 'd1',
+        status: 'open',
+        assignee_id: 'staff-me',
+        due_date: '2026-09-04',
+        id: 't1',
+      })!,
+      buildDemoMatterReviewTask({
+        matter_id: 'm2',
+        title: 'Other overdue',
+        linked_document_id: 'd2',
+        status: 'in_review',
+        assignee_id: 'staff-other',
+        due_date: '2026-09-01',
+        id: 't2',
+      })!,
+      buildDemoMatterReviewTask({
+        matter_id: 'm3',
+        title: 'No due',
+        linked_document_id: 'd3',
+        status: 'open',
+        assignee_id: 'staff-me',
+        due_date: null,
+        id: 't3',
+      })!,
+      buildDemoMatterReviewTask({
+        matter_id: 'm4',
+        title: 'Too far',
+        linked_document_id: 'd4',
+        status: 'open',
+        assignee_id: 'staff-me',
+        due_date: '2026-09-20',
+        id: 't4',
+      })!,
+    ]
+    const rows = buildCondoDiligenceWorkQueueRows(matters, tasks)
+
+    expect(isCondoDiligenceWorkQueueDueSoon('2026-09-01', now)).toBe(true)
+    expect(isCondoDiligenceWorkQueueDueSoon('2026-09-11', now)).toBe(true)
+    expect(isCondoDiligenceWorkQueueDueSoon('2026-09-12', now)).toBe(false)
+    expect(isCondoDiligenceWorkQueueDueSoon(null, now)).toBe(false)
+
+    expect(
+      filterCondoDiligenceWorkQueueRows(rows, 'assigned_to_me', { currentStaffId: 'staff-me' }).map((r) => r.matterId),
+    ).toEqual(['m1', 'm4', 'm3'])
+    expect(filterCondoDiligenceWorkQueueRows(rows, 'assigned_to_me', { currentStaffId: null })).toEqual([])
+    expect(filterCondoDiligenceWorkQueueRows(rows, 'due_soon', { now }).map((r) => r.matterId)).toEqual([
+      'm2',
+      'm1',
+    ])
+    expect(filterCondoDiligenceWorkQueueRows(rows, 'all_active')).toHaveLength(4)
   })
 
   it('parses stored rows and drops invalid ones', () => {
