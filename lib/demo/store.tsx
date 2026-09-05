@@ -45,10 +45,10 @@ import {
 import {
   appendDemoDocumentRequestIfValid,
   mergeStoredDocumentRequestsWithSeed,
-  tryFulfillDemoDocumentRequest,
   withCoercedDocumentRequestStatus,
   type AddDemoDocumentRequestInput,
 } from '@/lib/demo/demoDocumentRequest'
+import { attemptClientDocumentRequestUpload } from '@/lib/demo/clientDocumentRequestUpload'
 import {
   buildDefaultCondoDiligence,
   deriveCondoDiligenceMatterStatusFromChecklist,
@@ -118,7 +118,8 @@ type DemoContextType = {
   addDemoDocument: (input: AddDemoDocumentInput) => void
   addDemoDocumentRequest: (input: AddDemoDocumentRequestInput) => void
   /** Appends one `DemoDocument` (same helper as `addDemoDocument`) and marks the request fulfilled — one `setState`. */
-  fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => void
+  /** Client portal upload: appends one `DemoDocument` and marks the request fulfilled — one `setState`. Returns whether fulfillment succeeded. */
+  fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => boolean
   addMatterReviewTask: (input: AddDemoMatterReviewTaskInput) => void
   updateMatterReviewTaskStatus: (taskId: string, status: DemoMatterReviewTaskStatus) => void
   /** Atomically updates multiple review-task statuses (e.g. bulk mark in review). */
@@ -1741,19 +1742,31 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         })
       },
       fulfillDemoDocumentRequest: (input) => {
+        let succeeded = false
         setState((prev) => {
           // Demo-mode fallback uploader for portal-simulated uploads.
-          const uploaded_by_staff_id = prev.staff[0]?.id ?? ''
-          if (!uploaded_by_staff_id.trim()) return prev
-          const result = tryFulfillDemoDocumentRequest(
+          const uploadedByStaffId = prev.staff[0]?.id ?? ''
+          if (!uploadedByStaffId.trim()) return prev
+          const result = attemptClientDocumentRequestUpload(
             prev.matters,
             prev.documents,
             prev.documentRequests,
-            { ...input, uploaded_by_staff_id }
+            {
+              portalToken: input.portal_token,
+              requestId: input.request_id,
+              fileName: input.file_name,
+              uploadedByStaffId,
+            },
           )
-          if (!result) return prev
-          return { ...prev, documents: result.documents, documentRequests: result.documentRequests }
+          if (!result.ok) return prev
+          succeeded = true
+          return {
+            ...prev,
+            documents: result.documents,
+            documentRequests: result.documentRequests,
+          }
         })
+        return succeeded
       },
       addMatterReviewTask: (input) => {
         setState((prev) => {
