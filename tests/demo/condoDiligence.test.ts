@@ -76,6 +76,12 @@ import {
   shouldShowCondoQuestionnaireLenderReviewForm,
   syncRequiredDocumentsFromDerivedLinkage,
   withCondoDiligenceFindingLinkedReviewTaskId,
+  captureCondoLawyerReviewCheckpointCounts,
+  condoLawyerReviewCheckpointStatusPresentation,
+  isCondoLawyerReviewCheckpointUntouched,
+  parseDemoCondoLawyerReviewCheckpoint,
+  normalizeCondoLawyerReviewCheckpoint,
+  buildDefaultCondoLawyerReviewCheckpoint,
 } from '@/lib/demo/condoDiligence'
 import type {
   DemoCondoDiligence,
@@ -1397,6 +1403,130 @@ describe('condoDiligence', () => {
     })
   })
 
+
+  describe('lawyerReviewCheckpoint', () => {
+    it('parses missing or invalid lawyerReviewCheckpoint as undefined for older persisted rows', () => {
+      expect(parseDemoCondoLawyerReviewCheckpoint(undefined)).toBeUndefined()
+      expect(parseDemoCondoLawyerReviewCheckpoint(null)).toBeUndefined()
+      expect(parseDemoCondoLawyerReviewCheckpoint('nope')).toBeUndefined()
+      expect(parseDemoCondoLawyerReviewCheckpoint([])).toBeUndefined()
+    })
+
+    it('fills defaults for partial valid lawyerReviewCheckpoint objects', () => {
+      expect(
+        parseDemoCondoLawyerReviewCheckpoint({
+          status: 'review_recorded',
+          reviewerId: 'staff-1',
+          reviewerName: 'Alex Counsel',
+          reviewedAt: '2026-09-05',
+          linkedSummaryDocumentId: 'doc-sum-1',
+          openFindingCountAtReview: 2,
+          activeFollowUpTaskCountAtReview: 1,
+          conclusionNote: 'Follow up on special assessment timing.',
+        }),
+      ).toEqual({
+        ...buildDefaultCondoLawyerReviewCheckpoint(),
+        status: 'review_recorded',
+        reviewerId: 'staff-1',
+        reviewerName: 'Alex Counsel',
+        reviewedAt: '2026-09-05',
+        linkedSummaryDocumentId: 'doc-sum-1',
+        openFindingCountAtReview: 2,
+        activeFollowUpTaskCountAtReview: 1,
+        conclusionNote: 'Follow up on special assessment timing.',
+      })
+    })
+
+    it('normalizeCondoLawyerReviewCheckpoint merges onto defaults', () => {
+      expect(normalizeCondoLawyerReviewCheckpoint(undefined)).toEqual(
+        buildDefaultCondoLawyerReviewCheckpoint(),
+      )
+      expect(normalizeCondoLawyerReviewCheckpoint({ status: 'in_progress' })).toEqual({
+        ...buildDefaultCondoLawyerReviewCheckpoint(),
+        status: 'in_progress',
+      })
+    })
+
+    it('marks diligence as touched when lawyer review checkpoint has progress', () => {
+      const base = buildDefaultCondoDiligence({ nowIso: () => '2026-04-27T12:00:00.000Z' })
+      expect(isCondoDiligenceUntouched(base)).toBe(true)
+      expect(
+        isCondoDiligenceUntouched({
+          ...base,
+          lawyerReviewCheckpoint: {
+            ...buildDefaultCondoLawyerReviewCheckpoint(),
+            status: 'review_recorded',
+            reviewedAt: '2026-09-05',
+            openFindingCountAtReview: 0,
+            activeFollowUpTaskCountAtReview: 0,
+          },
+        }),
+      ).toBe(false)
+    })
+
+    it('keeps older saved checklists without lawyerReviewCheckpoint loadable and untouched', () => {
+      const older: DemoCondoDiligence = {
+        applicable: true,
+        status: 'not_started',
+        notes: '',
+        findings: [],
+        updated_at: '2026-01-01T00:00:00.000Z',
+        requiredDocuments: ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS.map((id) => ({
+          id,
+          label: id,
+          status: 'outstanding' as const,
+          detail: null,
+        })),
+      }
+      expect(older.lawyerReviewCheckpoint).toBeUndefined()
+      expect(isCondoDiligenceUntouched(older)).toBe(true)
+      expect(isCondoLawyerReviewCheckpointUntouched(older.lawyerReviewCheckpoint)).toBe(true)
+    })
+
+    it('captures open finding and active follow-up task counts without implying readiness', () => {
+      const counts = captureCondoLawyerReviewCheckpointCounts({
+        findings: [{ id: 'f1' }, { id: 'f2' }],
+        tasks: [
+          {
+            id: 't1',
+            matter_id: 'm1',
+            title: 'Review summary',
+            status: 'open',
+            assignee_id: null,
+            due_date: null,
+            internal_note: null,
+            linked_document_id: 'doc-1',
+            task_type: 'condo_diligence_summary_review',
+            visibility: 'internal',
+            created_at: '2026-01-01T00:00:00.000Z',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
+          {
+            id: 't2',
+            matter_id: 'm1',
+            title: 'Done',
+            status: 'completed',
+            assignee_id: null,
+            due_date: null,
+            internal_note: null,
+            linked_document_id: 'doc-2',
+            task_type: 'condo_diligence_summary_review',
+            visibility: 'internal',
+            created_at: '2026-01-01T00:00:00.000Z',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        matterId: 'm1',
+      })
+      expect(counts).toEqual({ openFindingCountAtReview: 2, activeFollowUpTaskCountAtReview: 1 })
+      expect(condoLawyerReviewCheckpointStatusPresentation('review_recorded').label).toBe('Review recorded')
+      expect(condoLawyerReviewCheckpointStatusPresentation('follow_up_required').label.toLowerCase()).not.toContain(
+        'cleared to close',
+      )
+    })
+  })
+
+
   describe('finding linkedReviewTaskIds', () => {
     it('parses missing or invalid linkedReviewTaskIds as undefined and dedupes valid ids', () => {
       expect(parseCondoDiligenceFindingLinkedReviewTaskIds(undefined)).toBeUndefined()
@@ -1832,6 +1962,7 @@ describe('condoDiligence', () => {
         'Disclosure package review',
         'Questionnaire / lender review',
         'Unit & closing dependencies',
+        'Lawyer review checkpoint',
         'Open findings',
         'Open requests',
         'Evidence links',

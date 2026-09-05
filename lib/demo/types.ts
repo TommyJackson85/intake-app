@@ -542,6 +542,28 @@ export type DemoCondoUnitClosingDependenciesReview = {
   notes: string
 }
 
+/** Internal lawyer-controlled audit checkpoint — not a compliance or closing-readiness determination. */
+export type DemoCondoLawyerReviewCheckpointStatus =
+  | 'not_recorded'
+  | 'in_progress'
+  | 'review_recorded'
+  | 'follow_up_required'
+
+export type DemoCondoLawyerReviewCheckpoint = {
+  status: DemoCondoLawyerReviewCheckpointStatus
+  reviewerId: string | null
+  reviewerName: string | null
+  /** YYYY-MM-DD when set via the diligence UI date control. */
+  reviewedAt: string | null
+  /** Optional link to a saved Internal Condo Diligence Summary document id. */
+  linkedSummaryDocumentId: string | null
+  /** Snapshot of finding count at record time (findings.length). */
+  openFindingCountAtReview: number | null
+  /** Snapshot of active condo summary review tasks at record time. */
+  activeFollowUpTaskCountAtReview: number | null
+  conclusionNote: string
+}
+
 export type DemoCondoDiligence = {
   applicable: boolean
   status: DemoCondoDiligenceMatterStatus
@@ -563,6 +585,8 @@ export type DemoCondoDiligence = {
   questionnaireLenderReview?: DemoCondoQuestionnaireLenderReview
   /** Optional structured unit & closing dependency fields; absent on older persisted demo rows. */
   unitClosingDependenciesReview?: DemoCondoUnitClosingDependenciesReview
+  /** Optional lawyer review checkpoint; absent on older persisted demo rows. */
+  lawyerReviewCheckpoint?: DemoCondoLawyerReviewCheckpoint
 }
 
 export type DemoFirm = {

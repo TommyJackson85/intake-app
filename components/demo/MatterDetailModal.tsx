@@ -39,6 +39,8 @@ import type {
   DemoCondoTitleReviewStatus,
   DemoCondoUnitClosingDependenciesReview,
   DemoCondoUnitInspectionStatus,
+  DemoCondoLawyerReviewCheckpoint,
+  DemoCondoLawyerReviewCheckpointStatus,
   DemoCondoRecordsAccessStatus,
   DemoCondoRentalRestrictionStatus,
   DemoCondoReserveFundingStatus,
@@ -108,6 +110,9 @@ import {
   normalizeCondoQuestionnaireLenderReview,
   normalizeCondoSirsMilestoneReview,
   normalizeCondoUnitClosingDependenciesReview,
+  normalizeCondoLawyerReviewCheckpoint,
+  condoLawyerReviewCheckpointStatusPresentation,
+  captureCondoLawyerReviewCheckpointCounts,
   resolveCondoQuestionnaireFinancingEligibility,
   shouldShowCondoQuestionnaireLenderReviewForm,
   syncRequiredDocumentsFromDerivedLinkage,
@@ -5229,6 +5234,275 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                               ))}
                             </ul>
                           )}
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {(() => {
+                    const lawyerCheckpoint = normalizeCondoLawyerReviewCheckpoint(
+                      condoDiligence.lawyerReviewCheckpoint,
+                    )
+                    const checkpointPresent = condoLawyerReviewCheckpointStatusPresentation(
+                      lawyerCheckpoint.status,
+                    )
+                    const patchLawyerCheckpoint = (patch: Partial<DemoCondoLawyerReviewCheckpoint>) => {
+                      patchCondoDiligence(matterId, {
+                        lawyerReviewCheckpoint: { ...lawyerCheckpoint, ...patch },
+                      })
+                    }
+                    const fieldLabel: React.CSSProperties = {
+                      display: 'block',
+                      fontSize: 12,
+                      color: '#627c71',
+                      fontWeight: 800,
+                      marginBottom: 4,
+                    }
+                    const fieldInput: React.CSSProperties = {
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(94,82,64,0.22)',
+                      fontSize: 13,
+                      color: '#134252',
+                      boxSizing: 'border-box',
+                    }
+                    const todayYmd = new Date().toISOString().slice(0, 10)
+                    return (
+                      <div
+                        id="condo-lawyer-review-checkpoint"
+                        style={{
+                          border: '1px solid rgba(94,82,64,0.12)',
+                          borderRadius: 8,
+                          padding: 14,
+                          background: 'white',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                              Lawyer Review Recorded
+                            </div>
+                            <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '36rem' }}>
+                              Internal audit checkpoint that a lawyer reviewed the currently recorded Condo Diligence
+                              materials. Optional link to one saved Internal Condo Diligence Summary snapshot. Does not
+                              certify legal compliance, building safety, insurance adequacy, statutory compliance,
+                              document sufficiency, risk elimination, transaction approval, or closing readiness.
+                            </div>
+                          </div>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '5px 10px',
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 900,
+                              background: checkpointPresent.bg,
+                              color: checkpointPresent.color,
+                              border: `1px solid ${checkpointPresent.border}`,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {checkpointPresent.label}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                            gap: 10,
+                          }}
+                        >
+                          <label style={{ display: 'block' }}>
+                            <span style={fieldLabel}>Review status</span>
+                            <select
+                              value={lawyerCheckpoint.status}
+                              onChange={(e) =>
+                                patchLawyerCheckpoint({
+                                  status: e.target.value as DemoCondoLawyerReviewCheckpointStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="not_recorded">Not recorded</option>
+                              <option value="in_progress">In progress</option>
+                              <option value="review_recorded">Review recorded</option>
+                              <option value="follow_up_required">Follow-up required</option>
+                            </select>
+                          </label>
+                          <label style={{ display: 'block' }}>
+                            <span style={fieldLabel}>Reviewer</span>
+                            <select
+                              value={lawyerCheckpoint.reviewerId ?? ''}
+                              onChange={(e) => {
+                                const id = e.target.value
+                                if (!id) {
+                                  patchLawyerCheckpoint({ reviewerId: null, reviewerName: null })
+                                  return
+                                }
+                                const member = staff.find((s) => s.id === id)
+                                patchLawyerCheckpoint({
+                                  reviewerId: id,
+                                  reviewerName: member?.full_name ?? id,
+                                })
+                              }}
+                              style={fieldInput}
+                            >
+                              <option value="">Select staff (optional)</option>
+                              {staff.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.full_name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label style={{ display: 'block' }}>
+                            <span style={fieldLabel}>Review date</span>
+                            <input
+                              type="date"
+                              value={lawyerCheckpoint.reviewedAt ?? ''}
+                              onChange={(e) =>
+                                patchLawyerCheckpoint({
+                                  reviewedAt: e.target.value.trim() ? e.target.value : null,
+                                })
+                              }
+                              style={fieldInput}
+                            />
+                          </label>
+                          <label style={{ display: 'block' }}>
+                            <span style={fieldLabel}>Linked saved internal summary</span>
+                            <select
+                              value={lawyerCheckpoint.linkedSummaryDocumentId ?? ''}
+                              onChange={(e) =>
+                                patchLawyerCheckpoint({
+                                  linkedSummaryDocumentId: e.target.value.trim() ? e.target.value : null,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="">
+                                {condoSummaryHistory.length === 0
+                                  ? 'Save an internal summary first (optional)'
+                                  : 'None linked (optional)'}
+                              </option>
+                              {condoSummaryHistory.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {d.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                            gap: 10,
+                            padding: '8px 10px',
+                            borderRadius: 8,
+                            border: '1px solid rgba(94,82,64,0.12)',
+                            background: '#fcfcf9',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>
+                              Open findings at review
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: '#134252', marginTop: 2 }}>
+                              {lawyerCheckpoint.openFindingCountAtReview === null
+                                ? 'Not captured yet'
+                                : lawyerCheckpoint.openFindingCountAtReview}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>
+                              Active follow-up tasks at review
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: '#134252', marginTop: 2 }}>
+                              {lawyerCheckpoint.activeFollowUpTaskCountAtReview === null
+                                ? 'Not captured yet'
+                                : lawyerCheckpoint.activeFollowUpTaskCountAtReview}
+                            </div>
+                          </div>
+                        </div>
+
+                        <label style={{ display: 'block' }}>
+                          <span style={fieldLabel}>Internal conclusion / follow-up note</span>
+                          <textarea
+                            value={lawyerCheckpoint.conclusionNote}
+                            onChange={(e) => patchLawyerCheckpoint({ conclusionNote: e.target.value })}
+                            rows={3}
+                            placeholder="Internal conclusion or follow-up note (demo)"
+                            style={{ ...fieldInput, resize: 'vertical' }}
+                          />
+                        </label>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const counts = captureCondoLawyerReviewCheckpointCounts({
+                                findings: condoDiligence.findings,
+                                tasks: matterReviewTasks,
+                                matterId,
+                              })
+                              patchLawyerCheckpoint({
+                                ...counts,
+                                reviewedAt: lawyerCheckpoint.reviewedAt || todayYmd,
+                                status:
+                                  lawyerCheckpoint.status === 'not_recorded'
+                                    ? 'review_recorded'
+                                    : lawyerCheckpoint.status,
+                              })
+                            }}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(32,128,150,0.35)',
+                              background: '#208096',
+                              color: '#fff',
+                              fontWeight: 800,
+                              fontSize: 12,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Record review checkpoint
+                          </button>
+                          {lawyerCheckpoint.linkedSummaryDocumentId && (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewDocumentId(lawyerCheckpoint.linkedSummaryDocumentId)}
+                              style={{
+                                padding: '8px 12px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(94,82,64,0.25)',
+                                background: '#fff',
+                                color: '#134252',
+                                fontWeight: 800,
+                                fontSize: 12,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              View linked summary
+                            </button>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.4 }}>
+                          Recording snapshots the current open-finding count and active Condo Diligence summary review
+                          task count. Lawyer-controlled only — not shared to the client portal.
                         </div>
                       </div>
                     )
