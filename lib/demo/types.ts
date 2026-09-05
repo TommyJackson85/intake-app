@@ -713,7 +713,12 @@ export type DemoDocument = {
 
 /** Immutable generated internal summary payload stored on a matter document row. */
 export type DemoGeneratedInternalSummaryMetadata = {
-  generatedType: 'condo_diligence_internal_summary'
+  /**
+   * Discriminator for generated internal text snapshots.
+   * - `condo_diligence_internal_summary` — Internal Condo Diligence Summary
+   * - `condo_diligence_review_memo` — Internal Condo Diligence Review Memo
+   */
+  generatedType: 'condo_diligence_internal_summary' | 'condo_diligence_review_memo'
   generatedAt: string
   sourceMatterId: string
   content: string

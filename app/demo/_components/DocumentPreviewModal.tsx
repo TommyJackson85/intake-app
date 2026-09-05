@@ -8,7 +8,10 @@ import {
   resolveEngagementLetterPreview,
 } from '@/lib/demo/engagementLetterPreview'
 import { buildPreviewSourceLabel, buildPreviewTitle } from '@/lib/demo/documentPreviewPresentation'
-import { isCondoDiligenceInternalSummaryDocument } from '@/lib/demo/condoDiligence'
+import {
+  isCondoDiligenceInternalSummaryDocument,
+  isCondoDiligenceReviewMemoDocument,
+} from '@/lib/demo/condoDiligence'
 
 type DocumentPreviewModalProps = {
   previewDocument: DemoDocument | null
@@ -126,6 +129,11 @@ export default function DocumentPreviewModal({
   })
   const isEngagementLetter = isEngagementLetterDocument(previewDocument)
   const isCondoInternalSummary = isCondoDiligenceInternalSummaryDocument(previewDocument)
+  const isCondoInternalMemo = isCondoDiligenceReviewMemoDocument(previewDocument)
+  const isCondoInternalSnapshot = isCondoInternalSummary || isCondoInternalMemo
+  const condoSnapshotTitle = isCondoInternalMemo
+    ? 'Internal Condo Diligence Review Memo'
+    : 'Internal Condo Diligence Summary'
   const condoSummaryContent = previewDocument.generatedInternalSummary?.content?.trim() || ''
   const engagementPreview = resolveEngagementLetterPreview({
     dateLabel: previewDocument.document_date ?? 'Not specified',
@@ -313,14 +321,14 @@ export default function DocumentPreviewModal({
             }}
           >
             <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginBottom: 8 }}>
-              {isCondoInternalSummary ? 'Internal Condo Diligence Summary' : 'Demo preview'}
+              {isCondoInternalSnapshot ? condoSnapshotTitle : 'Demo preview'}
             </div>
             <div style={{ fontSize: 12, color: '#627c71', marginBottom: 12 }}>
-              {isCondoInternalSummary
+              {isCondoInternalSnapshot
                 ? 'Saved immutable snapshot. Not regenerated from current matter data. Not shared to the client portal.'
                 : 'Simulated first-page preview. No real file stored.'}
             </div>
-            {isCondoInternalSummary ? (
+            {isCondoInternalSnapshot ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
                 <button
                   type="button"
@@ -354,7 +362,9 @@ export default function DocumentPreviewModal({
                     ? 'Copied'
                     : summaryCopyStatus === 'failed'
                       ? 'Copy failed'
-                      : 'Copy summary'}
+                      : isCondoInternalMemo
+                        ? 'Copy memo'
+                        : 'Copy summary'}
                 </button>
                 <button
                   type="button"
@@ -366,7 +376,7 @@ export default function DocumentPreviewModal({
                       .replace(/</g, '&lt;')
                       .replace(/>/g, '&gt;')
                     printWindow.document.write(
-                      `<!doctype html><html><head><title>Internal Condo Diligence Summary</title><style>body{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;white-space:pre-wrap;padding:24px;color:#134252;line-height:1.45}</style></head><body><h1 style="font-family:system-ui,sans-serif;font-size:16px">Internal Condo Diligence Summary</h1><p style="font-family:system-ui,sans-serif;font-size:12px;color:#627c71">Internal only — lawyer review required. Immutable saved snapshot.</p><pre>${escaped || 'No summary content stored on this draft.'}</pre></body></html>`,
+                      `<!doctype html><html><head><title>${condoSnapshotTitle}</title><style>body{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;white-space:pre-wrap;padding:24px;color:#134252;line-height:1.45}</style></head><body><h1 style="font-family:system-ui,sans-serif;font-size:16px">${condoSnapshotTitle}</h1><p style="font-family:system-ui,sans-serif;font-size:12px;color:#627c71">Internal only — lawyer review required. Immutable saved snapshot.</p><pre>${escaped || 'No summary content stored on this draft.'}</pre></body></html>`,
                     )
                     printWindow.document.close()
                     printWindow.focus()
@@ -398,10 +408,10 @@ export default function DocumentPreviewModal({
                 overflowY: 'auto',
               }}
             >
-              {isCondoInternalSummary ? (
+              {isCondoInternalSnapshot ? (
                 <>
                   <div style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', marginBottom: 8 }}>
-                    Internal Condo Diligence Summary
+                    {condoSnapshotTitle}
                   </div>
                   <div style={{ fontSize: 12, color: '#4b5563', marginBottom: 6 }}>
                     Matter: {matterLabel}
@@ -440,7 +450,7 @@ export default function DocumentPreviewModal({
                       color: '#134252',
                     }}
                   >
-                    {condoSummaryContent || 'No summary content stored on this draft.'}
+                    {condoSummaryContent || (isCondoInternalMemo ? 'No memo content stored on this draft.' : 'No summary content stored on this draft.')}
                   </pre>
                 </>
               ) : (
@@ -562,7 +572,7 @@ export default function DocumentPreviewModal({
             </div>
           </div>
           <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            {isCondoInternalSummary ? null : (
+            {isCondoInternalSnapshot ? null : (
             <button
               type="button"
               onClick={() => window.alert('PDF downloads are disabled in demo mode.')}

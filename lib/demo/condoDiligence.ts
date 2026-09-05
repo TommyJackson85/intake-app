@@ -3166,13 +3166,31 @@ export function buildCondoDiligenceInternalReport(input: {
 
 export const CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE = 'Condo diligence internal summary'
 
+export const CONDO_DILIGENCE_REVIEW_MEMO_SUBTYPE = 'Condo diligence review memo'
+
 export function isCondoDiligenceInternalSummaryDocument(
   document: Pick<DemoDocument, 'document_subtype' | 'generatedInternalSummary' | 'name'>,
 ): boolean {
+  if (document.generatedInternalSummary?.generatedType === 'condo_diligence_review_memo') return false
   if (document.generatedInternalSummary?.generatedType === 'condo_diligence_internal_summary') return true
   const subtype = (document.document_subtype ?? '').toLowerCase()
+  if (subtype.includes('condo diligence review memo')) return false
   if (subtype.includes('condo diligence internal summary')) return true
   return document.name.toLowerCase().includes('internal condo diligence summary')
+}
+
+/** True when the document is a saved Internal Condo Diligence Review Memo snapshot. */
+export function isCondoDiligenceReviewMemoDocument(
+  document: Pick<DemoDocument, 'document_subtype' | 'generatedInternalSummary' | 'name'>,
+): boolean {
+  if (document.generatedInternalSummary?.generatedType === 'condo_diligence_review_memo') return true
+  const subtype = (document.document_subtype ?? '').toLowerCase()
+  if (subtype.includes('condo diligence review memo')) return true
+  const name = document.name.toLowerCase()
+  return (
+    name.includes('internal condo diligence review memo') ||
+    name.includes('condo diligence review memo')
+  )
 }
 
 /** Sort key for saved internal summary snapshots (prefer generatedAt, fall back to uploaded_at). */
@@ -3182,6 +3200,13 @@ export function condoDiligenceInternalSummarySortTime(
   const iso = document.generatedInternalSummary?.generatedAt?.trim() || document.uploaded_at
   const t = new Date(iso).getTime()
   return Number.isFinite(t) ? t : 0
+}
+
+/** Sort key for saved review memo snapshots (prefer generatedAt, fall back to uploaded_at). */
+export function condoDiligenceReviewMemoSortTime(
+  document: Pick<DemoDocument, 'uploaded_at' | 'generatedInternalSummary'>,
+): number {
+  return condoDiligenceInternalSummarySortTime(document)
 }
 
 /**
@@ -3203,6 +3228,27 @@ export function listCondoDiligenceInternalSummaryDocuments<
     .filter((d) => !d.deletedAt && isCondoDiligenceInternalSummaryDocument(d))
     .slice()
     .sort((a, b) => condoDiligenceInternalSummarySortTime(b) - condoDiligenceInternalSummarySortTime(a))
+}
+
+/**
+ * Matter-document rows that are Internal Condo Diligence Review Memo snapshots, newest first.
+ * Visibility/navigation only — does not create, edit, or compare memos.
+ */
+export function listCondoDiligenceReviewMemoDocuments<
+  T extends Pick<
+    DemoDocument,
+    | 'id'
+    | 'name'
+    | 'deletedAt'
+    | 'uploaded_at'
+    | 'document_subtype'
+    | 'generatedInternalSummary'
+  >,
+>(documents: readonly T[]): T[] {
+  return documents
+    .filter((d) => !d.deletedAt && isCondoDiligenceReviewMemoDocument(d))
+    .slice()
+    .sort((a, b) => condoDiligenceReviewMemoSortTime(b) - condoDiligenceReviewMemoSortTime(a))
 }
 
 export type CondoDiligenceParsedSummarySection = {
