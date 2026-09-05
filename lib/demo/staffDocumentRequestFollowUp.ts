@@ -268,16 +268,15 @@ export function getDocumentRequestFollowUpDetailPresentation(input: {
   const uploadedAt = linkedDoc?.uploaded_at ?? null
 
   const staffId = (input.staffId ?? '').trim()
-  const canMarkNeedsFollowUp = canMarkDocumentRequestNeedsFollowUp({
-    request,
-    matters: input.matters,
-    staffId: staffId || 'staff',
-  })
-  // When staffId is omitted, still surface canMark from presentation flags without a fake id:
-  const canMark =
-    staffId.length > 0
-      ? canMarkNeedsFollowUp
-      : followUp.canMarkNeedsFollowUp && isEligibleDocumentRequestForFollowUp(request, input.matters)
+  // Reuse canMarkDocumentRequestNeedsFollowUp when a staff actor is known; otherwise
+  // fall back to presentation + eligibility (already gated above).
+  const canMarkNeedsFollowUp = staffId
+    ? canMarkDocumentRequestNeedsFollowUp({
+        request,
+        matters: input.matters,
+        staffId,
+      })
+    : followUp.canMarkNeedsFollowUp
 
   return {
     matterLabel,
@@ -287,7 +286,7 @@ export function getDocumentRequestFollowUpDetailPresentation(input: {
     uploadedAt,
     internalFollowUpNote: followUp.note,
     followUp,
-    canMarkNeedsFollowUp: canMark,
+    canMarkNeedsFollowUp,
     canClearNeedsFollowUp: canClearDocumentRequestNeedsFollowUp({
       request,
       matters: input.matters,

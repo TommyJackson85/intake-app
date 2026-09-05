@@ -124,4 +124,29 @@ describe('staffDocumentRequestFollowUp', () => {
     expect(detail!.followUp.statusLabel).toBe('Needs follow-up')
   })
 
+  it('detail presentation reuses eligibility, canMark, presentation, and normalize helpers', () => {
+    const seeded = demoSeedData.documentRequests.find((r) => r.id === 'docreq-002')!
+    expect(isEligibleDocumentRequestForFollowUp(seeded, demoSeedData.matters)).toBe(true)
+    expect(
+      canMarkDocumentRequestNeedsFollowUp({
+        request: seeded,
+        matters: demoSeedData.matters,
+        staffId: 'staff-emma-kline',
+      }),
+    ).toBe(false)
+
+    const normalized = normalizeDocumentRequestFollowUp(seeded.staff_follow_up)
+    const presentation = getDocumentRequestFollowUpPresentation(normalized)
+    const detail = getDocumentRequestFollowUpDetailPresentation({
+      request: seeded,
+      documents: demoSeedData.documents,
+      matters: demoSeedData.matters,
+      staffId: 'staff-emma-kline',
+    })
+
+    expect(detail!.followUp).toEqual(presentation)
+    expect(detail!.canMarkNeedsFollowUp).toBe(false)
+    expect(detail!.canClearNeedsFollowUp).toBe(true)
+    expect(detail!.internalFollowUpNote).toBe(normalized.note)
+  })
 })

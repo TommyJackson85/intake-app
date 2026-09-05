@@ -297,15 +297,19 @@ export default function DemoDocumentsPage() {
                 const matter = matters.find((m) => m.id === req.matter_id)
                 const by = staff.find((s) => s.id === req.requested_by_staff_id)
                 const fulfilledDocName = getFulfilledRequestDocumentName(req, documents)
-                const followUp = getDocumentRequestFollowUpPresentation(
-                  normalizeDocumentRequestFollowUp(req.staff_follow_up),
-                )
                 const followUpDetail = getDocumentRequestFollowUpDetailPresentation({
                   request: req,
                   documents,
                   matters,
                   staffId: staff[0]?.id,
                 })
+                // Prefer detail path (reuses eligibility/canMark/presentation/normalize).
+                // Fall back to presentation helpers when detail is denied.
+                const followUp =
+                  followUpDetail?.followUp ??
+                  getDocumentRequestFollowUpPresentation(
+                    normalizeDocumentRequestFollowUp(req.staff_follow_up),
+                  )
                 return (
                   <tr key={req.id} style={{ borderBottom: '1px solid rgba(94,82,64,0.12)' }}>
                     <td style={{ padding: '14px', color: '#134252', fontWeight: 700, verticalAlign: 'top' }}>
