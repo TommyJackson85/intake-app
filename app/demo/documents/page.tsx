@@ -5,8 +5,10 @@ import { useDemoStore } from '@/lib/demo/store'
 import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
 import RequestDemoDocumentModal from '@/app/demo/_components/RequestDemoDocumentModal'
 import DocumentPreviewModal from '@/app/demo/_components/DocumentPreviewModal'
+import LinkClientUploadToDocumentRequestModal from '@/app/demo/_components/LinkClientUploadToDocumentRequestModal'
 import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
 import { buildStaffClientUploadReceiptQueue } from '@/lib/demo/staffClientUploadReceiptQueue'
+import { canStaffLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
 
 function formatDemoDateTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -26,6 +28,7 @@ export default function DemoDocumentsPage() {
   const [uploadOpen, setUploadOpen] = useState(false)
   const [requestOpen, setRequestOpen] = useState(false)
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null)
+  const [linkRepairDocumentId, setLinkRepairDocumentId] = useState<string | null>(null)
 
   const sorted = useMemo(
     () => [...documents].sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()),
@@ -53,6 +56,11 @@ export default function DemoDocumentsPage() {
   const previewDocument = useMemo(
     () => documents.find((d) => d.id === previewDocumentId) ?? null,
     [documents, previewDocumentId]
+  )
+
+  const linkRepairDocument = useMemo(
+    () => documents.find((d) => d.id === linkRepairDocumentId) ?? null,
+    [documents, linkRepairDocumentId]
   )
 
   const previewLinkedRequest = useMemo(
@@ -113,6 +121,17 @@ export default function DemoDocumentsPage() {
         staff={staff}
         fulfilledRequest={previewLinkedRequest}
         onClose={() => setPreviewDocumentId(null)}
+        canLinkToDocumentRequest={
+          Boolean(previewDocument && canStaffLinkClientUploadToDocumentRequest(previewDocument, matters))
+        }
+        onLinkToDocumentRequest={() => {
+          if (previewDocument) setLinkRepairDocumentId(previewDocument.id)
+        }}
+      />
+      <LinkClientUploadToDocumentRequestModal
+        isOpen={Boolean(linkRepairDocument)}
+        document={linkRepairDocument}
+        onClose={() => setLinkRepairDocumentId(null)}
       />
 
       <h2 style={{ fontSize: '18px', marginBottom: '8px', marginTop: '8px', color: '#134252', fontWeight: 800 }}>
