@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useDemoStore } from '@/lib/demo/store'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
+import { FINCEN_SECTION_IDS } from '@/lib/demo/fincenReportability'
 import type { DemoMatter, FinCENPropertyInfo, FinCENReportStatus, FinCENReportingParty } from '@/lib/demo/types'
 
 type Props = {
@@ -34,9 +35,11 @@ function progressColor(value: number) {
 }
 
 function statusBadgeStyle(status: FinCENReportStatus) {
-  if (status === 'ready') return { bg: '#e8f5f0', color: '#2f855a', border: 'rgba(47,133,90,0.35)', label: 'Ready to File' }
-  if (status === 'in_progress') return { bg: '#fff8e6', color: '#b45309', border: 'rgba(240,180,41,0.35)', label: 'In Progress' }
-  return { bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)', label: 'Not Started' }
+  if (status === 'ready')
+    return { bg: '#e8f5f0', color: '#2f855a', border: 'rgba(47,133,90,0.35)', label: 'Intake complete' }
+  if (status === 'in_progress')
+    return { bg: '#fff8e6', color: '#b45309', border: 'rgba(240,180,41,0.35)', label: 'Intake in progress' }
+  return { bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)', label: 'Not started' }
 }
 
 function formatDobDisplay(dob: string) {
@@ -120,6 +123,7 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
 
   const suspensionBanner = (
     <div
+      id={FINCEN_SECTION_IDS.regulatory}
       style={{
         border: '1px solid #f0b429',
         borderRadius: 8,
@@ -131,8 +135,10 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
         lineHeight: 1.45,
       }}
     >
-      ⚠️ FinCEN reporting rule currently suspended (as of March 20, 2026 — federal court ruling). Prepare your report
-      now so you&apos;re ready to file when the rule resumes.
+      FinCEN residential Real Estate Report rule has been described as without legal effect during the March 2026
+      vacatur period; reporting persons are not currently required to file Real Estate Reports in that period. Use this
+      tab for internal issue-spotting and fact gathering — not as a filing order. Verify current official guidance and
+      firm process before any filing posture.
     </div>
   )
 
@@ -141,6 +147,7 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {suspensionBanner}
         <div
+          id={FINCEN_SECTION_IDS.eligibility}
           style={{
             border: '1px solid rgba(94,82,64,0.2)',
             borderRadius: '8px',
@@ -148,10 +155,11 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
             padding: '14px',
             color: '#134252',
             fontWeight: 700,
+            lineHeight: 1.45,
           }}
         >
-          ℹ️ FinCEN reporting is only required for non-financed (cash) purchases by legal entities or trusts. This matter
-          does not meet the filing threshold.
+          Outside the demo cash + entity/trust workspace gate. Full FinCEN intake is hidden here; still confirm whether
+          firm process requires a light reportability screen on the facts.
         </div>
       </div>
     )
@@ -161,8 +169,9 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {suspensionBanner}
-        <div style={{ color: '#134252', fontWeight: 700 }}>
-          This matter requires a FinCEN Real Estate Report.
+        <div id={FINCEN_SECTION_IDS.intake} style={{ color: '#134252', fontWeight: 700, lineHeight: 1.45 }}>
+          Demo gate is open (cash + entity/trust). Start FinCEN intake for internal reportability issue-spotting — not a
+          determination that a Real Estate Report must be filed.
         </div>
         <button
           type="button"
@@ -178,7 +187,7 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
             cursor: 'pointer',
           }}
         >
-          Begin FinCEN Report
+          Begin FinCEN intake
         </button>
       </div>
     )
@@ -224,9 +233,12 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
 
       {suspensionBanner}
 
-      <div style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: '8px', background: 'white', padding: '14px' }}>
+      <div
+        id={FINCEN_SECTION_IDS.intake}
+        style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: '8px', background: 'white', padding: '14px' }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ color: '#134252', fontWeight: 900 }}>FinCEN Real Estate Report</div>
+          <div style={{ color: '#134252', fontWeight: 900 }}>FinCEN reportability intake</div>
           <span
             style={{
               display: 'inline-flex',
@@ -243,6 +255,10 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
             {badge.label}
           </span>
         </div>
+        <div style={{ marginTop: 8, fontSize: 12, color: '#627c71', lineHeight: 1.45, fontWeight: 700 }}>
+          Issue-spotting workspace only. Completing fields does not create a filing determination or compliance
+          certificate.
+        </div>
         <div style={{ marginTop: 10, display: 'flex', gap: '10px', alignItems: 'center' }}>
           <div style={{ flex: 1, height: 10, borderRadius: 999, background: 'rgba(94,82,64,0.1)', overflow: 'hidden' }}>
             <div style={{ width: `${percentage}%`, height: '100%', background: barColor }} />
@@ -254,7 +270,10 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
       </div>
 
       {/* Section 1 — Reporting Party */}
-      <section style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: '8px', background: 'white', padding: '14px' }}>
+      <section
+        id={FINCEN_SECTION_IDS.reportingParty}
+        style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: '8px', background: 'white', padding: '14px' }}
+      >
         <button
           type="button"
           onClick={() => setOpenReporting((v) => !v)}
@@ -302,7 +321,10 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
       </section>
 
       {/* Section 2 — Property & Purchaser */}
-      <section style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: '8px', background: 'white', padding: '14px' }}>
+      <section
+        id={FINCEN_SECTION_IDS.propertyPurchaser}
+        style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: '8px', background: 'white', padding: '14px' }}
+      >
         <button
           type="button"
           onClick={() => setOpenProperty((v) => !v)}
@@ -388,7 +410,10 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
       </section>
 
       {/* Section 3 — Beneficial Owners & Certification */}
-      <section style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: '8px', background: 'white', padding: '14px' }}>
+      <section
+        id={FINCEN_SECTION_IDS.beneficialOwners}
+        style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: '8px', background: 'white', padding: '14px' }}
+      >
         <button
           type="button"
           onClick={() => setOpenOwners((v) => !v)}
@@ -399,9 +424,9 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
         {openOwners && (
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <p style={{ margin: 0, fontSize: 12, color: '#627c71', lineHeight: 1.5 }}>
-              ℹ️ Beneficial ownership data is collected under a legal obligation (31 CFR 1031.320 / AML). Data is filed
-              with FinCEN, retained 5 years, and not used for any other purpose. Beneficial owners are notified via the
-              certification form.
+              Beneficial ownership facts may be collected for AML / reportability screening (see 31 CFR 1031.320). During
+              the vacatur period, treat this as internal issue-spotting — not an instruction to file with FinCEN.
+              Confirm retention and notification steps under current firm guidance.
             </p>
 
             {certReq?.status === 'submitted' && certReq.submittedAt && (
@@ -490,8 +515,7 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
               >
                 <div style={{ fontWeight: 900, color: '#134252' }}>Request client certification</div>
                 <p style={{ margin: 0, fontSize: 13, color: '#627c71', lineHeight: 1.45 }}>
-                  Under FinCEN rules, beneficial ownership data must be certified in writing by the entity representative.
-                  Send a secure link to:
+                  When firm process calls for written certification of beneficial ownership, send a secure demo link to:
                 </p>
                 <div>
                   <label style={LABEL_STYLE}>Recipient name</label>
@@ -584,6 +608,7 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
 
       {retentionAt && retentionStyle && (
         <div
+          id={FINCEN_SECTION_IDS.retention}
           style={{
             border: `1px solid ${retentionStyle.border}`,
             background: retentionStyle.bg,
@@ -594,14 +619,17 @@ export default function DemoFinCENTab({ matter: matterProp }: Props) {
             fontSize: 13,
           }}
         >
-          ⏱ AML records must be retained until{' '}
+          AML records retention target on file through{' '}
           {new Date(`${retentionAt}T00:00:00`).toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
             year: 'numeric',
           })}{' '}
-          (5 years — 31 CFR 1031.320)
+          (demo clock — confirm 31 CFR 1031.320 / firm retention policy)
         </div>
+      )}
+      {!retentionAt && (
+        <div id={FINCEN_SECTION_IDS.retention} style={{ display: 'none' }} aria-hidden />
       )}
 
       {savedKey && (

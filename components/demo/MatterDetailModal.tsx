@@ -548,6 +548,16 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     }, 80)
   }
 
+  const goToFinCENSection = (sectionId: string) => {
+    setActiveTab('FinCEN / AML')
+    window.setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }, 80)
+  }
+
   useEffect(() => {
     if (!open) return
     setActiveTab(initialTab ?? 'Overview')
@@ -1141,21 +1151,40 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.4 }}>{row.detail}</div>
                           ) : null}
                         </div>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '4px 8px',
-                            borderRadius: 999,
-                            fontSize: 11,
-                            fontWeight: 900,
-                            background: row.badge.bg,
-                            color: row.badge.color,
-                            border: `1px solid ${row.badge.border}`,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {row.badge.label}
-                        </span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '4px 8px',
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 900,
+                              background: row.badge.bg,
+                              color: row.badge.color,
+                              border: `1px solid ${row.badge.border}`,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {row.badge.label}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => goToFinCENSection(row.sectionId)}
+                            aria-label={`Open ${row.title} in FinCEN and AML`}
+                            style={{
+                              background: 'white',
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              borderRadius: 6,
+                              padding: '4px 8px',
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: '#134252',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            View
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
