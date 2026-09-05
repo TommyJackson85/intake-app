@@ -6,10 +6,12 @@ import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentMo
 import RequestDemoDocumentModal from '@/app/demo/_components/RequestDemoDocumentModal'
 import DocumentPreviewModal from '@/app/demo/_components/DocumentPreviewModal'
 import LinkClientUploadToDocumentRequestModal from '@/app/demo/_components/LinkClientUploadToDocumentRequestModal'
+import MarkDocumentRequestNeedsFollowUpModal from '@/app/demo/_components/MarkDocumentRequestNeedsFollowUpModal'
 import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
 import { buildStaffClientUploadReceiptQueue } from '@/lib/demo/staffClientUploadReceiptQueue'
 import { canStaffLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
 import {
+  getDocumentRequestFollowUpDetailPresentation,
   getDocumentRequestFollowUpPresentation,
   normalizeDocumentRequestFollowUp,
 } from '@/lib/demo/staffDocumentRequestFollowUp'
@@ -41,6 +43,7 @@ export default function DemoDocumentsPage() {
   const [requestOpen, setRequestOpen] = useState(false)
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null)
   const [linkRepairDocumentId, setLinkRepairDocumentId] = useState<string | null>(null)
+  const [followUpRequestId, setFollowUpRequestId] = useState<string | null>(null)
 
   const sorted = useMemo(
     () => [...documents].sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()),
@@ -81,6 +84,11 @@ export default function DemoDocumentsPage() {
         ? documentRequests.find((r) => r.fulfilled_document_id === previewDocument.id) ?? null
         : null,
     [documentRequests, previewDocument]
+  )
+
+  const followUpRequest = useMemo(
+    () => documentRequests.find((r) => r.id === followUpRequestId) ?? null,
+    [documentRequests, followUpRequestId],
   )
 
   return (
@@ -144,6 +152,12 @@ export default function DemoDocumentsPage() {
         isOpen={Boolean(linkRepairDocument)}
         document={linkRepairDocument}
         onClose={() => setLinkRepairDocumentId(null)}
+      />
+
+      <MarkDocumentRequestNeedsFollowUpModal
+        isOpen={Boolean(followUpRequest)}
+        request={followUpRequest}
+        onClose={() => setFollowUpRequestId(null)}
       />
 
       <h2 style={{ fontSize: '18px', marginBottom: '8px', marginTop: '8px', color: '#134252', fontWeight: 800 }}>
@@ -286,6 +300,12 @@ export default function DemoDocumentsPage() {
                 const followUp = getDocumentRequestFollowUpPresentation(
                   normalizeDocumentRequestFollowUp(req.staff_follow_up),
                 )
+                const followUpDetail = getDocumentRequestFollowUpDetailPresentation({
+                  request: req,
+                  documents,
+                  matters,
+                  staffId: staff[0]?.id,
+                })
                 return (
                   <tr key={req.id} style={{ borderBottom: '1px solid rgba(94,82,64,0.12)' }}>
                     <td style={{ padding: '14px', color: '#134252', fontWeight: 700, verticalAlign: 'top' }}>
@@ -325,7 +345,38 @@ export default function DemoDocumentsPage() {
                       >
                         {followUp.statusLabel}
                       </div>
-                      {followUp.note ? (
+                      {followUp.status === 'needs_follow_up' && followUpDetail ? (
+                        <div style={{ marginTop: 8, display: 'grid', gap: 6 }}>
+                          <div style={{ fontSize: 12, color: '#627c71' }}>
+                            <span style={{ fontWeight: 700, color: '#134252' }}>Matter</span>
+                            <div>{followUpDetail.matterLabel}</div>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#627c71' }}>
+                            <span style={{ fontWeight: 700, color: '#134252' }}>Document request</span>
+                            <div>{followUpDetail.requestLabel}</div>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#627c71' }}>
+                            <span style={{ fontWeight: 700, color: '#134252' }}>Receipt review</span>
+                            <div>{followUpDetail.receiptReviewLabel}</div>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#627c71' }}>
+                            <span style={{ fontWeight: 700, color: '#134252' }}>Linked client upload</span>
+                            <div>{followUpDetail.linkedClientUploadLabel ?? '—'}</div>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#627c71' }}>
+                            <span style={{ fontWeight: 700, color: '#134252' }}>Uploaded</span>
+                            <div>
+                              {followUpDetail.uploadedAt
+                                ? formatDemoDateTime(followUpDetail.uploadedAt)
+                                : '—'}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#627c71' }}>
+                            <span style={{ fontWeight: 700, color: '#134252' }}>Internal follow-up note</span>
+                            <div>{followUpDetail.internalFollowUpNote || '—'}</div>
+                          </div>
+                        </div>
+                      ) : followUp.note ? (
                         <div style={{ marginTop: 4, color: '#627c71', fontSize: 12 }}>{followUp.note}</div>
                       ) : null}
                     </td>
@@ -356,7 +407,7 @@ export default function DemoDocumentsPage() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => markDocumentRequestNeedsFollowUp(req.id)}
+                          onClick={() => setFollowUpRequestId(req.id)}
                           style={{
                             padding: '8px 12px',
                             borderRadius: 8,

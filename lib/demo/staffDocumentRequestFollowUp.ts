@@ -5,11 +5,17 @@
  * status labels, and does not touch Condo Diligence / AML / FinCEN workflows.
  */
 import type {
+  DemoDocument,
   DemoDocumentRequest,
   DemoMatter,
   DemoStaffProfile,
   DocumentRequestFollowUp,
 } from '@/lib/demo/types'
+import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
+import {
+  getDocumentRequestReceiptReviewPresentation,
+  normalizeDocumentRequestReceiptReview,
+} from '@/lib/demo/staffDocumentRequestReceiptReview'
 
 export type DocumentRequestFollowUpStatus = 'none' | 'needs_follow_up'
 
@@ -199,4 +205,92 @@ export function clearDocumentRequestNeedsFollowUp(
     }
   })
   return changed ? next : documentRequests
+}
+
+export type DocumentRequestFollowUpDetailPresentation = {
+  matterLabel: string
+  requestLabel: string
+  receiptReviewLabel: string
+  linkedClientUploadLabel: string | null
+  uploadedAt: string | null
+  /** Staff-only internal follow-up note (from staff_follow_up.note). */
+  internalFollowUpNote: string
+  followUp: DocumentRequestFollowUpPresentation
+  canMarkNeedsFollowUp: boolean
+  canClearNeedsFollowUp: boolean
+}
+
+/**
+ * Staff detail labels for Needs follow-up context: matter, request, receipt review,
+ * linked client upload, uploaded time, and internal follow-up note.
+ * Reuses eligibility / presentation / normalize helpers; deny-by-default when ineligible.
+ */
+export function getDocumentRequestFollowUpDetailPresentation(input: {
+  request: DemoDocumentRequest | null | undefined
+  documents: DemoDocument[]
+  matters: DemoMatter[]
+  staffId?: string
+}): DocumentRequestFollowUpDetailPresentation | null {
+  const request = input.request
+  if (!isEligibleDocumentRequestForFollowUp(request, input.matters) || !request) {
+    return null
+  }
+
+  const matter = input.matters.find((m) => m.id === request.matter_id && !m.deletedAt)
+  if (!matter) return null
+
+  const followUp = getDocumentRequestFollowUpPresentation(
+    normalizeDocumentRequestFollowUp(request.staff_follow_up),
+  )
+  const receipt = normalizeDocumentRequestReceiptReview(request, input.documents)
+  const receiptPresentation = getDocumentRequestReceiptReviewPresentation(receipt)
+
+  const linkedId =
+    (typeof request.staff_receipt_reviewed_document_id === 'string' &&
+    request.staff_receipt_reviewed_document_id.trim().length > 0
+      ? request.staff_receipt_reviewed_document_id
+      : null) ??
+    (typeof request.fulfilled_document_id === 'string' && request.fulfilled_document_id.trim().length > 0
+      ? request.fulfilled_document_id
+      : null)
+  const linkedDoc = linkedId ? input.documents.find((d) => d.id === linkedId && !d.deletedAt) : null
+
+  const matterLabel = matter.file_id
+  const requestLabel = request.title
+  const receiptReviewLabel =
+    receipt.status === 'reviewed' ||
+    (typeof request.staff_receipt_acknowledged_at === 'string' &&
+      request.staff_receipt_acknowledged_at.trim().length > 0)
+      ? 'Receipt review recorded'
+      : receiptPresentation.statusLabel
+  const linkedClientUploadLabel =
+    getFulfilledRequestDocumentName(request, input.documents) ?? linkedDoc?.name ?? null
+  const uploadedAt = linkedDoc?.uploaded_at ?? null
+
+  const staffId = (input.staffId ?? '').trim()
+  const canMarkNeedsFollowUp = canMarkDocumentRequestNeedsFollowUp({
+    request,
+    matters: input.matters,
+    staffId: staffId || 'staff',
+  })
+  // When staffId is omitted, still surface canMark from presentation flags without a fake id:
+  const canMark =
+    staffId.length > 0
+      ? canMarkNeedsFollowUp
+      : followUp.canMarkNeedsFollowUp && isEligibleDocumentRequestForFollowUp(request, input.matters)
+
+  return {
+    matterLabel,
+    requestLabel,
+    receiptReviewLabel,
+    linkedClientUploadLabel,
+    uploadedAt,
+    internalFollowUpNote: followUp.note,
+    followUp,
+    canMarkNeedsFollowUp: canMark,
+    canClearNeedsFollowUp: canClearDocumentRequestNeedsFollowUp({
+      request,
+      matters: input.matters,
+    }),
+  }
 }

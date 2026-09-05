@@ -4,6 +4,7 @@ import {
   canClearDocumentRequestNeedsFollowUp,
   canMarkDocumentRequestNeedsFollowUp,
   clearDocumentRequestNeedsFollowUp,
+  getDocumentRequestFollowUpDetailPresentation,
   getDocumentRequestFollowUpPresentation,
   isEligibleDocumentRequestForFollowUp,
   markDocumentRequestNeedsFollowUp,
@@ -104,4 +105,23 @@ describe('staffDocumentRequestFollowUp', () => {
       'Needs follow-up',
     )
   })
+
+  it('builds follow-up detail labels including Receipt review recorded', () => {
+    const seeded = demoSeedData.documentRequests.find((r) => r.id === 'docreq-002')!
+    const detail = getDocumentRequestFollowUpDetailPresentation({
+      request: seeded,
+      documents: demoSeedData.documents,
+      matters: demoSeedData.matters,
+      staffId: 'staff-emma-kline',
+    })
+    expect(detail).not.toBeNull()
+    expect(detail!.matterLabel).toBeTruthy()
+    expect(detail!.requestLabel).toBe(seeded.title)
+    expect(detail!.receiptReviewLabel).toBe('Receipt review recorded')
+    expect(detail!.internalFollowUpNote).toBe(
+      normalizeDocumentRequestFollowUp(seeded.staff_follow_up).note,
+    )
+    expect(detail!.followUp.statusLabel).toBe('Needs follow-up')
+  })
+
 })
