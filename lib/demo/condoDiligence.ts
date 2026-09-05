@@ -50,13 +50,18 @@ import type {
   DemoCondoTitleReviewStatus,
   DemoCondoUnitClosingDependenciesReview,
   DemoCondoUnitInspectionStatus,
+  DemoCondoLawyerReviewCheckpoint,
+  DemoCondoLawyerReviewCheckpointStatus,
   DemoDocument,
   DemoDocumentRequest,
   DemoMatter,
   DemoMatterReviewTask,
 } from '@/lib/demo/types'
 import type { AddDemoDocumentInput } from '@/lib/demo/demoDocument'
-import { listCondoDiligenceSummaryReviewTasks } from '@/lib/demo/demoMatterReviewTask'
+import {
+  listActiveCondoDiligenceSummaryReviewTasks,
+  listCondoDiligenceSummaryReviewTasks,
+} from '@/lib/demo/demoMatterReviewTask'
 
 /** Label + pill colors for matter-level condo diligence status (lists + modal). */
 export function condoDiligenceMatterStatusPresentation(status: DemoCondoDiligenceMatterStatus): {
@@ -352,6 +357,7 @@ export function isCondoDiligenceUntouched(
     disclosurePackageReview?: DemoCondoDisclosurePackageReview | null
     questionnaireLenderReview?: DemoCondoQuestionnaireLenderReview | null
     unitClosingDependenciesReview?: DemoCondoUnitClosingDependenciesReview | null
+    lawyerReviewCheckpoint?: DemoCondoLawyerReviewCheckpoint | null
   },
 ): boolean {
   const notesEmpty = input.notes.trim() === ''
@@ -370,6 +376,7 @@ export function isCondoDiligenceUntouched(
   const disclosureUntouched = isCondoDisclosurePackageReviewUntouched(input.disclosurePackageReview)
   const questionnaireUntouched = isCondoQuestionnaireLenderReviewUntouched(input.questionnaireLenderReview)
   const unitClosingUntouched = isCondoUnitClosingDependenciesReviewUntouched(input.unitClosingDependenciesReview)
+  const lawyerCheckpointUntouched = isCondoLawyerReviewCheckpointUntouched(input.lawyerReviewCheckpoint)
   return (
     input.status === 'not_started' &&
     notesEmpty &&
@@ -381,7 +388,8 @@ export function isCondoDiligenceUntouched(
     governanceUntouched &&
     disclosureUntouched &&
     questionnaireUntouched &&
-    unitClosingUntouched
+    unitClosingUntouched &&
+    lawyerCheckpointUntouched
   )
 }
 
@@ -1823,6 +1831,141 @@ export function isCondoUnitClosingDependenciesReviewUntouched(
   )
 }
 
+
+/** Default empty lawyer review checkpoint for newly seeded diligence rows. */
+export function buildDefaultCondoLawyerReviewCheckpoint(): DemoCondoLawyerReviewCheckpoint {
+  return {
+    status: 'not_recorded',
+    reviewerId: null,
+    reviewerName: null,
+    reviewedAt: null,
+    linkedSummaryDocumentId: null,
+    openFindingCountAtReview: null,
+    activeFollowUpTaskCountAtReview: null,
+    conclusionNote: '',
+  }
+}
+
+export function normalizeCondoLawyerReviewCheckpoint(
+  input?: Partial<DemoCondoLawyerReviewCheckpoint> | null,
+): DemoCondoLawyerReviewCheckpoint {
+  return {
+    ...buildDefaultCondoLawyerReviewCheckpoint(),
+    ...(input ?? {}),
+  }
+}
+
+function isLawyerReviewCheckpointStatus(value: unknown): value is DemoCondoLawyerReviewCheckpointStatus {
+  return (
+    value === 'not_recorded' ||
+    value === 'in_progress' ||
+    value === 'review_recorded' ||
+    value === 'follow_up_required'
+  )
+}
+
+function parseOptionalNullableString(value: unknown): string | null | undefined {
+  if (value === null) return null
+  if (value === undefined) return undefined
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed === '' ? null : trimmed
+}
+
+function parseOptionalNonNegativeInt(value: unknown): number | null | undefined {
+  if (value === null) return null
+  if (value === undefined) return undefined
+  if (typeof value === 'number' && Number.isInteger(value) && value >= 0) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value)
+    if (Number.isInteger(n) && n >= 0) return n
+  }
+  return undefined
+}
+
+/**
+ * Parse optional persisted `lawyerReviewCheckpoint`.
+ * Missing/invalid object → undefined (older rows). Partial objects get defaults.
+ */
+export function parseDemoCondoLawyerReviewCheckpoint(
+  raw: unknown,
+): DemoCondoLawyerReviewCheckpoint | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const o = raw as Record<string, unknown>
+  const base = buildDefaultCondoLawyerReviewCheckpoint()
+  const reviewerId = parseOptionalNullableString(o.reviewerId)
+  const reviewerName = parseOptionalNullableString(o.reviewerName)
+  const reviewedAt = parseOptionalNullableString(o.reviewedAt)
+  const linkedSummaryDocumentId = parseOptionalNullableString(o.linkedSummaryDocumentId)
+  const openFindingCountAtReview = parseOptionalNonNegativeInt(o.openFindingCountAtReview)
+  const activeFollowUpTaskCountAtReview = parseOptionalNonNegativeInt(o.activeFollowUpTaskCountAtReview)
+
+  return {
+    status: isLawyerReviewCheckpointStatus(o.status) ? o.status : base.status,
+    reviewerId: reviewerId !== undefined ? reviewerId : base.reviewerId,
+    reviewerName: reviewerName !== undefined ? reviewerName : base.reviewerName,
+    reviewedAt: reviewedAt !== undefined ? reviewedAt : base.reviewedAt,
+    linkedSummaryDocumentId:
+      linkedSummaryDocumentId !== undefined ? linkedSummaryDocumentId : base.linkedSummaryDocumentId,
+    openFindingCountAtReview:
+      openFindingCountAtReview !== undefined ? openFindingCountAtReview : base.openFindingCountAtReview,
+    activeFollowUpTaskCountAtReview:
+      activeFollowUpTaskCountAtReview !== undefined
+        ? activeFollowUpTaskCountAtReview
+        : base.activeFollowUpTaskCountAtReview,
+    conclusionNote: typeof o.conclusionNote === 'string' ? o.conclusionNote : base.conclusionNote,
+  }
+}
+
+export function isCondoLawyerReviewCheckpointUntouched(
+  input?: DemoCondoLawyerReviewCheckpoint | null,
+): boolean {
+  if (!input) return true
+  const d = normalizeCondoLawyerReviewCheckpoint(input)
+  return (
+    d.status === 'not_recorded' &&
+    d.reviewerId === null &&
+    d.reviewerName === null &&
+    d.reviewedAt === null &&
+    d.linkedSummaryDocumentId === null &&
+    d.openFindingCountAtReview === null &&
+    d.activeFollowUpTaskCountAtReview === null &&
+    d.conclusionNote.trim() === ''
+  )
+}
+
+export function condoLawyerReviewCheckpointStatusPresentation(
+  status: DemoCondoLawyerReviewCheckpointStatus,
+): { label: string; bg: string; color: string; border: string } {
+  switch (status) {
+    case 'review_recorded':
+      return { label: 'Review recorded', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'follow_up_required':
+      return { label: 'Follow-up required', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    case 'in_progress':
+      return { label: 'In progress', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.25)' }
+    case 'not_recorded':
+    default:
+      return { label: 'Not recorded', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+/** Snapshot open-finding and active follow-up-task counts at record time (demo). */
+export function captureCondoLawyerReviewCheckpointCounts(input: {
+  findings: readonly { id: string }[]
+  tasks: readonly DemoMatterReviewTask[]
+  matterId: string
+}): { openFindingCountAtReview: number; activeFollowUpTaskCountAtReview: number } {
+  return {
+    openFindingCountAtReview: input.findings.length,
+    activeFollowUpTaskCountAtReview: listActiveCondoDiligenceSummaryReviewTasks(
+      [...input.tasks],
+      input.matterId,
+    ).length,
+  }
+}
+
 export function condoTitleReviewStatusPresentation(
   status: DemoCondoTitleReviewStatus,
 ): { label: string; bg: string; color: string; border: string } {
@@ -2472,6 +2615,9 @@ export function buildCondoDiligenceInternalReport(input: {
   const unitClosing = condo?.unitClosingDependenciesReview
     ? normalizeCondoUnitClosingDependenciesReview(condo.unitClosingDependenciesReview)
     : normalizeCondoUnitClosingDependenciesReview(undefined)
+  const lawyerCheckpoint = condo?.lawyerReviewCheckpoint
+    ? normalizeCondoLawyerReviewCheckpoint(condo.lawyerReviewCheckpoint)
+    : normalizeCondoLawyerReviewCheckpoint(undefined)
 
   const estoppelLines = [
     `Review status: ${condoEstoppelReviewStatusPresentation(estoppel.reviewStatus).label}`,
@@ -2578,6 +2724,16 @@ export function buildCondoDiligenceInternalReport(input: {
     `Notes: ${nonEmptyOrDash(unitClosing.notes)}`,
   ]
 
+  const lawyerCheckpointLines = [
+    `Status: ${condoLawyerReviewCheckpointStatusPresentation(lawyerCheckpoint.status).label}`,
+    `Reviewer: ${nonEmptyOrDash(lawyerCheckpoint.reviewerName ?? '') !== '—' ? nonEmptyOrDash(lawyerCheckpoint.reviewerName ?? '') : nonEmptyOrDash(lawyerCheckpoint.reviewerId ?? '')}`,
+    `Reviewed at: ${nonEmptyOrDash(lawyerCheckpoint.reviewedAt ?? '')}`,
+    `Linked summary document id: ${lawyerCheckpoint.linkedSummaryDocumentId ?? '—'}`,
+    `Open findings at review: ${lawyerCheckpoint.openFindingCountAtReview ?? '—'}`,
+    `Active follow-up tasks at review: ${lawyerCheckpoint.activeFollowUpTaskCountAtReview ?? '—'}`,
+    `Conclusion note: ${nonEmptyOrDash(lawyerCheckpoint.conclusionNote)}`,
+  ]
+
   const findingLines =
     findings.length === 0
       ? ['No findings recorded']
@@ -2611,6 +2767,7 @@ export function buildCondoDiligenceInternalReport(input: {
     { title: 'Disclosure package review', lines: disclosureLines },
     { title: 'Questionnaire / lender review', lines: questionnaireLines },
     { title: 'Unit & closing dependencies', lines: unitClosingLines },
+    { title: 'Lawyer review checkpoint', lines: lawyerCheckpointLines },
     { title: 'Open findings', lines: findingLines },
     {
       title: 'Open requests',
@@ -2631,6 +2788,7 @@ export function buildCondoDiligenceInternalReport(input: {
         `Disclosure package notes: ${nonEmptyOrDash(disclosure.notes)}`,
         `Questionnaire / lender notes: ${nonEmptyOrDash(questionnaire.notes)}`,
         `Unit & closing dependency notes: ${nonEmptyOrDash(unitClosing.notes)}`,
+        `Lawyer review conclusion: ${nonEmptyOrDash(lawyerCheckpoint.conclusionNote)}`,
       ],
     },
   ]
@@ -3046,5 +3204,6 @@ export function buildDefaultCondoDiligence(options?: BuildDefaultCondoDiligenceO
     disclosurePackageReview: buildDefaultCondoDisclosurePackageReview(),
     questionnaireLenderReview: buildDefaultCondoQuestionnaireLenderReview(),
     unitClosingDependenciesReview: buildDefaultCondoUnitClosingDependenciesReview(),
+    lawyerReviewCheckpoint: buildDefaultCondoLawyerReviewCheckpoint(),
   }
 }

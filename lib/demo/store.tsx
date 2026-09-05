@@ -68,6 +68,8 @@ import {
   parseDemoCondoQuestionnaireLenderReview,
   parseDemoCondoSirsMilestoneReview,
   parseDemoCondoUnitClosingDependenciesReview,
+  parseDemoCondoLawyerReviewCheckpoint,
+  normalizeCondoLawyerReviewCheckpoint,
 } from '@/lib/demo/condoDiligence'
 import {
   appendDemoMatterReviewTaskIfValid,
@@ -333,6 +335,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
   const disclosurePackageReview = parseDemoCondoDisclosurePackageReview(o.disclosurePackageReview)
   const questionnaireLenderReview = parseDemoCondoQuestionnaireLenderReview(o.questionnaireLenderReview)
   const unitClosingDependenciesReview = parseDemoCondoUnitClosingDependenciesReview(o.unitClosingDependenciesReview)
+  const lawyerReviewCheckpoint = parseDemoCondoLawyerReviewCheckpoint(o.lawyerReviewCheckpoint)
 
   return {
     applicable: o.applicable,
@@ -348,6 +351,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
     ...(disclosurePackageReview ? { disclosurePackageReview } : {}),
     ...(questionnaireLenderReview ? { questionnaireLenderReview } : {}),
     ...(unitClosingDependenciesReview ? { unitClosingDependenciesReview } : {}),
+    ...(lawyerReviewCheckpoint ? { lawyerReviewCheckpoint } : {}),
   }
 }
 
@@ -1834,6 +1838,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             disclosurePackageReview: disclosurePatch,
             questionnaireLenderReview: questionnairePatch,
             unitClosingDependenciesReview: unitClosingPatch,
+            lawyerReviewCheckpoint: lawyerCheckpointPatch,
             ...restPatch
           } = definedEntries
           const nextBase: DemoCondoDiligence = {
@@ -1894,6 +1899,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               ? {
                   ...normalizeCondoUnitClosingDependenciesReview(existing.unitClosingDependenciesReview),
                   ...unitClosingPatch,
+                }
+              : undefined
+          }
+          if ('lawyerReviewCheckpoint' in definedEntries) {
+            nextBase.lawyerReviewCheckpoint = lawyerCheckpointPatch
+              ? {
+                  ...normalizeCondoLawyerReviewCheckpoint(existing.lawyerReviewCheckpoint),
+                  ...lawyerCheckpointPatch,
                 }
               : undefined
           }
