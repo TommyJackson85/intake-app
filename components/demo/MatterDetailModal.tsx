@@ -102,7 +102,9 @@ import {
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
   isCondoDiligenceInternalSummaryDocument,
+  isCondoDiligenceReviewMemoDocument,
   listCondoDiligenceInternalSummaryDocuments,
+  listCondoDiligenceReviewMemoDocuments,
   listLinkableCondoDiligenceReviewTasksForFinding,
   normalizeCondoAssociationFinancialReview,
   normalizeCondoAssociationRecordsGovernanceReview,
@@ -362,6 +364,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
 
   const condoSummaryHistory = useMemo(
     () => listCondoDiligenceInternalSummaryDocuments(matterDocuments),
+    [matterDocuments],
+  )
+
+  const condoMemoHistory = useMemo(
+    () => listCondoDiligenceReviewMemoDocuments(matterDocuments),
     [matterDocuments],
   )
 
@@ -2022,6 +2029,95 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                 </div>
               )}
 
+              {(showCondoDiligenceTab || condoMemoHistory.length > 0) && (
+                <div
+                  style={{
+                    border: '1px solid rgba(94,82,64,0.12)',
+                    borderRadius: 8,
+                    padding: 14,
+                    background: 'white',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#134252', marginBottom: 4 }}>
+                      Condo Diligence Memo History
+                    </div>
+                    <div style={{ fontSize: 12, color: '#627c71', lineHeight: 1.45 }}>
+                      Saved internal review memo snapshots for this matter. Separate from detailed Internal Condo
+                      Diligence Summary History. Lawyer work product only — not shared to the client portal.
+                    </div>
+                  </div>
+                  {condoMemoHistory.length === 0 ? (
+                    <div style={{ color: '#627c71', fontSize: 13 }}>
+                      No saved internal review memos yet.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {condoMemoHistory.map((doc) => {
+                        const savedAt =
+                          doc.generatedInternalSummary?.generatedAt?.trim() || doc.uploaded_at
+                        return (
+                          <div
+                            key={doc.id}
+                            style={{
+                              display: 'flex',
+                              gap: 12,
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              borderTop: '1px solid rgba(94,82,64,0.1)',
+                              paddingTop: 10,
+                            }}
+                          >
+                            <div style={{ minWidth: 0, flex: '1 1 180px' }}>
+                              <div
+                                style={{
+                                  fontWeight: 800,
+                                  color: '#134252',
+                                  fontSize: 13,
+                                  marginBottom: 2,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                              >
+                                {doc.name}
+                              </div>
+                              <div style={{ color: '#627c71', fontSize: 12, fontWeight: 700 }}>
+                                Saved: {new Date(savedAt).toLocaleString()}
+                                {' · '}
+                                Internal only
+                                {' · '}
+                                {doc.status}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewDocumentId(doc.id)}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(94,82,64,0.25)',
+                                background: '#fff',
+                                fontWeight: 800,
+                                fontSize: 11,
+                                color: '#134252',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              View internal memo
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {matterDocuments.length === 0 ? (
                 <div style={{ color: '#627c71' }}>No documents on file for this matter.</div>
               ) : (
@@ -2038,6 +2134,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
 
                     const uploadedBy = staff.find((s) => s.id === doc.uploaded_by_staff_id)?.full_name ?? 'Staff'
                     const isInternalSummary = isCondoDiligenceInternalSummaryDocument(doc)
+                    const isInternalMemo = isCondoDiligenceReviewMemoDocument(doc)
                     return (
                       <div
                         key={doc.id}
@@ -2053,7 +2150,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             <div style={{ fontWeight: 900, color: '#134252', marginBottom: '4px' }}>{doc.name}</div>
                             <div style={{ color: '#627c71', fontWeight: 800, fontSize: '12px', marginBottom: '8px' }}>
                               {doc.category}
-                              {isInternalSummary ? ' · Internal summary' : ''}
+                              {isInternalSummary ? ' · Internal summary' : isInternalMemo ? ' · Internal memo' : ''}
                             </div>
                           </div>
                           <span
@@ -2094,7 +2191,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                               cursor: 'pointer',
                             }}
                           >
-                            {isInternalSummary ? 'View internal summary' : 'View'}
+                            {isInternalSummary
+                              ? 'View internal summary'
+                              : isInternalMemo
+                                ? 'View internal memo'
+                                : 'View'}
                           </button>
                         </div>
                       </div>

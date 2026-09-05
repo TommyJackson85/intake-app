@@ -7,8 +7,11 @@ import {
   buildCondoDiligenceReviewDashboard,
   buildCondoDiligenceSummaryDraftDocumentInput,
   CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE,
+  CONDO_DILIGENCE_REVIEW_MEMO_SUBTYPE,
   isCondoDiligenceInternalSummaryDocument,
+  isCondoDiligenceReviewMemoDocument,
   listCondoDiligenceInternalSummaryDocuments,
+  listCondoDiligenceReviewMemoDocuments,
   parseCondoDiligenceInternalSummaryPlainText,
   compareCondoDiligenceInternalSummaryPlainText,
   buildDefaultCondoAssociationFinancialReview,
@@ -2286,6 +2289,117 @@ describe('condoDiligence', () => {
           },
         ]),
       ).toEqual([])
+    })
+  })
+
+  describe('listCondoDiligenceReviewMemoDocuments', () => {
+    const baseDoc = {
+      matter_id: 'm-memo-hist',
+      category: 'Compliance' as const,
+      document_subtype: null as string | null,
+      description: null as string | null,
+      document_date: null as string | null,
+      source: null as string | null,
+      uploaded_by_staff_id: 'staff-1',
+      status: 'draft' as const,
+      deletedAt: null as string | null,
+    }
+
+    it('identifies memo snapshots without treating summaries as memos', () => {
+      expect(
+        isCondoDiligenceReviewMemoDocument({
+          name: 'Budget.pdf',
+          document_subtype: null,
+          generatedInternalSummary: undefined,
+        }),
+      ).toBe(false)
+      expect(
+        isCondoDiligenceReviewMemoDocument({
+          name: 'Internal Condo Diligence Review Memo — 2026-09-05',
+          document_subtype: CONDO_DILIGENCE_REVIEW_MEMO_SUBTYPE,
+          generatedInternalSummary: {
+            generatedType: 'condo_diligence_review_memo',
+            generatedAt: '2026-09-05T12:00:00.000Z',
+            sourceMatterId: 'm-memo-hist',
+            content: 'MEMO SNAPSHOT',
+            visibility: 'internal',
+          },
+        }),
+      ).toBe(true)
+      expect(
+        isCondoDiligenceInternalSummaryDocument({
+          name: 'Internal Condo Diligence Review Memo — 2026-09-05',
+          document_subtype: CONDO_DILIGENCE_REVIEW_MEMO_SUBTYPE,
+          generatedInternalSummary: {
+            generatedType: 'condo_diligence_review_memo',
+            generatedAt: '2026-09-05T12:00:00.000Z',
+            sourceMatterId: 'm-memo-hist',
+            content: 'MEMO SNAPSHOT',
+            visibility: 'internal',
+          },
+        }),
+      ).toBe(false)
+    })
+
+    it('returns only review memo docs newest-first and excludes summaries', () => {
+      const summary = {
+        ...baseDoc,
+        id: 'doc-summary',
+        name: 'Internal Condo Diligence Summary — snap',
+        document_subtype: CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE,
+        uploaded_at: '2026-09-05T12:00:00.000Z',
+        generatedInternalSummary: {
+          generatedType: 'condo_diligence_internal_summary' as const,
+          generatedAt: '2026-09-05T12:00:00.000Z',
+          sourceMatterId: 'm-memo-hist',
+          content: 'summary snapshot',
+          visibility: 'internal' as const,
+        },
+      }
+      const olderMemo = {
+        ...baseDoc,
+        id: 'doc-memo-older',
+        name: 'Internal Condo Diligence Review Memo — older',
+        document_subtype: CONDO_DILIGENCE_REVIEW_MEMO_SUBTYPE,
+        uploaded_at: '2026-09-01T10:00:00.000Z',
+        generatedInternalSummary: {
+          generatedType: 'condo_diligence_review_memo' as const,
+          generatedAt: '2026-09-01T10:00:00.000Z',
+          sourceMatterId: 'm-memo-hist',
+          content: 'older memo',
+          visibility: 'internal' as const,
+        },
+      }
+      const newerMemo = {
+        ...baseDoc,
+        id: 'doc-memo-newer',
+        name: 'Internal Condo Diligence Review Memo — newer',
+        document_subtype: CONDO_DILIGENCE_REVIEW_MEMO_SUBTYPE,
+        uploaded_at: '2026-09-03T10:00:00.000Z',
+        generatedInternalSummary: {
+          generatedType: 'condo_diligence_review_memo' as const,
+          generatedAt: '2026-09-04T08:00:00.000Z',
+          sourceMatterId: 'm-memo-hist',
+          content: 'newer memo',
+          visibility: 'internal' as const,
+        },
+      }
+      const deletedMemo = {
+        ...newerMemo,
+        id: 'doc-memo-deleted',
+        deletedAt: '2026-09-04T09:00:00.000Z',
+      }
+
+      const listed = listCondoDiligenceReviewMemoDocuments([
+        summary,
+        olderMemo,
+        newerMemo,
+        deletedMemo,
+      ])
+      expect(listed.map((d) => d.id)).toEqual(['doc-memo-newer', 'doc-memo-older'])
+      expect(listCondoDiligenceInternalSummaryDocuments([summary, olderMemo, newerMemo]).map((d) => d.id)).toEqual([
+        'doc-summary',
+      ])
     })
   })
 
