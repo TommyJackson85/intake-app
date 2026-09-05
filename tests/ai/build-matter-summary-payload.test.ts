@@ -79,6 +79,8 @@ describe('buildMatterSummaryPayload', () => {
           status: 'open',
           fulfilled_document_id: null,
           staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
         },
       ],
     })

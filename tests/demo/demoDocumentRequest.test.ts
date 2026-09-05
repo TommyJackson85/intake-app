@@ -113,6 +113,8 @@ describe('getFulfilledRequestDocumentName', () => {
       status: 'fulfilled' as const,
       fulfilled_document_id: 'doc-1',
       staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
     }
     const docs = [
       {
@@ -146,6 +148,8 @@ describe('mergeStoredDocumentRequestsWithSeed', () => {
       status: 'open',
       fulfilled_document_id: null,
       staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
     },
   ]
 
@@ -158,6 +162,8 @@ describe('mergeStoredDocumentRequestsWithSeed', () => {
           status: 'fulfilled',
           fulfilled_document_id: 'doc-x',
           staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
         },
         {
           id: 's2',
@@ -170,6 +176,8 @@ describe('mergeStoredDocumentRequestsWithSeed', () => {
           status: 'open',
           fulfilled_document_id: null,
           staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
         },
       ],
       seed

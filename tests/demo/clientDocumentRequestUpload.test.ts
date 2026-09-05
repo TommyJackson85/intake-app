@@ -20,6 +20,8 @@ const openReq: DemoDocumentRequest = {
   status: 'open',
   fulfilled_document_id: null,
   staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
 }
 
 describe('clientDocumentRequestUpload', () => {
@@ -88,7 +90,14 @@ describe('clientDocumentRequestUpload', () => {
         attemptClientDocumentRequestUpload(
           [matter],
           [],
-          [{ ...openReq, status: 'fulfilled', fulfilled_document_id: 'd0', staff_receipt_acknowledged_at: null }],
+          [{
+            ...openReq,
+            status: 'fulfilled',
+            fulfilled_document_id: 'd0',
+            staff_receipt_acknowledged_at: null,
+            staff_receipt_reviewed_by_staff_id: null,
+            staff_receipt_reviewed_document_id: null,
+          }],
           {
             portalToken: matter.portal_token,
             requestId: openReq.id,

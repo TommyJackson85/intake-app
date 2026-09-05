@@ -22,6 +22,8 @@ function openRequest(overrides: Partial<DemoDocumentRequest> = {}): DemoDocument
     status: 'open',
     fulfilled_document_id: null,
     staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
     ...overrides,
   }
 }
@@ -59,6 +61,8 @@ describe('staffClientUploadReceiptQueue', () => {
       status: 'fulfilled',
       fulfilled_document_id: 'doc-staff-1',
       staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
     }
 
     const queue = buildStaffClientUploadReceiptQueue({
