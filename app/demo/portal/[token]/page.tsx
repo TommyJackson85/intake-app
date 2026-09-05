@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { demoSeedData, DEMO_MILESTONE_LOGS, MILESTONE_LABELS, MILESTONE_ORDER } from '@/lib/demo/demoData'
 import type { MatterMilestoneStatus } from '@/lib/demo/types'
 import { buildClientDocumentRequestStatusView } from '@/lib/demo/clientDocumentRequestStatus'
+import { validateClientDocumentUploadFileName } from '@/lib/demo/clientDocumentRequestUpload'
 import { useDemoStore } from '@/lib/demo/store'
 
 export default function ClientPortalPage() {
@@ -55,6 +56,14 @@ export default function ClientPortalPage() {
       documents,
     })
   }, [documentRequests, documents, matter])
+
+  const fulfillRequest = useMemo(
+    () =>
+      fulfillRequestId
+        ? documentRequests.find((r) => r.id === fulfillRequestId) ?? null
+        : null,
+    [documentRequests, fulfillRequestId],
+  )
 
   const logs = useMemo(
     () => (matter ? DEMO_MILESTONE_LOGS.filter((l) => l.matter_id === matter.id) : []),
@@ -319,7 +328,9 @@ export default function ClientPortalPage() {
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#134252', marginBottom: 2 }}>Upload document</div>
                   <div style={{ fontSize: 13, color: '#627c71' }}>
-                    Demo only — metadata only. No real file stored.
+                    {fulfillRequest
+                      ? `For: ${fulfillRequest.title}`
+                      : 'Demo only — metadata only. No real file stored.'}
                   </div>
                 </div>
                 <button
@@ -342,7 +353,8 @@ export default function ClientPortalPage() {
                 </button>
               </div>
               <div style={{ fontSize: 13, color: '#627c71', marginBottom: 16 }}>
-                Enter the file name as it will appear in your closing file.
+                Enter the file name as it will appear in your closing file. Demo only — no real file is stored or
+                transmitted.
               </div>
               {fulfillError && (
                 <div
@@ -400,21 +412,28 @@ export default function ClientPortalPage() {
                   type="button"
                   onClick={() => {
                     setFulfillError(null)
-                    const name = fulfillFileName.trim()
-                    if (!name) {
-                      setFulfillError('Enter a file name.')
+                    const nameCheck = validateClientDocumentUploadFileName(fulfillFileName)
+                    if (!nameCheck.ok) {
+                      setFulfillError(nameCheck.message)
                       return
                     }
-                    const request = documentRequests.find((r) => r.id === fulfillRequestId)
-                    fulfillDemoDocumentRequest({
+                    if (!fulfillRequestId) {
+                      setFulfillError('That document request could not be found.')
+                      return
+                    }
+                    const ok = fulfillDemoDocumentRequest({
                       portal_token: token,
                       request_id: fulfillRequestId,
-                      file_name: name,
+                      file_name: nameCheck.fileName,
                     })
+                    if (!ok) {
+                      setFulfillError('Upload could not be completed. Please try again.')
+                      return
+                    }
                     setFulfillNotice(
-                      request
-                        ? `Submitted "${name}" for "${request.title}" (demo metadata only; no real file stored).`
-                        : `Submitted "${name}" (demo metadata only; no real file stored).`
+                      fulfillRequest
+                        ? `Submitted “${nameCheck.fileName}” for “${fulfillRequest.title}” (demo metadata only; no real file stored).`
+                        : `Submitted “${nameCheck.fileName}” (demo metadata only; no real file stored).`,
                     )
                     closeFulfillModal()
                   }}
@@ -428,7 +447,7 @@ export default function ClientPortalPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  Submit
+                  Submit upload
                 </button>
               </div>
             </div>
