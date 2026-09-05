@@ -46,6 +46,7 @@ import {
   appendDemoDocumentRequestIfValid,
   mergeStoredDocumentRequestsWithSeed,
   withCoercedDocumentRequestStatus,
+  acknowledgeClientUploadReceipt,
   type AddDemoDocumentRequestInput,
 } from '@/lib/demo/demoDocumentRequest'
 import { attemptClientDocumentRequestUpload } from '@/lib/demo/clientDocumentRequestUpload'
@@ -120,6 +121,8 @@ type DemoContextType = {
   /** Appends one `DemoDocument` (same helper as `addDemoDocument`) and marks the request fulfilled — one `setState`. */
   /** Client portal upload: appends one `DemoDocument` and marks the request fulfilled — one `setState`. Returns whether fulfillment succeeded. */
   fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => boolean
+  /** Staff acknowledgment that a client-portal upload was received for review. */
+  acknowledgeClientUploadReceipt: (requestId: string) => boolean
   addMatterReviewTask: (input: AddDemoMatterReviewTaskInput) => void
   updateMatterReviewTaskStatus: (taskId: string, status: DemoMatterReviewTaskStatus) => void
   /** Atomically updates multiple review-task statuses (e.g. bulk mark in review). */
@@ -1765,6 +1768,16 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             documents: result.documents,
             documentRequests: result.documentRequests,
           }
+        })
+        return succeeded
+      },
+      acknowledgeClientUploadReceipt: (requestId) => {
+        let succeeded = false
+        setState((prev) => {
+          const documentRequests = acknowledgeClientUploadReceipt(prev.documentRequests, requestId)
+          if (documentRequests === prev.documentRequests) return prev
+          succeeded = true
+          return { ...prev, documentRequests }
         })
         return succeeded
       },

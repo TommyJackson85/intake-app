@@ -739,6 +739,12 @@ export type DemoDocumentRequest = {
   status: DemoDocumentRequestStatus
   /** Set when fulfilled (e.g. portal simulated upload); links to `DemoDocument.id`. */
   fulfilled_document_id: string | null
+  /**
+   * Staff acknowledgment of a client-portal upload against this request.
+   * Null means the upload (if any) still needs receipt review in the staff queue.
+   * Absent/legacy rows are coerced to null.
+   */
+  staff_receipt_acknowledged_at: string | null
 }
 
 /** Internal-only review of a saved Condo Diligence summary snapshot (not shared to portal). */

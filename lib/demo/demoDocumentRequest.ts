@@ -50,6 +50,7 @@ export function buildDemoDocumentRequest(
     requested_by_staff_id,
     status,
     fulfilled_document_id: null,
+    staff_receipt_acknowledged_at: null,
   }
 }
 
@@ -58,16 +59,32 @@ export function coerceDemoDocumentRequestStatus(raw: unknown): DemoDocumentReque
   return raw === 'fulfilled' ? 'fulfilled' : 'open'
 }
 
-/** Ensures `status` is set after reading from localStorage. */
+/** Ensures `status` / fulfillment / receipt fields are set after reading from localStorage. */
 export function withCoercedDocumentRequestStatus(
-  r: DemoDocumentRequest & { status?: unknown; fulfilled_document_id?: unknown }
+  r: DemoDocumentRequest & {
+    status?: unknown
+    fulfilled_document_id?: unknown
+    staff_receipt_acknowledged_at?: unknown
+  }
 ): DemoDocumentRequest {
   const fulfilled =
     typeof r.fulfilled_document_id === 'string' && r.fulfilled_document_id.length > 0
       ? r.fulfilled_document_id
       : null
-  return { ...r, status: coerceDemoDocumentRequestStatus(r.status), fulfilled_document_id: fulfilled }
+  const staff_receipt_acknowledged_at =
+    typeof r.staff_receipt_acknowledged_at === 'string' && r.staff_receipt_acknowledged_at.trim().length > 0
+      ? r.staff_receipt_acknowledged_at
+      : null
+  return {
+    ...r,
+    status: coerceDemoDocumentRequestStatus(r.status),
+    fulfilled_document_id: fulfilled,
+    staff_receipt_acknowledged_at,
+  }
 }
+
+/** Stable source tag for documents created by the client portal upload action. */
+export const CLIENT_PORTAL_DOCUMENT_SOURCE = 'client_portal'
 
 export type FulfillDemoDocumentRequestInput = {
   /** Resolves the matter (e.g. client portal link); must match the request’s `matter_id`. */
@@ -80,6 +97,7 @@ export type FulfillDemoDocumentRequestInput = {
 /**
  * Single-store fulfillment: appends via {@link appendDemoDocumentIfValid} (same `DemoDocument` path as
  * `addDemoDocument` in the demo store), then updates the matching `DemoDocumentRequest`. No separate document list.
+ * Client-portal uploads are tagged `source: client_portal` and left unacknowledged for the staff receipt queue.
  * Returns null if validation fails or the document could not be built.
  */
 export function tryFulfillDemoDocumentRequest(
@@ -101,6 +119,7 @@ export function tryFulfillDemoDocumentRequest(
     name: input.file_name,
     category: request.category,
     status: 'draft' as const,
+    source: CLIENT_PORTAL_DOCUMENT_SOURCE,
     uploaded_by_staff_id: input.uploaded_by_staff_id,
     uploaded_at: new Date().toISOString(),
   }
@@ -112,7 +131,12 @@ export function tryFulfillDemoDocumentRequest(
 
   const documentRequestsNext = documentRequests.map((r) =>
     r.id === request.id
-      ? { ...r, status: 'fulfilled' as const, fulfilled_document_id: created.id }
+      ? {
+          ...r,
+          status: 'fulfilled' as const,
+          fulfilled_document_id: created.id,
+          staff_receipt_acknowledged_at: null,
+        }
       : r
   )
 
@@ -136,6 +160,29 @@ export function getFulfilledRequestDocumentName(
 ): string | null {
   if (request.status !== 'fulfilled' || !request.fulfilled_document_id) return null
   return documents.find((d) => d.id === request.fulfilled_document_id)?.name ?? null
+}
+
+/**
+ * Mark a fulfilled client-portal upload as staff-receipt-acknowledged.
+ * Returns the same array reference when the request is missing or ineligible.
+ */
+export function acknowledgeClientUploadReceipt(
+  documentRequests: DemoDocumentRequest[],
+  requestId: string,
+  options?: { nowIso?: () => string },
+): DemoDocumentRequest[] {
+  const id = requestId.trim()
+  if (!id) return documentRequests
+  const nowIso = options?.nowIso ?? (() => new Date().toISOString())
+  let changed = false
+  const next = documentRequests.map((r) => {
+    if (r.id !== id) return r
+    if (r.status !== 'fulfilled' || !r.fulfilled_document_id) return r
+    if (r.staff_receipt_acknowledged_at) return r
+    changed = true
+    return { ...r, staff_receipt_acknowledged_at: nowIso() }
+  })
+  return changed ? next : documentRequests
 }
 
 export function mergeStoredDocumentRequestsWithSeed(

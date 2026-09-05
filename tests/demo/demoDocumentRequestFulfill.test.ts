@@ -15,6 +15,7 @@ const openReq: DemoDocumentRequest = {
   requested_by_staff_id: 'staff-1',
   status: 'open',
   fulfilled_document_id: null,
+  staff_receipt_acknowledged_at: null,
 }
 
 describe('tryFulfillDemoDocumentRequest', () => {
@@ -39,6 +40,7 @@ describe('tryFulfillDemoDocumentRequest', () => {
       ...openReq,
       status: 'fulfilled',
       fulfilled_document_id: 'd0',
+      staff_receipt_acknowledged_at: null,
     }
     expect(
       tryFulfillDemoDocumentRequest(

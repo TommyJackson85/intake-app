@@ -83,7 +83,7 @@ describe('coerceDemoDocumentRequestStatus / withCoercedDocumentRequestStatus', (
     const row = withCoercedDocumentRequestStatus({
       ...base,
       status: undefined,
-    } as DemoDocumentRequest & { status?: unknown })
+    } as unknown as DemoDocumentRequest & { status?: unknown })
     expect(row.status).toBe('open')
   })
 })
@@ -108,7 +108,12 @@ describe('appendDemoDocumentRequestIfValid', () => {
 describe('getFulfilledRequestDocumentName', () => {
   it('returns linked document name only for fulfilled requests', () => {
     const reqOpen = buildDemoDocumentRequest(baseInput, { idFactory: () => 'r1', nowIso: () => 't' })!
-    const reqDone = { ...reqOpen, status: 'fulfilled' as const, fulfilled_document_id: 'doc-1' }
+    const reqDone = {
+      ...reqOpen,
+      status: 'fulfilled' as const,
+      fulfilled_document_id: 'doc-1',
+      staff_receipt_acknowledged_at: null,
+    }
     const docs = [
       {
         id: 'doc-1',
@@ -140,13 +145,20 @@ describe('mergeStoredDocumentRequestsWithSeed', () => {
       requested_by_staff_id: 'st',
       status: 'open',
       fulfilled_document_id: null,
+      staff_receipt_acknowledged_at: null,
     },
   ]
 
   it('stored overrides seed by id and includes stored-only rows', () => {
     const merged = mergeStoredDocumentRequestsWithSeed(
       [
-        { ...seed[0], title: 'Stored title', status: 'fulfilled', fulfilled_document_id: 'doc-x' },
+        {
+          ...seed[0],
+          title: 'Stored title',
+          status: 'fulfilled',
+          fulfilled_document_id: 'doc-x',
+          staff_receipt_acknowledged_at: null,
+        },
         {
           id: 's2',
           matter_id: 'm',
@@ -157,6 +169,7 @@ describe('mergeStoredDocumentRequestsWithSeed', () => {
           requested_by_staff_id: 'st',
           status: 'open',
           fulfilled_document_id: null,
+          staff_receipt_acknowledged_at: null,
         },
       ],
       seed
