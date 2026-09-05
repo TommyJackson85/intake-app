@@ -17,6 +17,7 @@ import {
   buildDefaultCondoEstoppelReview,
   buildDefaultCondoQuestionnaireLenderReview,
   buildDefaultCondoSirsMilestoneReview,
+  buildDefaultCondoUnitClosingDependenciesReview,
   condoDiligenceMatterStatusPresentation,
   condoDisclosurePackageCompletenessPresentation,
   condoDisclosurePackageDeliveryMethodLabel,
@@ -33,6 +34,8 @@ import {
   condoQuestionnaireLenderIssueStatusPresentation,
   condoQuestionnaireStatusPresentation,
   condoRequiredDocMatchesLinkageHaystack,
+  condoTitleReviewStatusPresentation,
+  condoUnitClosingDependenciesDocumentMatchesHaystack,
   condoRequiredDocSavedStatusAfterLinkedSync,
   condoSirsApplicabilityPresentation,
   condoSirsDocumentStatusPresentation,
@@ -50,6 +53,7 @@ import {
   isCondoOrCoopMatter,
   isCondoQuestionnaireLenderReviewUntouched,
   isCondoSirsMilestoneReviewUntouched,
+  isCondoUnitClosingDependenciesReviewUntouched,
   isFloridaPropertyAddress,
   normalizeCondoAssociationFinancialReview,
   normalizeCondoAssociationRecordsGovernanceReview,
@@ -57,12 +61,14 @@ import {
   normalizeCondoEstoppelReview,
   normalizeCondoQuestionnaireLenderReview,
   normalizeCondoSirsMilestoneReview,
+  normalizeCondoUnitClosingDependenciesReview,
   parseDemoCondoAssociationFinancialReview,
   parseDemoCondoAssociationRecordsGovernanceReview,
   parseDemoCondoDisclosurePackageReview,
   parseDemoCondoEstoppelReview,
   parseDemoCondoQuestionnaireLenderReview,
   parseDemoCondoSirsMilestoneReview,
+  parseDemoCondoUnitClosingDependenciesReview,
   resolveCondoQuestionnaireFinancingEligibility,
   shouldShowCondoQuestionnaireLenderReviewForm,
   syncRequiredDocumentsFromDerivedLinkage,
@@ -609,6 +615,8 @@ describe('condoDiligence', () => {
       expect(isCondoDisclosurePackageReviewUntouched(d.disclosurePackageReview)).toBe(true)
       expect(d.questionnaireLenderReview).toEqual(buildDefaultCondoQuestionnaireLenderReview())
       expect(isCondoQuestionnaireLenderReviewUntouched(d.questionnaireLenderReview)).toBe(true)
+      expect(d.unitClosingDependenciesReview).toEqual(buildDefaultCondoUnitClosingDependenciesReview())
+      expect(isCondoUnitClosingDependenciesReviewUntouched(d.unitClosingDependenciesReview)).toBe(true)
     })
 
     it('keeps the original six rows and adds exactly seven new core doc-pack rows without duplicates', () => {
@@ -1285,6 +1293,94 @@ describe('condoDiligence', () => {
     })
   })
 
+  describe('unitClosingDependenciesReview', () => {
+    it('parses missing or invalid unitClosingDependenciesReview as undefined for older persisted rows', () => {
+      expect(parseDemoCondoUnitClosingDependenciesReview(undefined)).toBeUndefined()
+      expect(parseDemoCondoUnitClosingDependenciesReview(null)).toBeUndefined()
+      expect(parseDemoCondoUnitClosingDependenciesReview('nope')).toBeUndefined()
+      expect(parseDemoCondoUnitClosingDependenciesReview([])).toBeUndefined()
+    })
+
+    it('fills defaults for partial valid unitClosingDependenciesReview objects', () => {
+      expect(
+        parseDemoCondoUnitClosingDependenciesReview({
+          titleReviewStatus: 'in_review',
+          parkingStorageStatus: 'right_or_assignment_noted',
+          closingDependencyStatus: 'open_item',
+          titleEvidenceDocumentId: 'doc-title-1',
+          dependencyNote: 'Need parking deed',
+          notes: 'Confirm storage cage assignment',
+        }),
+      ).toEqual({
+        ...buildDefaultCondoUnitClosingDependenciesReview(),
+        titleReviewStatus: 'in_review',
+        parkingStorageStatus: 'right_or_assignment_noted',
+        closingDependencyStatus: 'open_item',
+        titleEvidenceDocumentId: 'doc-title-1',
+        dependencyNote: 'Need parking deed',
+        notes: 'Confirm storage cage assignment',
+      })
+    })
+
+    it('normalizeCondoUnitClosingDependenciesReview merges onto defaults', () => {
+      expect(normalizeCondoUnitClosingDependenciesReview(undefined)).toEqual(
+        buildDefaultCondoUnitClosingDependenciesReview(),
+      )
+      expect(normalizeCondoUnitClosingDependenciesReview({ inspectionStatus: 'received' })).toEqual({
+        ...buildDefaultCondoUnitClosingDependenciesReview(),
+        inspectionStatus: 'received',
+      })
+    })
+
+    it('marks diligence as touched when unit closing dependencies review has progress', () => {
+      const base = buildDefaultCondoDiligence({ nowIso: () => '2026-04-27T12:00:00.000Z' })
+      expect(isCondoDiligenceUntouched(base)).toBe(true)
+      expect(
+        isCondoDiligenceUntouched({
+          ...base,
+          unitClosingDependenciesReview: {
+            ...buildDefaultCondoUnitClosingDependenciesReview(),
+            titleReviewStatus: 'requested',
+            closingDependencyStatus: 'open_item',
+          },
+        }),
+      ).toBe(false)
+    })
+
+    it('keeps older saved checklists without unitClosingDependenciesReview loadable and untouched', () => {
+      const older: DemoCondoDiligence = {
+        applicable: true,
+        status: 'not_started',
+        notes: '',
+        findings: [],
+        updated_at: '2026-01-01T00:00:00.000Z',
+        requiredDocuments: ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS.map((id) => ({
+          id,
+          label: id,
+          status: 'outstanding' as const,
+          detail: null,
+        })),
+      }
+      expect(older.unitClosingDependenciesReview).toBeUndefined()
+      expect(isCondoDiligenceUntouched(older)).toBe(true)
+      expect(isCondoUnitClosingDependenciesReviewUntouched(older.unitClosingDependenciesReview)).toBe(true)
+    })
+
+    it('presentation helpers stay operational and do not imply title or closing determinations', () => {
+      expect(condoTitleReviewStatusPresentation('issue_found').label).toBe('Issue found')
+      expect(condoUnitClosingDependenciesDocumentMatchesHaystack('Title Commitment.pdf')).toBe(true)
+      expect(condoUnitClosingDependenciesDocumentMatchesHaystack('Condo Estoppel Certificate.pdf')).toBe(false)
+      const checklist = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' }).requiredDocuments
+      expect(checklist.some((d) => d.id === 'title_commitment')).toBe(false)
+      expect(
+        deriveCondoDiligenceMatterStatusFromChecklist({
+          requiredDocuments: checklist,
+          findings: [],
+        }),
+      ).toBe('not_started')
+    })
+  })
+
   describe('buildCondoDiligenceOperationalSummary', () => {
     const matterId = 'm-summary'
     const now = new Date('2026-09-15T12:00:00')
@@ -1576,6 +1672,13 @@ describe('condoDiligence', () => {
         lenderName: 'Harbor Lending',
         notes: 'Waiting on condo questionnaire response',
       }
+      condo.unitClosingDependenciesReview = {
+        ...buildDefaultCondoUnitClosingDependenciesReview(),
+        titleReviewStatus: 'in_review',
+        closingDependencyStatus: 'open_item',
+        dependencyNote: 'Confirm parking assignment before closing',
+        notes: 'Unit closing dependency follow-up',
+      }
       condo.findings = [{ id: 'f1', text: 'Special assessment disclosed' }]
       condo.notes = 'Matter-level diligence note'
 
@@ -1613,6 +1716,7 @@ describe('condoDiligence', () => {
         'Records / governance review',
         'Disclosure package review',
         'Questionnaire / lender review',
+        'Unit & closing dependencies',
         'Open findings',
         'Open requests',
         'Evidence links',
@@ -1630,6 +1734,8 @@ describe('condoDiligence', () => {
       expect(report.plainText).toContain('Waiting on FAQ addendum')
       expect(report.plainText).toContain('Harbor Lending')
       expect(report.plainText).toContain('Waiting on condo questionnaire response')
+      expect(report.plainText).toContain('Confirm parking assignment before closing')
+      expect(report.plainText).toContain('Unit closing dependency follow-up')
       expect(report.plainText).toContain('Matter-level diligence note')
     })
 

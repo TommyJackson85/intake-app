@@ -40,6 +40,16 @@ import type {
   DemoCondoSirsMilestoneReview,
   DemoCondoSirsResult,
   DemoCondoSirsRiskLevel,
+  DemoCondoClosingDependencyStatus,
+  DemoCondoLegalDescriptionStatus,
+  DemoCondoLimitedCommonElementStatus,
+  DemoCondoMunicipalLienStatus,
+  DemoCondoParkingStorageStatus,
+  DemoCondoPermitsCodeStatus,
+  DemoCondoSellerRepairDisclosureStatus,
+  DemoCondoTitleReviewStatus,
+  DemoCondoUnitClosingDependenciesReview,
+  DemoCondoUnitInspectionStatus,
   DemoDocument,
   DemoDocumentRequest,
   DemoMatter,
@@ -339,6 +349,7 @@ export function isCondoDiligenceUntouched(
     associationRecordsGovernanceReview?: DemoCondoAssociationRecordsGovernanceReview | null
     disclosurePackageReview?: DemoCondoDisclosurePackageReview | null
     questionnaireLenderReview?: DemoCondoQuestionnaireLenderReview | null
+    unitClosingDependenciesReview?: DemoCondoUnitClosingDependenciesReview | null
   },
 ): boolean {
   const notesEmpty = input.notes.trim() === ''
@@ -352,6 +363,7 @@ export function isCondoDiligenceUntouched(
   )
   const disclosureUntouched = isCondoDisclosurePackageReviewUntouched(input.disclosurePackageReview)
   const questionnaireUntouched = isCondoQuestionnaireLenderReviewUntouched(input.questionnaireLenderReview)
+  const unitClosingUntouched = isCondoUnitClosingDependenciesReviewUntouched(input.unitClosingDependenciesReview)
   return (
     input.status === 'not_started' &&
     notesEmpty &&
@@ -362,7 +374,8 @@ export function isCondoDiligenceUntouched(
     financialUntouched &&
     governanceUntouched &&
     disclosureUntouched &&
-    questionnaireUntouched
+    questionnaireUntouched &&
+    unitClosingUntouched
   )
 }
 
@@ -1551,6 +1564,404 @@ export function condoQuestionnaireDocumentMatchesHaystack(haystack: string): boo
   )
 }
 
+/** Default empty structured unit & closing dependencies review for newly seeded rows. */
+export function buildDefaultCondoUnitClosingDependenciesReview(): DemoCondoUnitClosingDependenciesReview {
+  return {
+    titleReviewStatus: 'not_started',
+    legalDescriptionStatus: 'unknown',
+    parkingStorageStatus: 'unknown',
+    limitedCommonElementStatus: 'unknown',
+    permitsCodeStatus: 'unknown',
+    municipalLienStatus: 'unknown',
+    inspectionStatus: 'unknown',
+    sellerRepairDisclosureStatus: 'unknown',
+    closingDependencyStatus: 'none_noted',
+    titleEvidenceDocumentId: null,
+    inspectionEvidenceDocumentId: null,
+    sellerDisclosureEvidenceDocumentId: null,
+    dependencyNote: '',
+    notes: '',
+  }
+}
+
+export function normalizeCondoUnitClosingDependenciesReview(
+  input?: Partial<DemoCondoUnitClosingDependenciesReview> | null,
+): DemoCondoUnitClosingDependenciesReview {
+  return {
+    ...buildDefaultCondoUnitClosingDependenciesReview(),
+    ...(input ?? {}),
+  }
+}
+
+function isTitleReviewStatus(value: unknown): value is DemoCondoTitleReviewStatus {
+  return (
+    value === 'not_started' ||
+    value === 'requested' ||
+    value === 'received' ||
+    value === 'in_review' ||
+    value === 'reviewed' ||
+    value === 'issue_found'
+  )
+}
+
+function isLegalDescriptionStatus(value: unknown): value is DemoCondoLegalDescriptionStatus {
+  return (
+    value === 'unknown' ||
+    value === 'matches_recorded_materials' ||
+    value === 'difference_noted' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+function isParkingStorageStatus(value: unknown): value is DemoCondoParkingStorageStatus {
+  return (
+    value === 'unknown' ||
+    value === 'not_applicable' ||
+    value === 'reviewed_no_issue_noted' ||
+    value === 'right_or_assignment_noted' ||
+    value === 'issue_found' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+function isLimitedCommonElementStatus(value: unknown): value is DemoCondoLimitedCommonElementStatus {
+  return (
+    value === 'unknown' ||
+    value === 'not_applicable' ||
+    value === 'reviewed_no_issue_noted' ||
+    value === 'right_or_assignment_noted' ||
+    value === 'issue_found' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+function isPermitsCodeStatus(value: unknown): value is DemoCondoPermitsCodeStatus {
+  return (
+    value === 'unknown' ||
+    value === 'none_disclosed' ||
+    value === 'possible_issue_noted' ||
+    value === 'issue_disclosed' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+function isMunicipalLienStatus(value: unknown): value is DemoCondoMunicipalLienStatus {
+  return (
+    value === 'unknown' ||
+    value === 'none_disclosed' ||
+    value === 'possible_issue_noted' ||
+    value === 'issue_disclosed' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+function isUnitInspectionStatus(value: unknown): value is DemoCondoUnitInspectionStatus {
+  return (
+    value === 'unknown' ||
+    value === 'not_applicable' ||
+    value === 'requested' ||
+    value === 'received' ||
+    value === 'reviewed' ||
+    value === 'issue_found'
+  )
+}
+
+function isSellerRepairDisclosureStatus(value: unknown): value is DemoCondoSellerRepairDisclosureStatus {
+  return (
+    value === 'unknown' ||
+    value === 'not_received' ||
+    value === 'received' ||
+    value === 'reviewed' ||
+    value === 'issue_found' ||
+    value === 'not_applicable'
+  )
+}
+
+function isClosingDependencyStatus(value: unknown): value is DemoCondoClosingDependencyStatus {
+  return (
+    value === 'none_noted' ||
+    value === 'open_item' ||
+    value === 'issue_flagged' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+/**
+ * Parse optional persisted `unitClosingDependenciesReview`.
+ * Missing/invalid object → undefined (older rows). Partial objects get defaults.
+ */
+export function parseDemoCondoUnitClosingDependenciesReview(
+  raw: unknown,
+): DemoCondoUnitClosingDependenciesReview | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const o = raw as Record<string, unknown>
+  const base = buildDefaultCondoUnitClosingDependenciesReview()
+  const titleEvidenceId = parseOptionalDocumentId(o.titleEvidenceDocumentId)
+  const inspectionEvidenceId = parseOptionalDocumentId(o.inspectionEvidenceDocumentId)
+  const sellerDisclosureEvidenceId = parseOptionalDocumentId(o.sellerDisclosureEvidenceDocumentId)
+
+  return {
+    titleReviewStatus: isTitleReviewStatus(o.titleReviewStatus) ? o.titleReviewStatus : base.titleReviewStatus,
+    legalDescriptionStatus: isLegalDescriptionStatus(o.legalDescriptionStatus)
+      ? o.legalDescriptionStatus
+      : base.legalDescriptionStatus,
+    parkingStorageStatus: isParkingStorageStatus(o.parkingStorageStatus)
+      ? o.parkingStorageStatus
+      : base.parkingStorageStatus,
+    limitedCommonElementStatus: isLimitedCommonElementStatus(o.limitedCommonElementStatus)
+      ? o.limitedCommonElementStatus
+      : base.limitedCommonElementStatus,
+    permitsCodeStatus: isPermitsCodeStatus(o.permitsCodeStatus) ? o.permitsCodeStatus : base.permitsCodeStatus,
+    municipalLienStatus: isMunicipalLienStatus(o.municipalLienStatus)
+      ? o.municipalLienStatus
+      : base.municipalLienStatus,
+    inspectionStatus: isUnitInspectionStatus(o.inspectionStatus) ? o.inspectionStatus : base.inspectionStatus,
+    sellerRepairDisclosureStatus: isSellerRepairDisclosureStatus(o.sellerRepairDisclosureStatus)
+      ? o.sellerRepairDisclosureStatus
+      : base.sellerRepairDisclosureStatus,
+    closingDependencyStatus: isClosingDependencyStatus(o.closingDependencyStatus)
+      ? o.closingDependencyStatus
+      : base.closingDependencyStatus,
+    titleEvidenceDocumentId: titleEvidenceId !== undefined ? titleEvidenceId : base.titleEvidenceDocumentId,
+    inspectionEvidenceDocumentId:
+      inspectionEvidenceId !== undefined ? inspectionEvidenceId : base.inspectionEvidenceDocumentId,
+    sellerDisclosureEvidenceDocumentId:
+      sellerDisclosureEvidenceId !== undefined
+        ? sellerDisclosureEvidenceId
+        : base.sellerDisclosureEvidenceDocumentId,
+    dependencyNote: typeof o.dependencyNote === 'string' ? o.dependencyNote : base.dependencyNote,
+    notes: typeof o.notes === 'string' ? o.notes : base.notes,
+  }
+}
+
+export function isCondoUnitClosingDependenciesReviewUntouched(
+  input?: DemoCondoUnitClosingDependenciesReview | null,
+): boolean {
+  if (!input) return true
+  const d = normalizeCondoUnitClosingDependenciesReview(input)
+  return (
+    d.titleReviewStatus === 'not_started' &&
+    d.legalDescriptionStatus === 'unknown' &&
+    d.parkingStorageStatus === 'unknown' &&
+    d.limitedCommonElementStatus === 'unknown' &&
+    d.permitsCodeStatus === 'unknown' &&
+    d.municipalLienStatus === 'unknown' &&
+    d.inspectionStatus === 'unknown' &&
+    d.sellerRepairDisclosureStatus === 'unknown' &&
+    d.closingDependencyStatus === 'none_noted' &&
+    d.titleEvidenceDocumentId === null &&
+    d.inspectionEvidenceDocumentId === null &&
+    d.sellerDisclosureEvidenceDocumentId === null &&
+    d.dependencyNote.trim() === '' &&
+    d.notes.trim() === ''
+  )
+}
+
+export function condoTitleReviewStatusPresentation(
+  status: DemoCondoTitleReviewStatus,
+): { label: string; bg: string; color: string; border: string } {
+  switch (status) {
+    case 'reviewed':
+      return { label: 'Reviewed', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'issue_found':
+      return { label: 'Issue found', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    case 'in_review':
+      return { label: 'In review', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.25)' }
+    case 'received':
+      return { label: 'Received', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'requested':
+      return { label: 'Requested', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.25)' }
+    case 'not_started':
+    default:
+      return { label: 'Not started', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoLegalDescriptionStatusPresentation(
+  status: DemoCondoLegalDescriptionStatus,
+): { label: string; bg: string; color: string; border: string } {
+  switch (status) {
+    case 'matches_recorded_materials':
+      return {
+        label: 'Matches recorded materials',
+        bg: '#e8f5f0',
+        color: '#166534',
+        border: 'rgba(47,133,90,0.35)',
+      }
+    case 'difference_noted':
+      return { label: 'Difference noted', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    case 'lawyer_review_required':
+      return {
+        label: 'Lawyer review required',
+        bg: '#fee2e2',
+        color: '#991b1b',
+        border: 'rgba(185,28,28,0.35)',
+      }
+    case 'unknown':
+    default:
+      return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoParkingStorageStatusPresentation(
+  status: DemoCondoParkingStorageStatus,
+): { label: string; bg: string; color: string; border: string } {
+  switch (status) {
+    case 'reviewed_no_issue_noted':
+      return {
+        label: 'Reviewed — no issue noted',
+        bg: '#e8f5f0',
+        color: '#166534',
+        border: 'rgba(47,133,90,0.35)',
+      }
+    case 'right_or_assignment_noted':
+      return {
+        label: 'Right or assignment noted',
+        bg: '#dbeafe',
+        color: '#1e40af',
+        border: 'rgba(30,64,175,0.25)',
+      }
+    case 'issue_found':
+      return { label: 'Issue found', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    case 'lawyer_review_required':
+      return {
+        label: 'Lawyer review required',
+        bg: '#fff4d6',
+        color: '#b45309',
+        border: 'rgba(240,180,41,0.35)',
+      }
+    case 'not_applicable':
+      return { label: 'Not applicable', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+    case 'unknown':
+    default:
+      return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoLimitedCommonElementStatusPresentation(
+  status: DemoCondoLimitedCommonElementStatus,
+): { label: string; bg: string; color: string; border: string } {
+  return condoParkingStorageStatusPresentation(status)
+}
+
+export function condoPermitsCodeStatusPresentation(
+  status: DemoCondoPermitsCodeStatus,
+): { label: string; bg: string; color: string; border: string } {
+  switch (status) {
+    case 'none_disclosed':
+      return { label: 'None disclosed', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'possible_issue_noted':
+      return {
+        label: 'Possible issue noted',
+        bg: '#fff4d6',
+        color: '#b45309',
+        border: 'rgba(240,180,41,0.35)',
+      }
+    case 'issue_disclosed':
+      return { label: 'Issue disclosed', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    case 'lawyer_review_required':
+      return {
+        label: 'Lawyer review required',
+        bg: '#fff4d6',
+        color: '#b45309',
+        border: 'rgba(240,180,41,0.35)',
+      }
+    case 'unknown':
+    default:
+      return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoMunicipalLienStatusPresentation(
+  status: DemoCondoMunicipalLienStatus,
+): { label: string; bg: string; color: string; border: string } {
+  return condoPermitsCodeStatusPresentation(status)
+}
+
+export function condoUnitInspectionStatusPresentation(
+  status: DemoCondoUnitInspectionStatus,
+): { label: string; bg: string; color: string; border: string } {
+  switch (status) {
+    case 'reviewed':
+      return { label: 'Reviewed', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'issue_found':
+      return { label: 'Issue found', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    case 'received':
+      return { label: 'Received', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'requested':
+      return { label: 'Requested', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.25)' }
+    case 'not_applicable':
+      return { label: 'Not applicable', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+    case 'unknown':
+    default:
+      return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoSellerRepairDisclosureStatusPresentation(
+  status: DemoCondoSellerRepairDisclosureStatus,
+): { label: string; bg: string; color: string; border: string } {
+  switch (status) {
+    case 'reviewed':
+      return { label: 'Reviewed', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'issue_found':
+      return { label: 'Issue found', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    case 'received':
+      return { label: 'Received', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'not_received':
+      return { label: 'Not received', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    case 'not_applicable':
+      return { label: 'Not applicable', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+    case 'unknown':
+    default:
+      return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoClosingDependencyStatusPresentation(
+  status: DemoCondoClosingDependencyStatus,
+): { label: string; bg: string; color: string; border: string } {
+  switch (status) {
+    case 'none_noted':
+      return { label: 'None noted', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'open_item':
+      return { label: 'Open item', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.25)' }
+    case 'issue_flagged':
+      return { label: 'Issue flagged', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    case 'lawyer_review_required':
+      return {
+        label: 'Lawyer review required',
+        bg: '#fee2e2',
+        color: '#991b1b',
+        border: 'rgba(185,28,28,0.35)',
+      }
+    default:
+      return { label: 'None noted', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+/** Keyword match for unit/title/inspection/closing dependency supporting documents. */
+export function condoUnitClosingDependenciesDocumentMatchesHaystack(haystack: string): boolean {
+  const t = haystack.toLowerCase().replace(/\s+/g, ' ').trim()
+  if (!t) return false
+  return (
+    /\btitle\b/.test(t) ||
+    /\blegal\s+description\b/.test(t) ||
+    /\bcommitment\b/.test(t) ||
+    /\bparking\b/.test(t) ||
+    /\bstorage\b/.test(t) ||
+    /\blimited\s+common\b/.test(t) ||
+    /\bpermit\b/.test(t) ||
+    /\bcode\s+(violation|enforcement)\b/.test(t) ||
+    /\bmunicipal\s+lien\b/.test(t) ||
+    /\binspection\b/.test(t) ||
+    /\bseller\s+disclosure\b/.test(t) ||
+    /\bproperty\s+condition\b/.test(t) ||
+    /\brepair\s+(addendum|disclosure)\b/.test(t)
+  )
+}
+
 const CONDO_SUMMARY_MONTHS = [
   'Jan',
   'Feb',
@@ -1993,6 +2404,9 @@ export function buildCondoDiligenceInternalReport(input: {
   const questionnaire = condo?.questionnaireLenderReview
     ? normalizeCondoQuestionnaireLenderReview(condo.questionnaireLenderReview)
     : normalizeCondoQuestionnaireLenderReview(undefined)
+  const unitClosing = condo?.unitClosingDependenciesReview
+    ? normalizeCondoUnitClosingDependenciesReview(condo.unitClosingDependenciesReview)
+    : normalizeCondoUnitClosingDependenciesReview(undefined)
 
   const estoppelLines = [
     `Review status: ${condoEstoppelReviewStatusPresentation(estoppel.reviewStatus).label}`,
@@ -2082,6 +2496,23 @@ export function buildCondoDiligenceInternalReport(input: {
     `Notes: ${nonEmptyOrDash(questionnaire.notes)}`,
   ]
 
+  const unitClosingLines = [
+    `Title review: ${condoTitleReviewStatusPresentation(unitClosing.titleReviewStatus).label}`,
+    `Legal description: ${condoLegalDescriptionStatusPresentation(unitClosing.legalDescriptionStatus).label}`,
+    `Parking / storage: ${condoParkingStorageStatusPresentation(unitClosing.parkingStorageStatus).label}`,
+    `Limited common elements: ${condoLimitedCommonElementStatusPresentation(unitClosing.limitedCommonElementStatus).label}`,
+    `Permits / code: ${condoPermitsCodeStatusPresentation(unitClosing.permitsCodeStatus).label}`,
+    `Municipal liens: ${condoMunicipalLienStatusPresentation(unitClosing.municipalLienStatus).label}`,
+    `Inspection: ${condoUnitInspectionStatusPresentation(unitClosing.inspectionStatus).label}`,
+    `Seller repair disclosure: ${condoSellerRepairDisclosureStatusPresentation(unitClosing.sellerRepairDisclosureStatus).label}`,
+    `Closing dependencies: ${condoClosingDependencyStatusPresentation(unitClosing.closingDependencyStatus).label}`,
+    `Title evidence document id: ${unitClosing.titleEvidenceDocumentId ?? '—'}`,
+    `Inspection evidence document id: ${unitClosing.inspectionEvidenceDocumentId ?? '—'}`,
+    `Seller disclosure evidence document id: ${unitClosing.sellerDisclosureEvidenceDocumentId ?? '—'}`,
+    `Dependency note: ${nonEmptyOrDash(unitClosing.dependencyNote)}`,
+    `Notes: ${nonEmptyOrDash(unitClosing.notes)}`,
+  ]
+
   const findingLines =
     findings.length === 0
       ? ['No findings recorded']
@@ -2114,6 +2545,7 @@ export function buildCondoDiligenceInternalReport(input: {
     { title: 'Records / governance review', lines: governanceLines },
     { title: 'Disclosure package review', lines: disclosureLines },
     { title: 'Questionnaire / lender review', lines: questionnaireLines },
+    { title: 'Unit & closing dependencies', lines: unitClosingLines },
     { title: 'Open findings', lines: findingLines },
     {
       title: 'Open requests',
@@ -2133,6 +2565,7 @@ export function buildCondoDiligenceInternalReport(input: {
         `Records / governance notes: ${nonEmptyOrDash(governance.notes)}`,
         `Disclosure package notes: ${nonEmptyOrDash(disclosure.notes)}`,
         `Questionnaire / lender notes: ${nonEmptyOrDash(questionnaire.notes)}`,
+        `Unit & closing dependency notes: ${nonEmptyOrDash(unitClosing.notes)}`,
       ],
     },
   ]
@@ -2547,5 +2980,6 @@ export function buildDefaultCondoDiligence(options?: BuildDefaultCondoDiligenceO
     associationRecordsGovernanceReview: buildDefaultCondoAssociationRecordsGovernanceReview(),
     disclosurePackageReview: buildDefaultCondoDisclosurePackageReview(),
     questionnaireLenderReview: buildDefaultCondoQuestionnaireLenderReview(),
+    unitClosingDependenciesReview: buildDefaultCondoUnitClosingDependenciesReview(),
   }
 }

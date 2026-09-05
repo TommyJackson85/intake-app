@@ -437,6 +437,106 @@ export type DemoCondoQuestionnaireLenderReview = {
   notes: string
 }
 
+/** Title / commitment review workflow (operational only — not insurability). */
+export type DemoCondoTitleReviewStatus =
+  | 'not_started'
+  | 'requested'
+  | 'received'
+  | 'in_review'
+  | 'reviewed'
+  | 'issue_found'
+
+/** Legal description comparison notes (operational only — not legal sufficiency). */
+export type DemoCondoLegalDescriptionStatus =
+  | 'unknown'
+  | 'matches_recorded_materials'
+  | 'difference_noted'
+  | 'lawyer_review_required'
+
+/** Parking / storage rights tracking (operational only). */
+export type DemoCondoParkingStorageStatus =
+  | 'unknown'
+  | 'not_applicable'
+  | 'reviewed_no_issue_noted'
+  | 'right_or_assignment_noted'
+  | 'issue_found'
+  | 'lawyer_review_required'
+
+/** Limited common element rights tracking (operational only). */
+export type DemoCondoLimitedCommonElementStatus =
+  | 'unknown'
+  | 'not_applicable'
+  | 'reviewed_no_issue_noted'
+  | 'right_or_assignment_noted'
+  | 'issue_found'
+  | 'lawyer_review_required'
+
+/** Permits / code / violation disclosures (operational only — not code compliance). */
+export type DemoCondoPermitsCodeStatus =
+  | 'unknown'
+  | 'none_disclosed'
+  | 'possible_issue_noted'
+  | 'issue_disclosed'
+  | 'lawyer_review_required'
+
+/** Municipal lien / assessment disclosures (operational only — not lien validity). */
+export type DemoCondoMunicipalLienStatus =
+  | 'unknown'
+  | 'none_disclosed'
+  | 'possible_issue_noted'
+  | 'issue_disclosed'
+  | 'lawyer_review_required'
+
+/** Unit inspection / condition reference (operational only — not property condition). */
+export type DemoCondoUnitInspectionStatus =
+  | 'unknown'
+  | 'not_applicable'
+  | 'requested'
+  | 'received'
+  | 'reviewed'
+  | 'issue_found'
+
+/** Seller repair / condition disclosure tracking (operational only). */
+export type DemoCondoSellerRepairDisclosureStatus =
+  | 'unknown'
+  | 'not_received'
+  | 'received'
+  | 'reviewed'
+  | 'issue_found'
+  | 'not_applicable'
+
+/** Closing dependency follow-up status (operational only — not closing readiness). */
+export type DemoCondoClosingDependencyStatus =
+  | 'none_noted'
+  | 'open_item'
+  | 'issue_flagged'
+  | 'lawyer_review_required'
+
+/**
+ * Structured unit & closing dependencies review (demo) — internal issue-spotting only.
+ * Does not determine title insurability, legal sufficiency, property condition, code compliance,
+ * lien validity, or closing readiness.
+ */
+export type DemoCondoUnitClosingDependenciesReview = {
+  titleReviewStatus: DemoCondoTitleReviewStatus
+  legalDescriptionStatus: DemoCondoLegalDescriptionStatus
+  parkingStorageStatus: DemoCondoParkingStorageStatus
+  limitedCommonElementStatus: DemoCondoLimitedCommonElementStatus
+  permitsCodeStatus: DemoCondoPermitsCodeStatus
+  municipalLienStatus: DemoCondoMunicipalLienStatus
+  inspectionStatus: DemoCondoUnitInspectionStatus
+  sellerRepairDisclosureStatus: DemoCondoSellerRepairDisclosureStatus
+  closingDependencyStatus: DemoCondoClosingDependencyStatus
+  /** Linked matter document id when set; null when unset. */
+  titleEvidenceDocumentId: string | null
+  /** Linked matter document id when set; null when unset. */
+  inspectionEvidenceDocumentId: string | null
+  /** Linked matter document id when set; null when unset. */
+  sellerDisclosureEvidenceDocumentId: string | null
+  dependencyNote: string
+  notes: string
+}
+
 export type DemoCondoDiligence = {
   applicable: boolean
   status: DemoCondoDiligenceMatterStatus
@@ -456,6 +556,8 @@ export type DemoCondoDiligence = {
   disclosurePackageReview?: DemoCondoDisclosurePackageReview
   /** Optional structured questionnaire / lender fields; absent on older persisted demo rows. */
   questionnaireLenderReview?: DemoCondoQuestionnaireLenderReview
+  /** Optional structured unit & closing dependency fields; absent on older persisted demo rows. */
+  unitClosingDependenciesReview?: DemoCondoUnitClosingDependenciesReview
 }
 
 export type DemoFirm = {

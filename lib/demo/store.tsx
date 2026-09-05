@@ -59,12 +59,14 @@ import {
   normalizeCondoEstoppelReview,
   normalizeCondoQuestionnaireLenderReview,
   normalizeCondoSirsMilestoneReview,
+  normalizeCondoUnitClosingDependenciesReview,
   parseDemoCondoAssociationFinancialReview,
   parseDemoCondoAssociationRecordsGovernanceReview,
   parseDemoCondoDisclosurePackageReview,
   parseDemoCondoEstoppelReview,
   parseDemoCondoQuestionnaireLenderReview,
   parseDemoCondoSirsMilestoneReview,
+  parseDemoCondoUnitClosingDependenciesReview,
 } from '@/lib/demo/condoDiligence'
 import {
   appendDemoMatterReviewTaskIfValid,
@@ -324,6 +326,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
   )
   const disclosurePackageReview = parseDemoCondoDisclosurePackageReview(o.disclosurePackageReview)
   const questionnaireLenderReview = parseDemoCondoQuestionnaireLenderReview(o.questionnaireLenderReview)
+  const unitClosingDependenciesReview = parseDemoCondoUnitClosingDependenciesReview(o.unitClosingDependenciesReview)
 
   return {
     applicable: o.applicable,
@@ -338,6 +341,7 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
     ...(associationRecordsGovernanceReview ? { associationRecordsGovernanceReview } : {}),
     ...(disclosurePackageReview ? { disclosurePackageReview } : {}),
     ...(questionnaireLenderReview ? { questionnaireLenderReview } : {}),
+    ...(unitClosingDependenciesReview ? { unitClosingDependenciesReview } : {}),
   }
 }
 
@@ -1823,6 +1827,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             associationRecordsGovernanceReview: governancePatch,
             disclosurePackageReview: disclosurePatch,
             questionnaireLenderReview: questionnairePatch,
+            unitClosingDependenciesReview: unitClosingPatch,
             ...restPatch
           } = definedEntries
           const nextBase: DemoCondoDiligence = {
@@ -1875,6 +1880,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               ? {
                   ...normalizeCondoQuestionnaireLenderReview(existing.questionnaireLenderReview),
                   ...questionnairePatch,
+                }
+              : undefined
+          }
+          if ('unitClosingDependenciesReview' in definedEntries) {
+            nextBase.unitClosingDependenciesReview = unitClosingPatch
+              ? {
+                  ...normalizeCondoUnitClosingDependenciesReview(existing.unitClosingDependenciesReview),
+                  ...unitClosingPatch,
                 }
               : undefined
           }
