@@ -3503,6 +3503,153 @@ export function buildCondoDiligenceSummaryDraftDocumentInput(input: {
   }
 }
 
+
+export type CondoDiligenceReviewMemoSection = {
+  title: string
+  lines: string[]
+}
+
+export type CondoDiligenceReviewMemo = {
+  title: string
+  disclaimer: string
+  generatedAtLabel: string
+  matterLabel: string
+  matterStatusLabel: string
+  sections: CondoDiligenceReviewMemoSection[]
+  /** Full plain-text body for clipboard / print / immutable saved draft content. */
+  plainText: string
+}
+
+/**
+ * Concise Internal Condo Diligence Review Memo from the current Review Dashboard snapshot.
+ * Dated work product only — does not certify compliance, clearance, or closing readiness.
+ */
+export function buildCondoDiligenceReviewMemo(input: {
+  dashboard: CondoDiligenceReviewDashboard
+  matterLabel?: string
+  now?: Date
+}): CondoDiligenceReviewMemo {
+  const now = input.now ?? new Date()
+  const generatedAtLabel = formatReportGeneratedAt(now)
+  const matterLabel = (input.matterLabel ?? '').trim() || 'Matter'
+  const title = 'Internal Condo Diligence Review Memo'
+  const disclaimer =
+    'Internal lawyer work product only. Dated operational snapshot of recorded Condo Diligence Review Dashboard data at generation time. Not a legal opinion, buyer recommendation, closing authorization, clearance determination, compliance certification, or client-ready report.'
+
+  const snapshotLines = [
+    `Matter status: ${input.dashboard.matterStatus.label}`,
+    input.dashboard.documentsLine,
+    input.dashboard.findingsLine,
+    `Active review tasks: ${input.dashboard.activeReviewTaskCount}`,
+    `Attention rows: ${input.dashboard.concernRowCount}`,
+    `Next action: ${input.dashboard.nextAction}`,
+  ]
+  if (input.dashboard.estoppelAttention) {
+    snapshotLines.push(`Estoppel attention: ${input.dashboard.estoppelAttention}`)
+  }
+
+  const reviewAreaLines = input.dashboard.rows.map((row) => {
+    const detail = row.detail?.trim()
+    const attention = row.attention ? ' (attention)' : ''
+    return detail
+      ? `${row.title}: ${row.badge.label}${attention} — ${detail}`
+      : `${row.title}: ${row.badge.label}${attention}`
+  })
+
+  const checkpoint = input.dashboard.lawyerCheckpoint
+  const checkpointLines = [
+    `Status: ${checkpoint.badge.label}`,
+    `Reviewed: ${checkpoint.reviewedAt?.trim() || '—'}`,
+    `Reviewer: ${checkpoint.reviewerName?.trim() || '—'}`,
+    `Open findings at review: ${
+      checkpoint.openFindingCountAtReview === null || checkpoint.openFindingCountAtReview === undefined
+        ? '—'
+        : String(checkpoint.openFindingCountAtReview)
+    }`,
+    `Active follow-up tasks at review: ${
+      checkpoint.activeFollowUpTaskCountAtReview === null ||
+      checkpoint.activeFollowUpTaskCountAtReview === undefined
+        ? '—'
+        : String(checkpoint.activeFollowUpTaskCountAtReview)
+    }`,
+  ]
+
+  const sections: CondoDiligenceReviewMemoSection[] = [
+    { title: 'Snapshot', lines: snapshotLines },
+    { title: 'Review areas', lines: reviewAreaLines },
+    { title: 'Lawyer review checkpoint', lines: checkpointLines },
+    { title: 'Disclaimer', lines: [disclaimer, input.dashboard.disclaimer] },
+  ]
+
+  const plainText = [
+    title,
+    '',
+    disclaimer,
+    '',
+    `Matter: ${matterLabel}`,
+    `Generated: ${generatedAtLabel}`,
+    `Matter status: ${input.dashboard.matterStatus.label}`,
+    '',
+    ...sections.flatMap((section) => [`## ${section.title}`, ...section.lines.map((l) => `- ${l}`), '']),
+  ]
+    .join('\n')
+    .trim()
+
+  return {
+    title,
+    disclaimer,
+    generatedAtLabel,
+    matterLabel,
+    matterStatusLabel: input.dashboard.matterStatus.label,
+    sections,
+    plainText,
+  }
+}
+
+/**
+ * Builds an `AddDemoDocumentInput` snapshot of the Internal Condo Diligence Review Memo.
+ * Immutable content lives in `generatedInternalSummary.content` for Memo History / View memo.
+ */
+export function buildCondoDiligenceReviewMemoDraftDocumentInput(input: {
+  matterId: string
+  uploadedByStaffId: string
+  memo: Pick<CondoDiligenceReviewMemo, 'title' | 'plainText' | 'generatedAtLabel' | 'matterLabel'>
+  generatedAtIso?: string
+  id?: string
+}): AddDemoDocumentInput | null {
+  const matter_id = input.matterId.trim()
+  const uploaded_by_staff_id = input.uploadedByStaffId.trim()
+  if (!matter_id || !uploaded_by_staff_id) return null
+  const content = input.memo.plainText.trim()
+  if (!content) return null
+
+  const generatedAt = input.generatedAtIso?.trim() || new Date().toISOString()
+  const stamp = input.memo.generatedAtLabel.trim() || formatReportGeneratedAt(new Date(generatedAt))
+  const name = `Internal Condo Diligence Review Memo — ${stamp}`
+
+  return {
+    matter_id,
+    name,
+    category: 'Compliance',
+    document_subtype: CONDO_DILIGENCE_REVIEW_MEMO_SUBTYPE,
+    description:
+      'Internal lawyer review memo snapshot — not shared to the client portal. Lawyer work product only. Not a compliance certificate or closing-readiness determination.',
+    document_date: stamp.slice(0, 10),
+    source: 'Condo Diligence (demo) — internal memo',
+    status: 'draft',
+    uploaded_by_staff_id,
+    uploaded_at: generatedAt,
+    ...(input.id ? { id: input.id } : {}),
+    generatedInternalSummary: {
+      generatedType: 'condo_diligence_review_memo',
+      generatedAt,
+      sourceMatterId: matter_id,
+      content,
+      visibility: 'internal',
+    },
+  }
+}
+
 type MatterEligibilityInput = {
   matter_type: DemoMatter['matter_type']
   property: Pick<DemoMatter['property'], 'address' | 'property_type'> & { county?: DemoMatter['property']['county'] }
