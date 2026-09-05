@@ -66,6 +66,8 @@ import {
   buildCondoDiligenceOperationalSummary,
   buildCondoDiligenceReviewDashboard,
   buildCondoDiligenceSummaryDraftDocumentInput,
+  buildCondoDiligenceReviewMemo,
+  buildCondoDiligenceReviewMemoDraftDocumentInput,
   condoDiligenceMatterStatusPresentation,
   condoDisclosurePackageCompletenessPresentation,
   condoDisclosurePackageDeliveryMethodLabel,
@@ -322,6 +324,10 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     'idle' | 'saving' | 'saved' | 'failed'
   >('idle')
   const [condoReportSavedDocId, setCondoReportSavedDocId] = useState<string | null>(null)
+  const [condoMemoPanelOpen, setCondoMemoPanelOpen] = useState(false)
+  const [condoMemoCopyStatus, setCondoMemoCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [condoMemoSaveStatus, setCondoMemoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
+  const [condoMemoSavedDocId, setCondoMemoSavedDocId] = useState<string | null>(null)
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null)
   const [compareSummariesOpen, setCompareSummariesOpen] = useState(false)
   const [reviewTaskDocumentId, setReviewTaskDocumentId] = useState<string | null>(null)
@@ -335,6 +341,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   const [condoActivityFilter, setCondoActivityFilter] =
     useState<CondoDiligenceActivityViewFilter>('all')
   const condoReportSaveLockRef = React.useRef(false)
+  const condoMemoSaveLockRef = React.useRef(false)
 
   const matterId = matter?.id ?? ''
   const effectiveMatter: DemoMatter | null =
@@ -513,6 +520,17 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     matterDocumentRequests,
     activeCondoReviewTasks.length,
   ])
+
+  const condoReviewMemo = useMemo(() => {
+    if (!condoReviewDashboard || !effectiveMatter) return null
+    const matterLabel = [effectiveMatter.file_id, effectiveMatter.property?.address]
+      .filter((v) => typeof v === 'string' && v.trim())
+      .join(' · ')
+    return buildCondoDiligenceReviewMemo({
+      dashboard: condoReviewDashboard,
+      matterLabel,
+    })
+  }, [condoReviewDashboard, effectiveMatter])
 
   const goToCondoDiligenceSection = (sectionId: string) => {
     setActiveTab('Condo Diligence')
@@ -1201,7 +1219,254 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                     >
                       Lawyer checkpoint
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setCondoMemoPanelOpen(true)}
+                      aria-label="Generate internal Condo Diligence review memo"
+                      style={{
+                        background: '#134252',
+                        border: '1px solid #134252',
+                        borderRadius: 6,
+                        padding: '4px 8px',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: '#fff',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Generate internal memo
+                    </button>
                   </div>
+
+                  {condoMemoPanelOpen && condoReviewMemo ? (
+                    <div
+                      id="condo-diligence-review-memo-preview"
+                      style={{
+                        border: '1px solid rgba(94,82,64,0.14)',
+                        borderRadius: 8,
+                        padding: 12,
+                        background: '#fcfcf9',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 10,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'flex-start',
+                          justifyContent: 'space-between',
+                          gap: 10,
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                            {condoReviewMemo.title}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '40rem' }}>
+                            {condoReviewMemo.disclaimer}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#627c71', marginTop: 4 }}>
+                            {condoReviewMemo.matterLabel} · Generated {condoReviewMemo.generatedAtLabel} · Status:{' '}
+                            {condoReviewMemo.matterStatusLabel}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          <button
+                            type="button"
+                            disabled={condoMemoSaveStatus === 'saving'}
+                            onClick={() => {
+                              if (!condoReviewMemo || !effectiveMatter) return
+                              if (condoMemoSaveLockRef.current || condoMemoSaveStatus === 'saving') return
+                              condoMemoSaveLockRef.current = true
+                              setCondoMemoSaveStatus('saving')
+                              const staffId = staff[0]?.id ?? ''
+                              const draftInput = buildCondoDiligenceReviewMemoDraftDocumentInput({
+                                matterId: effectiveMatter.id,
+                                uploadedByStaffId: staffId,
+                                memo: condoReviewMemo,
+                              })
+                              if (!draftInput) {
+                                setCondoMemoSaveStatus('failed')
+                                condoMemoSaveLockRef.current = false
+                                window.setTimeout(() => setCondoMemoSaveStatus('idle'), 2500)
+                                return
+                              }
+                              const draftId = `doc-condo-memo-${Date.now()}`
+                              addDemoDocument({ ...draftInput, id: draftId })
+                              setCondoMemoSavedDocId(draftId)
+                              setCondoMemoSaveStatus('saved')
+                              window.setTimeout(() => {
+                                setCondoMemoSaveStatus('idle')
+                                condoMemoSaveLockRef.current = false
+                              }, 2500)
+                            }}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              background: condoMemoSaveStatus === 'saving' ? '#f0f0f0' : '#134252',
+                              fontWeight: 800,
+                              fontSize: 11,
+                              color: condoMemoSaveStatus === 'saving' ? '#627c71' : '#fff',
+                              cursor: condoMemoSaveStatus === 'saving' ? 'not-allowed' : 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {condoMemoSaveStatus === 'saving'
+                              ? 'Saving…'
+                              : condoMemoSaveStatus === 'saved'
+                                ? 'Saved'
+                                : condoMemoSaveStatus === 'failed'
+                                  ? 'Save failed'
+                                  : 'Save as internal draft'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(condoReviewMemo.plainText)
+                                setCondoMemoCopyStatus('copied')
+                                window.setTimeout(() => setCondoMemoCopyStatus('idle'), 2000)
+                              } catch {
+                                setCondoMemoCopyStatus('failed')
+                                window.setTimeout(() => setCondoMemoCopyStatus('idle'), 2500)
+                              }
+                            }}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              background: '#fff',
+                              fontWeight: 800,
+                              fontSize: 11,
+                              color: '#134252',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {condoMemoCopyStatus === 'copied'
+                              ? 'Copied'
+                              : condoMemoCopyStatus === 'failed'
+                                ? 'Copy failed'
+                                : 'Copy memo'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700')
+                              if (!printWindow) return
+                              const escaped = condoReviewMemo.plainText
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                              printWindow.document.write(
+                                `<!doctype html><html><head><title>${condoReviewMemo.title}</title><style>body{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;white-space:pre-wrap;padding:24px;color:#134252;line-height:1.45} h1{font-size:16px}</style></head><body><pre>${escaped}</pre></body></html>`,
+                              )
+                              printWindow.document.close()
+                              printWindow.focus()
+                              printWindow.print()
+                            }}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              background: '#fff',
+                              fontWeight: 800,
+                              fontSize: 11,
+                              color: '#134252',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Print
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCondoMemoPanelOpen(false)}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              background: '#fff',
+                              fontWeight: 800,
+                              fontSize: 11,
+                              color: '#627c71',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Hide preview
+                          </button>
+                        </div>
+                      </div>
+                      {condoMemoSaveStatus === 'saved' ? (
+                        <div
+                          role="status"
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: 8,
+                            border: '1px solid rgba(47,133,90,0.35)',
+                            background: '#e8f5f0',
+                            color: '#166534',
+                            fontSize: 12,
+                            fontWeight: 800,
+                          }}
+                        >
+                          Internal memo draft saved to this matter’s Documents (not shared to the client portal). It
+                          appears under Condo Diligence Memo History.
+                          {condoMemoSavedDocId ? (
+                            <>
+                              {' '}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab('Documents')
+                                  setPreviewDocumentId(condoMemoSavedDocId)
+                                }}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  padding: 0,
+                                  color: '#134252',
+                                  fontWeight: 900,
+                                  textDecoration: 'underline',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                View saved memo
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {condoReviewMemo.sections.map((section) => (
+                          <div key={section.title}>
+                            <div style={{ fontSize: 12, fontWeight: 900, color: '#134252', marginBottom: 4 }}>
+                              {section.title}
+                            </div>
+                            <ul
+                              style={{
+                                margin: 0,
+                                paddingLeft: 18,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 2,
+                              }}
+                            >
+                              {section.lines.map((line) => (
+                                <li key={`${section.title}-${line}`} style={{ fontSize: 12, color: '#134252' }}>
+                                  {line}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               )}
 

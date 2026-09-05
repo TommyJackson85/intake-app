@@ -6,6 +6,8 @@ import {
   buildCondoDiligenceOperationalSummary,
   buildCondoDiligenceReviewDashboard,
   buildCondoDiligenceSummaryDraftDocumentInput,
+  buildCondoDiligenceReviewMemo,
+  buildCondoDiligenceReviewMemoDraftDocumentInput,
   CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE,
   CONDO_DILIGENCE_REVIEW_MEMO_SUBTYPE,
   isCondoDiligenceInternalSummaryDocument,
@@ -2400,6 +2402,129 @@ describe('condoDiligence', () => {
       expect(listCondoDiligenceInternalSummaryDocuments([summary, olderMemo, newerMemo]).map((d) => d.id)).toEqual([
         'doc-summary',
       ])
+    })
+  })
+
+  describe('buildCondoDiligenceReviewMemo', () => {
+    const matterId = 'm-review-memo'
+    const now = new Date('2026-09-05T12:00:00')
+
+    it('builds a concise dated memo from the review dashboard without readiness language', () => {
+      const condo = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' })
+      condo.findings = [{ id: 'f1', text: 'Reserve shortfall flagged' }]
+      condo.estoppelReview = {
+        ...buildDefaultCondoEstoppelReview(),
+        reviewStatus: 'issue_found',
+      }
+      const dashboard = buildCondoDiligenceReviewDashboard({
+        matterId,
+        condo,
+        activeReviewTaskCount: 2,
+        now,
+      })
+      const memo = buildCondoDiligenceReviewMemo({
+        dashboard,
+        matterLabel: 'FL-200 · 88 Gulf View Ct, Sarasota, FL',
+        now,
+      })
+
+      expect(memo.title).toBe('Internal Condo Diligence Review Memo')
+      expect(memo.generatedAtLabel).toBe('2026-09-05 12:00')
+      expect(memo.matterLabel).toContain('FL-200')
+      expect(memo.plainText).toContain(memo.title)
+      expect(memo.plainText).toContain('Next action:')
+      expect(memo.plainText).toContain('Lawyer review checkpoint')
+      expect(memo.disclaimer.toLowerCase()).toContain('internal lawyer work product only')
+      expect(memo.plainText.toLowerCase()).not.toContain('ready to close')
+      expect(memo.plainText.toLowerCase()).not.toContain('approved for closing')
+      expect(memo.sections.map((s) => s.title)).toEqual([
+        'Snapshot',
+        'Review areas',
+        'Lawyer review checkpoint',
+        'Disclaimer',
+      ])
+    })
+  })
+
+  describe('buildCondoDiligenceReviewMemoDraftDocumentInput', () => {
+    const matterId = 'm-memo-draft'
+    const now = new Date('2026-09-05T12:00:00')
+
+    it('builds an internal Compliance draft with immutable memo metadata', () => {
+      const condo = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' })
+      const dashboard = buildCondoDiligenceReviewDashboard({ matterId, condo, now })
+      const memo = buildCondoDiligenceReviewMemo({
+        dashboard,
+        matterLabel: 'FL-200 · Test Address, FL',
+        now,
+      })
+      const draft = buildCondoDiligenceReviewMemoDraftDocumentInput({
+        matterId,
+        uploadedByStaffId: 'staff-1',
+        memo,
+        generatedAtIso: '2026-09-05T12:00:00.000Z',
+        id: 'doc-memo-1',
+      })
+      expect(draft).not.toBeNull()
+      expect(draft?.category).toBe('Compliance')
+      expect(draft?.status).toBe('draft')
+      expect(draft?.document_subtype).toBe(CONDO_DILIGENCE_REVIEW_MEMO_SUBTYPE)
+      expect(draft?.name).toContain('Internal Condo Diligence Review Memo')
+      expect(draft?.name).toContain('2026-09-05 12:00')
+      expect(draft?.source).toContain('internal memo')
+      expect(draft?.generatedInternalSummary).toEqual({
+        generatedType: 'condo_diligence_review_memo',
+        generatedAt: '2026-09-05T12:00:00.000Z',
+        sourceMatterId: matterId,
+        content: memo.plainText,
+        visibility: 'internal',
+      })
+      expect(
+        isCondoDiligenceReviewMemoDocument({
+          name: draft!.name,
+          document_subtype: draft!.document_subtype ?? null,
+          generatedInternalSummary: draft!.generatedInternalSummary,
+        }),
+      ).toBe(true)
+      expect(
+        isCondoDiligenceInternalSummaryDocument({
+          name: draft!.name,
+          document_subtype: draft!.document_subtype ?? null,
+          generatedInternalSummary: draft!.generatedInternalSummary,
+        }),
+      ).toBe(false)
+      expect(
+        listCondoDiligenceReviewMemoDocuments([
+          {
+            id: 'doc-memo-1',
+            name: draft!.name,
+            deletedAt: null,
+            uploaded_at: '2026-09-05T12:00:00.000Z',
+            document_subtype: draft!.document_subtype ?? null,
+            generatedInternalSummary: draft!.generatedInternalSummary,
+          },
+        ]).map((d) => d.id),
+      ).toEqual(['doc-memo-1'])
+    })
+
+    it('returns null when staff or content is missing', () => {
+      const condo = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' })
+      const dashboard = buildCondoDiligenceReviewDashboard({ matterId, condo, now })
+      const memo = buildCondoDiligenceReviewMemo({ dashboard, now })
+      expect(
+        buildCondoDiligenceReviewMemoDraftDocumentInput({
+          matterId,
+          uploadedByStaffId: '',
+          memo,
+        }),
+      ).toBeNull()
+      expect(
+        buildCondoDiligenceReviewMemoDraftDocumentInput({
+          matterId,
+          uploadedByStaffId: 'staff-1',
+          memo: { ...memo, plainText: '   ' },
+        }),
+      ).toBeNull()
     })
   })
 
