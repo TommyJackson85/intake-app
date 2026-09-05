@@ -19,6 +19,7 @@ const openReq: DemoDocumentRequest = {
   requested_by_staff_id: 'staff-emma-kline',
   status: 'open',
   fulfilled_document_id: null,
+  staff_receipt_acknowledged_at: null,
 }
 
 describe('clientDocumentRequestUpload', () => {
@@ -87,7 +88,7 @@ describe('clientDocumentRequestUpload', () => {
         attemptClientDocumentRequestUpload(
           [matter],
           [],
-          [{ ...openReq, status: 'fulfilled', fulfilled_document_id: 'd0' }],
+          [{ ...openReq, status: 'fulfilled', fulfilled_document_id: 'd0', staff_receipt_acknowledged_at: null }],
           {
             portalToken: matter.portal_token,
             requestId: openReq.id,
