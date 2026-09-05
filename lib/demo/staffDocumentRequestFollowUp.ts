@@ -184,6 +184,10 @@ export function markDocumentRequestNeedsFollowUp(
   return changed ? next : documentRequests
 }
 
+/**
+ * Pure mutation: reverse Needs follow-up back to none for an eligible request.
+ * Returns the same array reference when denied. Staff-only; does not change portal labels.
+ */
 export function clearDocumentRequestNeedsFollowUp(
   matters: DemoMatter[],
   documentRequests: DemoDocumentRequest[],
@@ -205,6 +209,31 @@ export function clearDocumentRequestNeedsFollowUp(
     }
   })
   return changed ? next : documentRequests
+}
+
+export type DocumentRequestClearFollowUpPresentation = {
+  actionLabel: string
+  detailLabel: string
+  canClearNeedsFollowUp: boolean
+}
+
+/**
+ * Staff presentation for the **Clear follow-up** reverse action.
+ * Clearing removes only the internal Needs follow-up signal — it does not reject a document,
+ * contact the client, create a task/reminder, or record a legal conclusion.
+ */
+export function getDocumentRequestClearFollowUpPresentation(input: {
+  request: DemoDocumentRequest | null | undefined
+  matters: DemoMatter[]
+}): DocumentRequestClearFollowUpPresentation {
+  const canClearNeedsFollowUp = canClearDocumentRequestNeedsFollowUp(input)
+  return {
+    actionLabel: 'Clear follow-up',
+    detailLabel: canClearNeedsFollowUp
+      ? 'Removes the internal Needs follow-up signal only. Does not change client portal status, contact the client, create a task or reminder, reject a document, or record a legal conclusion.'
+      : 'Clear follow-up is unavailable for this request.',
+    canClearNeedsFollowUp,
+  }
 }
 
 export type DocumentRequestFollowUpDetailPresentation = {
