@@ -29,6 +29,16 @@ import type {
   DemoCondoQuestionnaireLenderIssueStatus,
   DemoCondoQuestionnaireLenderReview,
   DemoCondoQuestionnaireStatus,
+  DemoCondoClosingDependencyStatus,
+  DemoCondoLegalDescriptionStatus,
+  DemoCondoLimitedCommonElementStatus,
+  DemoCondoMunicipalLienStatus,
+  DemoCondoParkingStorageStatus,
+  DemoCondoPermitsCodeStatus,
+  DemoCondoSellerRepairDisclosureStatus,
+  DemoCondoTitleReviewStatus,
+  DemoCondoUnitClosingDependenciesReview,
+  DemoCondoUnitInspectionStatus,
   DemoCondoRecordsAccessStatus,
   DemoCondoRentalRestrictionStatus,
   DemoCondoReserveFundingStatus,
@@ -68,6 +78,16 @@ import {
   condoQuestionnaireFinancingEligibilityPresentation,
   condoQuestionnaireLenderIssueStatusPresentation,
   condoQuestionnaireStatusPresentation,
+  condoClosingDependencyStatusPresentation,
+  condoLegalDescriptionStatusPresentation,
+  condoLimitedCommonElementStatusPresentation,
+  condoMunicipalLienStatusPresentation,
+  condoParkingStorageStatusPresentation,
+  condoPermitsCodeStatusPresentation,
+  condoSellerRepairDisclosureStatusPresentation,
+  condoTitleReviewStatusPresentation,
+  condoUnitClosingDependenciesDocumentMatchesHaystack,
+  condoUnitInspectionStatusPresentation,
   condoRequiredDocMatchesLinkageHaystack,
   condoRequiredDocDerivedStatusPresentation,
   condoSirsApplicabilityPresentation,
@@ -85,6 +105,7 @@ import {
   normalizeCondoEstoppelReview,
   normalizeCondoQuestionnaireLenderReview,
   normalizeCondoSirsMilestoneReview,
+  normalizeCondoUnitClosingDependenciesReview,
   resolveCondoQuestionnaireFinancingEligibility,
   shouldShowCondoQuestionnaireLenderReviewForm,
   syncRequiredDocumentsFromDerivedLinkage,
@@ -4752,6 +4773,454 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             </div>
                           </>
                         )}
+                      </div>
+                    )
+                  })()}
+
+                  {(() => {
+                    const unitClosingReview = normalizeCondoUnitClosingDependenciesReview(
+                      condoDiligence.unitClosingDependenciesReview,
+                    )
+                    const titlePresent = condoTitleReviewStatusPresentation(unitClosingReview.titleReviewStatus)
+                    const closingPresent = condoClosingDependencyStatusPresentation(
+                      unitClosingReview.closingDependencyStatus,
+                    )
+                    const fieldLabel: React.CSSProperties = {
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: '#627c71',
+                      marginBottom: 4,
+                    }
+                    const fieldInput: React.CSSProperties = {
+                      width: '100%',
+                      padding: '7px 8px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(94,82,64,0.25)',
+                      fontSize: 13,
+                      color: '#134252',
+                      background: '#fff',
+                    }
+                    const linkedDocuments = matterDocuments.filter((d) => {
+                      const haystack = [d.name, d.document_subtype ?? '', d.category].filter(Boolean).join(' ')
+                      return condoUnitClosingDependenciesDocumentMatchesHaystack(haystack)
+                    })
+                    const linkedRequests = matterDocumentRequests.filter((r) => {
+                      const haystack = [r.title, r.description ?? '', r.category].filter(Boolean).join(' ')
+                      return condoUnitClosingDependenciesDocumentMatchesHaystack(haystack)
+                    })
+                    const patchUnitClosing = (patch: Partial<DemoCondoUnitClosingDependenciesReview>) => {
+                      if (!matterId) return
+                      patchCondoDiligence(matterId, {
+                        unitClosingDependenciesReview: { ...unitClosingReview, ...patch },
+                      })
+                    }
+                    const matterContext = [
+                      effectiveMatter.property.address,
+                      effectiveMatter.property.property_type,
+                      effectiveMatter.transactionType,
+                      effectiveMatter.financingType,
+                      effectiveMatter.key_dates.closing_date
+                        ? `Closing ${effectiveMatter.key_dates.closing_date}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                    const showAttention =
+                      unitClosingReview.titleReviewStatus === 'issue_found' ||
+                      unitClosingReview.legalDescriptionStatus === 'difference_noted' ||
+                      unitClosingReview.legalDescriptionStatus === 'lawyer_review_required' ||
+                      unitClosingReview.parkingStorageStatus === 'issue_found' ||
+                      unitClosingReview.parkingStorageStatus === 'lawyer_review_required' ||
+                      unitClosingReview.limitedCommonElementStatus === 'issue_found' ||
+                      unitClosingReview.limitedCommonElementStatus === 'lawyer_review_required' ||
+                      unitClosingReview.permitsCodeStatus === 'possible_issue_noted' ||
+                      unitClosingReview.permitsCodeStatus === 'issue_disclosed' ||
+                      unitClosingReview.permitsCodeStatus === 'lawyer_review_required' ||
+                      unitClosingReview.municipalLienStatus === 'possible_issue_noted' ||
+                      unitClosingReview.municipalLienStatus === 'issue_disclosed' ||
+                      unitClosingReview.municipalLienStatus === 'lawyer_review_required' ||
+                      unitClosingReview.inspectionStatus === 'issue_found' ||
+                      unitClosingReview.sellerRepairDisclosureStatus === 'issue_found' ||
+                      unitClosingReview.closingDependencyStatus === 'open_item' ||
+                      unitClosingReview.closingDependencyStatus === 'issue_flagged' ||
+                      unitClosingReview.closingDependencyStatus === 'lawyer_review_required'
+
+                    const parkingOptions = (
+                      <>
+                        <option value="unknown">Unknown</option>
+                        <option value="not_applicable">Not applicable</option>
+                        <option value="reviewed_no_issue_noted">Reviewed — no issue noted</option>
+                        <option value="right_or_assignment_noted">Right or assignment noted</option>
+                        <option value="issue_found">Issue found</option>
+                        <option value="lawyer_review_required">Lawyer review required</option>
+                      </>
+                    )
+                    const disclosedIssueOptions = (
+                      <>
+                        <option value="unknown">Unknown</option>
+                        <option value="none_disclosed">None disclosed</option>
+                        <option value="possible_issue_noted">Possible issue noted</option>
+                        <option value="issue_disclosed">Issue disclosed</option>
+                        <option value="lawyer_review_required">Lawyer review required</option>
+                      </>
+                    )
+
+                    return (
+                      <div
+                        id="condo-unit-closing-dependencies"
+                        style={{
+                          border: '1px solid rgba(94,82,64,0.12)',
+                          borderRadius: 8,
+                          padding: 14,
+                          background: 'white',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                              Unit &amp; Closing Dependencies
+                            </div>
+                            <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '36rem' }}>
+                              Internal tracking for title/legal description notes, parking/storage and limited common
+                              element rights, permits/code and municipal lien disclosures, inspection and seller repair
+                              references, and closing follow-ups. Issue-spotting only — not a title insurability, property
+                              condition, code-compliance, lien-validity, or closing-readiness determination.
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: titlePresent.bg,
+                                color: titlePresent.color,
+                                border: `1px solid ${titlePresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Title: {titlePresent.label}
+                            </span>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: closingPresent.bg,
+                                color: closingPresent.color,
+                                border: `1px solid ${closingPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Closing deps: {closingPresent.label}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: 12, color: '#627c71', fontWeight: 700 }}>{matterContext}</div>
+
+                        {showAttention && (
+                          <div
+                            role="status"
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(240,180,41,0.45)',
+                              background: '#fff8e6',
+                              color: '#b45309',
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            Attention: unit, title, disclosure, or closing-dependency signals need lawyer review. Demo
+                            reminder only — not a legal determination of title, condition, compliance, or closing
+                            readiness.
+                          </div>
+                        )}
+
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                            gap: 10,
+                          }}
+                        >
+                          <label>
+                            <span style={fieldLabel}>Title review status</span>
+                            <select
+                              value={unitClosingReview.titleReviewStatus}
+                              onChange={(e) =>
+                                patchUnitClosing({
+                                  titleReviewStatus: e.target.value as DemoCondoTitleReviewStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="not_started">Not started</option>
+                              <option value="requested">Requested</option>
+                              <option value="received">Received</option>
+                              <option value="in_review">In review</option>
+                              <option value="reviewed">Reviewed</option>
+                              <option value="issue_found">Issue found</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Legal description status</span>
+                            <select
+                              value={unitClosingReview.legalDescriptionStatus}
+                              onChange={(e) =>
+                                patchUnitClosing({
+                                  legalDescriptionStatus: e.target.value as DemoCondoLegalDescriptionStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="matches_recorded_materials">Matches recorded materials</option>
+                              <option value="difference_noted">Difference noted</option>
+                              <option value="lawyer_review_required">Lawyer review required</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Parking / storage</span>
+                            <select
+                              value={unitClosingReview.parkingStorageStatus}
+                              onChange={(e) =>
+                                patchUnitClosing({
+                                  parkingStorageStatus: e.target.value as DemoCondoParkingStorageStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {parkingOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Limited common elements</span>
+                            <select
+                              value={unitClosingReview.limitedCommonElementStatus}
+                              onChange={(e) =>
+                                patchUnitClosing({
+                                  limitedCommonElementStatus: e.target.value as DemoCondoLimitedCommonElementStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {parkingOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Permits / code</span>
+                            <select
+                              value={unitClosingReview.permitsCodeStatus}
+                              onChange={(e) =>
+                                patchUnitClosing({
+                                  permitsCodeStatus: e.target.value as DemoCondoPermitsCodeStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {disclosedIssueOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Municipal liens</span>
+                            <select
+                              value={unitClosingReview.municipalLienStatus}
+                              onChange={(e) =>
+                                patchUnitClosing({
+                                  municipalLienStatus: e.target.value as DemoCondoMunicipalLienStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              {disclosedIssueOptions}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Inspection status</span>
+                            <select
+                              value={unitClosingReview.inspectionStatus}
+                              onChange={(e) =>
+                                patchUnitClosing({
+                                  inspectionStatus: e.target.value as DemoCondoUnitInspectionStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="not_applicable">Not applicable</option>
+                              <option value="requested">Requested</option>
+                              <option value="received">Received</option>
+                              <option value="reviewed">Reviewed</option>
+                              <option value="issue_found">Issue found</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Seller repair disclosure</span>
+                            <select
+                              value={unitClosingReview.sellerRepairDisclosureStatus}
+                              onChange={(e) =>
+                                patchUnitClosing({
+                                  sellerRepairDisclosureStatus:
+                                    e.target.value as DemoCondoSellerRepairDisclosureStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="not_received">Not received</option>
+                              <option value="received">Received</option>
+                              <option value="reviewed">Reviewed</option>
+                              <option value="issue_found">Issue found</option>
+                              <option value="not_applicable">Not applicable</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Closing dependency status</span>
+                            <select
+                              value={unitClosingReview.closingDependencyStatus}
+                              onChange={(e) =>
+                                patchUnitClosing({
+                                  closingDependencyStatus: e.target.value as DemoCondoClosingDependencyStatus,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="none_noted">None noted</option>
+                              <option value="open_item">Open item</option>
+                              <option value="issue_flagged">Issue flagged</option>
+                              <option value="lawyer_review_required">Lawyer review required</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Title evidence document</span>
+                            <select
+                              value={unitClosingReview.titleEvidenceDocumentId ?? ''}
+                              onChange={(e) =>
+                                patchUnitClosing({
+                                  titleEvidenceDocumentId: e.target.value.trim() ? e.target.value : null,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="">None linked</option>
+                              {matterDocuments.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {d.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Inspection evidence document</span>
+                            <select
+                              value={unitClosingReview.inspectionEvidenceDocumentId ?? ''}
+                              onChange={(e) =>
+                                patchUnitClosing({
+                                  inspectionEvidenceDocumentId: e.target.value.trim() ? e.target.value : null,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="">None linked</option>
+                              {matterDocuments.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {d.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            <span style={fieldLabel}>Seller disclosure evidence document</span>
+                            <select
+                              value={unitClosingReview.sellerDisclosureEvidenceDocumentId ?? ''}
+                              onChange={(e) =>
+                                patchUnitClosing({
+                                  sellerDisclosureEvidenceDocumentId: e.target.value.trim()
+                                    ? e.target.value
+                                    : null,
+                                })
+                              }
+                              style={fieldInput}
+                            >
+                              <option value="">None linked</option>
+                              {matterDocuments.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {d.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+
+                        <label style={{ display: 'block' }}>
+                          <span style={fieldLabel}>Dependency note</span>
+                          <textarea
+                            value={unitClosingReview.dependencyNote}
+                            onChange={(e) => patchUnitClosing({ dependencyNote: e.target.value })}
+                            rows={2}
+                            placeholder="Open closing dependencies / follow-ups (internal)"
+                            style={{ ...fieldInput, resize: 'vertical' }}
+                          />
+                        </label>
+
+                        <label style={{ display: 'block' }}>
+                          <span style={fieldLabel}>Lawyer notes</span>
+                          <textarea
+                            value={unitClosingReview.notes}
+                            onChange={(e) => patchUnitClosing({ notes: e.target.value })}
+                            rows={3}
+                            placeholder="Internal unit & closing dependency notes (demo)"
+                            style={{ ...fieldInput, resize: 'vertical' }}
+                          />
+                        </label>
+
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 900, color: '#134252', marginBottom: 6 }}>
+                            Linked unit / title / inspection documents &amp; requests
+                          </div>
+                          <div style={{ fontSize: 11, color: '#627c71', marginBottom: 8, lineHeight: 1.4 }}>
+                            Read-only keyword matches (title, legal description, parking/storage, permits, municipal
+                            liens, inspection, seller disclosure). Complements evidence selects — no new required-doc
+                            checklist row.
+                          </div>
+                          {linkedDocuments.length === 0 && linkedRequests.length === 0 ? (
+                            <div style={{ fontSize: 13, color: '#627c71' }}>
+                              No matching unit / closing dependency documents or requests linked yet.
+                            </div>
+                          ) : (
+                            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {linkedDocuments.map((d) => (
+                                <li key={d.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Document:</strong> {d.name}
+                                  {d.document_subtype ? ` · ${d.document_subtype}` : ''}
+                                </li>
+                              ))}
+                              {linkedRequests.map((r) => (
+                                <li key={r.id} style={{ fontSize: 13, color: '#134252' }}>
+                                  <strong>Request ({r.status}):</strong> {r.title}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
                       </div>
                     )
                   })()}
