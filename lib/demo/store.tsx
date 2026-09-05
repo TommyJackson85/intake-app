@@ -60,6 +60,7 @@ import {
   normalizeCondoQuestionnaireLenderReview,
   normalizeCondoSirsMilestoneReview,
   normalizeCondoUnitClosingDependenciesReview,
+  parseCondoDiligenceFindingLinkedReviewTaskIds,
   parseDemoCondoAssociationFinancialReview,
   parseDemoCondoAssociationRecordsGovernanceReview,
   parseDemoCondoDisclosurePackageReview,
@@ -315,7 +316,12 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
     const id = typeof f.id === 'string' ? f.id.trim() : ''
     const text = typeof f.text === 'string' ? f.text : ''
     if (!id) continue
-    findings.push({ id, text })
+    const linkedReviewTaskIds = parseCondoDiligenceFindingLinkedReviewTaskIds(f.linkedReviewTaskIds)
+    findings.push({
+      id,
+      text,
+      ...(linkedReviewTaskIds && linkedReviewTaskIds.length > 0 ? { linkedReviewTaskIds } : {}),
+    })
   }
 
   const estoppelReview = parseDemoCondoEstoppelReview(o.estoppelReview)

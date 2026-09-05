@@ -8,6 +8,10 @@ type CreateCondoDiligenceSummaryReviewTaskModalProps = {
   open: boolean
   document: DemoDocument | null
   staff: DemoStaffProfile[]
+  /** Optional prefill when creating a follow-up from a Condo Diligence finding. */
+  initialTitle?: string | null
+  /** Optional prefill when creating a follow-up from a Condo Diligence finding. */
+  initialInternalNote?: string | null
   onClose: () => void
   onCreate: (input: {
     title: string
@@ -21,6 +25,8 @@ export default function CreateCondoDiligenceSummaryReviewTaskModal({
   open,
   document,
   staff,
+  initialTitle = null,
+  initialInternalNote = null,
   onClose,
   onCreate,
 }: CreateCondoDiligenceSummaryReviewTaskModalProps) {
@@ -31,11 +37,12 @@ export default function CreateCondoDiligenceSummaryReviewTaskModal({
 
   useEffect(() => {
     if (!open || !document) return
-    setTitle(defaultCondoDiligenceSummaryReviewTaskTitle(document.name))
+    const prefillTitle = initialTitle?.trim()
+    setTitle(prefillTitle || defaultCondoDiligenceSummaryReviewTaskTitle(document.name))
     setAssigneeId('')
     setDueDate('')
-    setInternalNote('')
-  }, [open, document])
+    setInternalNote(initialInternalNote?.trim() || '')
+  }, [open, document, initialTitle, initialInternalNote])
 
   useEffect(() => {
     if (!open) return

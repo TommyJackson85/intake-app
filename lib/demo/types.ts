@@ -194,6 +194,11 @@ export type DemoCondoDiligenceRequiredDocument = {
 export type DemoCondoDiligenceFinding = {
   id: string
   text: string
+  /**
+   * Optional links to internal Condo Diligence summary review tasks (`DemoMatterReviewTask.id`).
+   * Absent on older persisted findings. Lawyer-controlled only — not shared to the client portal.
+   */
+  linkedReviewTaskIds?: string[]
 }
 
 /** Structured estoppel review (demo) — complements the Estoppel checklist row. */

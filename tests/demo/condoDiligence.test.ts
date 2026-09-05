@@ -18,6 +18,7 @@ import {
   buildDefaultCondoQuestionnaireLenderReview,
   buildDefaultCondoSirsMilestoneReview,
   buildDefaultCondoUnitClosingDependenciesReview,
+  buildCondoDiligenceFindingFollowUpTaskPrefill,
   condoDiligenceMatterStatusPresentation,
   condoDisclosurePackageCompletenessPresentation,
   condoDisclosurePackageDeliveryMethodLabel,
@@ -55,6 +56,7 @@ import {
   isCondoSirsMilestoneReviewUntouched,
   isCondoUnitClosingDependenciesReviewUntouched,
   isFloridaPropertyAddress,
+  listLinkableCondoDiligenceReviewTasksForFinding,
   normalizeCondoAssociationFinancialReview,
   normalizeCondoAssociationRecordsGovernanceReview,
   normalizeCondoDisclosurePackageReview,
@@ -69,11 +71,19 @@ import {
   parseDemoCondoQuestionnaireLenderReview,
   parseDemoCondoSirsMilestoneReview,
   parseDemoCondoUnitClosingDependenciesReview,
+  parseCondoDiligenceFindingLinkedReviewTaskIds,
   resolveCondoQuestionnaireFinancingEligibility,
   shouldShowCondoQuestionnaireLenderReviewForm,
   syncRequiredDocumentsFromDerivedLinkage,
+  withCondoDiligenceFindingLinkedReviewTaskId,
 } from '@/lib/demo/condoDiligence'
-import type { DemoCondoDiligence, DemoDocument, DemoDocumentRequest, DemoMatter } from '@/lib/demo/types'
+import type {
+  DemoCondoDiligence,
+  DemoDocument,
+  DemoDocumentRequest,
+  DemoMatter,
+  DemoMatterReviewTask,
+} from '@/lib/demo/types'
 
 function matter(partial: Partial<DemoMatter> & Pick<DemoMatter, 'matter_type' | 'property'>): DemoMatter {
   return {
@@ -556,6 +566,12 @@ describe('condoDiligence', () => {
       const base = buildDefaultCondoDiligence({ nowIso: () => '2026-04-27T12:00:00.000Z' })
       expect(isCondoDiligenceUntouched({ ...base, notes: 'Call HOA tomorrow.' })).toBe(false)
       expect(isCondoDiligenceUntouched({ ...base, findings: [{ id: 'f1', text: 'Potential issue' }] })).toBe(false)
+      expect(
+        isCondoDiligenceUntouched({
+          ...base,
+          findings: [{ id: 'f1', text: '', linkedReviewTaskIds: ['review-task-1'] }],
+        }),
+      ).toBe(false)
       expect(
         isCondoDiligenceUntouched({
           ...base,
@@ -1378,6 +1394,105 @@ describe('condoDiligence', () => {
           findings: [],
         }),
       ).toBe('not_started')
+    })
+  })
+
+  describe('finding linkedReviewTaskIds', () => {
+    it('parses missing or invalid linkedReviewTaskIds as undefined and dedupes valid ids', () => {
+      expect(parseCondoDiligenceFindingLinkedReviewTaskIds(undefined)).toBeUndefined()
+      expect(parseCondoDiligenceFindingLinkedReviewTaskIds(null)).toBeUndefined()
+      expect(parseCondoDiligenceFindingLinkedReviewTaskIds('x')).toBeUndefined()
+      expect(parseCondoDiligenceFindingLinkedReviewTaskIds([])).toEqual([])
+      expect(parseCondoDiligenceFindingLinkedReviewTaskIds([' a ', 'a', '', 2, 'b'])).toEqual(['a', 'b'])
+    })
+
+    it('appends linked review task ids without duplicates', () => {
+      const finding = { id: 'f1', text: 'Insurance gap noted' }
+      expect(withCondoDiligenceFindingLinkedReviewTaskId(finding, 'task-1')).toEqual({
+        id: 'f1',
+        text: 'Insurance gap noted',
+        linkedReviewTaskIds: ['task-1'],
+      })
+      expect(
+        withCondoDiligenceFindingLinkedReviewTaskId(
+          { ...finding, linkedReviewTaskIds: ['task-1'] },
+          'task-1',
+        ),
+      ).toEqual({
+        id: 'f1',
+        text: 'Insurance gap noted',
+        linkedReviewTaskIds: ['task-1'],
+      })
+      expect(
+        withCondoDiligenceFindingLinkedReviewTaskId(
+          { ...finding, linkedReviewTaskIds: ['task-1'] },
+          'task-2',
+        ).linkedReviewTaskIds,
+      ).toEqual(['task-1', 'task-2'])
+    })
+
+    it('lists only unlinked eligible condo diligence summary review tasks for a finding', () => {
+      const tasks: DemoMatterReviewTask[] = [
+        {
+          id: 't1',
+          matter_id: 'm1',
+          title: 'Review summary A',
+          status: 'open',
+          assignee_id: null,
+          due_date: null,
+          internal_note: null,
+          linked_document_id: 'doc-1',
+          task_type: 'condo_diligence_summary_review',
+          visibility: 'internal',
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          id: 't2',
+          matter_id: 'm1',
+          title: 'Review summary B',
+          status: 'in_review',
+          assignee_id: null,
+          due_date: null,
+          internal_note: null,
+          linked_document_id: 'doc-2',
+          task_type: 'condo_diligence_summary_review',
+          visibility: 'internal',
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          id: 't3',
+          matter_id: 'm2',
+          title: 'Other matter',
+          status: 'open',
+          assignee_id: null,
+          due_date: null,
+          internal_note: null,
+          linked_document_id: 'doc-3',
+          task_type: 'condo_diligence_summary_review',
+          visibility: 'internal',
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+      ]
+      const linkable = listLinkableCondoDiligenceReviewTasksForFinding({
+        tasks,
+        matterId: 'm1',
+        finding: { linkedReviewTaskIds: ['t1'] },
+      })
+      expect(linkable.map((t) => t.id)).toEqual(['t2'])
+    })
+
+    it('builds follow-up task prefill from finding text without implying legal conclusions', () => {
+      const prefill = buildCondoDiligenceFindingFollowUpTaskPrefill({
+        text: 'Special assessment timing needs confirmation before closing.',
+      })
+      expect(prefill.title).toContain('Follow up:')
+      expect(prefill.title).toContain('Special assessment')
+      expect(prefill.internalNote).toContain('From Condo Diligence finding:')
+      expect(prefill.internalNote.toLowerCase()).not.toContain('closing ready')
+      expect(prefill.internalNote.toLowerCase()).not.toContain('approved')
     })
   })
 
