@@ -49,6 +49,7 @@ import {
   acknowledgeClientUploadReceipt,
   type AddDemoDocumentRequestInput,
 } from '@/lib/demo/demoDocumentRequest'
+import { tryLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
 import { attemptClientDocumentRequestUpload } from '@/lib/demo/clientDocumentRequestUpload'
 import {
   buildDefaultCondoDiligence,
@@ -123,6 +124,8 @@ type DemoContextType = {
   fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => boolean
   /** Staff acknowledgment that a client-portal upload was received for review. */
   acknowledgeClientUploadReceipt: (requestId: string) => boolean
+  /** Staff repair: link an eligible client-portal upload to an open same-matter document request. */
+  linkClientUploadToDocumentRequest: (documentId: string, requestId: string) => boolean
   addMatterReviewTask: (input: AddDemoMatterReviewTaskInput) => void
   updateMatterReviewTaskStatus: (taskId: string, status: DemoMatterReviewTaskStatus) => void
   /** Atomically updates multiple review-task statuses (e.g. bulk mark in review). */
@@ -1778,6 +1781,21 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           if (documentRequests === prev.documentRequests) return prev
           succeeded = true
           return { ...prev, documentRequests }
+        })
+        return succeeded
+      },
+      linkClientUploadToDocumentRequest: (documentId, requestId) => {
+        let succeeded = false
+        setState((prev) => {
+          const result = tryLinkClientUploadToDocumentRequest(
+            prev.matters,
+            prev.documents,
+            prev.documentRequests,
+            { documentId, requestId },
+          )
+          if (!result.ok) return prev
+          succeeded = true
+          return { ...prev, documentRequests: result.documentRequests }
         })
         return succeeded
       },

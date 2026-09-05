@@ -638,5 +638,16 @@ export const demoSeedData: DemoSeedData = {
       status: 'draft',
       deletedAt: null,
     },
+    {
+      id: 'doc-006',
+      matter_id: 'matter-001',
+      name: 'Buyer Photo ID - Unlinked Portal Upload.pdf',
+      category: 'Compliance',
+      source: 'client_portal',
+      uploaded_at: '2026-03-12T15:30:00.000Z',
+      uploaded_by_staff_id: 'staff-emma-kline',
+      status: 'draft',
+      deletedAt: null,
+    },
   ],
 }

@@ -19,6 +19,8 @@ type DocumentPreviewModalProps = {
   staff: DemoStaffProfile[]
   fulfilledRequest: DemoDocumentRequest | null
   onClose: () => void
+  canLinkToDocumentRequest?: boolean
+  onLinkToDocumentRequest?: () => void
 }
 
 export default function DocumentPreviewModal({
@@ -27,6 +29,8 @@ export default function DocumentPreviewModal({
   staff,
   fulfilledRequest,
   onClose,
+  canLinkToDocumentRequest = false,
+  onLinkToDocumentRequest,
 }: DocumentPreviewModalProps) {
   const formatDemoDateTime = (value: string) =>
     new Intl.DateTimeFormat('en-US', {
@@ -309,6 +313,25 @@ export default function DocumentPreviewModal({
                   ? `Fulfilled request: ${fulfilledRequest.title}`
                   : 'No linked fulfilled request.'}
               </div>
+              {canLinkToDocumentRequest && onLinkToDocumentRequest ? (
+                <button
+                  type="button"
+                  onClick={onLinkToDocumentRequest}
+                  style={{
+                    marginTop: 10,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(15,118,110,0.35)',
+                    background: '#ecfdf5',
+                    color: '#0f766e',
+                    fontWeight: 800,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Link to document request
+                </button>
+              ) : null}
             </div>
           </div>
 
