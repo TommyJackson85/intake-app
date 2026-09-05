@@ -58,7 +58,8 @@ import DemoTimelineNotes from '@/components/demo/DemoTimelineNotes'
 import { displayOrFallback, parseOtherPartyInfo } from '@/lib/demo/matterPartyDisplay'
 import DemoFinCENTab from '@/components/demo/DemoFinCENTab'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
-import { buildFinCENReportabilityReviewDashboard } from '@/lib/demo/fincenReportability'
+import { buildFinCENBeneficialOwnershipReviewDashboard } from '@/lib/demo/fincenBeneficialOwnership'
+import { buildFinCENReportabilityReviewDashboard, FINCEN_SECTION_IDS } from '@/lib/demo/fincenReportability'
 import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
 import CondoDiligenceSummaryCompareModal from '@/app/demo/_components/CondoDiligenceSummaryCompareModal'
 import CreateCondoDiligenceSummaryReviewTaskModal from '@/app/demo/_components/CreateCondoDiligenceSummaryReviewTaskModal'
@@ -368,6 +369,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   const fincenReportabilityDashboard = useMemo(() => {
     if (!effectiveMatter) return null
     return buildFinCENReportabilityReviewDashboard(effectiveMatter)
+  }, [effectiveMatter])
+
+  const fincenBeneficialOwnershipDashboard = useMemo(() => {
+    if (!effectiveMatter) return null
+    return buildFinCENBeneficialOwnershipReviewDashboard(effectiveMatter)
   }, [effectiveMatter])
 
   const matterDocuments = useMemo(() => {
@@ -853,7 +859,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                 <div style={{ color: '#134252', fontWeight: 900 }}>{formatYmd(effectiveMatter.fileOpenedDate)}</div>
               </div>
 
-              {(showCondoDiligenceTab || fincenSummary || fincenReportabilityDashboard || activeCondoReviewTasks.length > 0) && (
+              {(showCondoDiligenceTab ||
+                fincenSummary ||
+                fincenReportabilityDashboard ||
+                fincenBeneficialOwnershipDashboard ||
+                activeCondoReviewTasks.length > 0) && (
                 <div style={{ border: '1px solid rgba(94,82,64,0.12)', borderRadius: 8, padding: 12, background: 'white' }}>
                   <div style={{ fontSize: 13, fontWeight: 900, color: '#134252', marginBottom: 8 }}>Compliance Summary</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1129,6 +1139,186 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {fincenReportabilityDashboard.rows.map((row) => (
+                      <div
+                        key={row.id}
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                          padding: '8px 10px',
+                          borderRadius: 8,
+                          border: row.attention
+                            ? '1px solid rgba(240,180,41,0.45)'
+                            : '1px solid rgba(94,82,64,0.1)',
+                          background: row.attention ? '#fffaf0' : '#fcfcf9',
+                        }}
+                      >
+                        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: '#134252' }}>{row.title}</div>
+                          {row.detail ? (
+                            <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.4 }}>{row.detail}</div>
+                          ) : null}
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '4px 8px',
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 900,
+                              background: row.badge.bg,
+                              color: row.badge.color,
+                              border: `1px solid ${row.badge.border}`,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {row.badge.label}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => goToFinCENSection(row.sectionId)}
+                            aria-label={`Open ${row.title} in FinCEN and AML`}
+                            style={{
+                              background: 'white',
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              borderRadius: 6,
+                              padding: '4px 8px',
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: '#134252',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            View
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {fincenBeneficialOwnershipDashboard && (
+                <div
+                  style={{
+                    border: '1px solid rgba(94,82,64,0.12)',
+                    borderRadius: 8,
+                    padding: 12,
+                    background: 'white',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                        FinCEN Beneficial Ownership Review
+                      </div>
+                      <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '40rem' }}>
+                        {fincenBeneficialOwnershipDashboard.disclaimer}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '5px 10px',
+                          borderRadius: 999,
+                          fontSize: 11,
+                          fontWeight: 900,
+                          background: fincenBeneficialOwnershipDashboard.workspaceStatus.bg,
+                          color: fincenBeneficialOwnershipDashboard.workspaceStatus.color,
+                          border: `1px solid ${fincenBeneficialOwnershipDashboard.workspaceStatus.border}`,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {fincenBeneficialOwnershipDashboard.workspaceStatus.label}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => goToFinCENSection(FINCEN_SECTION_IDS.beneficialOwners)}
+                        aria-label="Open FinCEN and AML beneficial ownership section from review"
+                        style={{
+                          background: 'white',
+                          border: '1px solid rgba(94,82,64,0.25)',
+                          borderRadius: 6,
+                          padding: '4px 8px',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: '#134252',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Open FinCEN / AML
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ border: '1px solid rgba(94,82,64,0.1)', borderRadius: 8, padding: '8px 10px', background: '#fcfcf9' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>Demo gate</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginTop: 4 }}>
+                        {fincenBeneficialOwnershipDashboard.eligibleUnderDemoGate ? 'Open' : 'Outside gate'}
+                      </div>
+                    </div>
+                    <div style={{ border: '1px solid rgba(94,82,64,0.1)', borderRadius: 8, padding: '8px 10px', background: '#fcfcf9' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>Owners</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginTop: 4 }}>
+                        {fincenBeneficialOwnershipDashboard.ownerCount}
+                      </div>
+                    </div>
+                    <div style={{ border: '1px solid rgba(94,82,64,0.1)', borderRadius: 8, padding: '8px 10px', background: '#fcfcf9' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>Certified</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginTop: 4 }}>
+                        {fincenBeneficialOwnershipDashboard.certifiedOwnerCount}
+                      </div>
+                    </div>
+                    <div style={{ border: '1px solid rgba(94,82,64,0.1)', borderRadius: 8, padding: '8px 10px', background: '#fcfcf9' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>Attention rows</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginTop: 4 }}>
+                        {fincenBeneficialOwnershipDashboard.attentionRowCount}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 12, color: '#134252', lineHeight: 1.45 }}>
+                    <span style={{ fontWeight: 800 }}>Next action:</span> {fincenBeneficialOwnershipDashboard.nextAction}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: '#1e40af',
+                      lineHeight: 1.45,
+                      background: '#eff6ff',
+                      border: '1px solid rgba(30,64,175,0.2)',
+                      borderRadius: 8,
+                      padding: '8px 10px',
+                    }}
+                  >
+                    {fincenBeneficialOwnershipDashboard.regulatoryNote}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {fincenBeneficialOwnershipDashboard.rows.map((row) => (
                       <div
                         key={row.id}
                         style={{
