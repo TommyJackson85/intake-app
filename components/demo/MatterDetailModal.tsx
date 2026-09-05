@@ -64,6 +64,7 @@ import CreateCondoDiligenceSummaryReviewTaskModal from '@/app/demo/_components/C
 import {
   buildCondoDiligenceInternalReport,
   buildCondoDiligenceOperationalSummary,
+  buildCondoDiligenceReviewDashboard,
   buildCondoDiligenceSummaryDraftDocumentInput,
   condoDiligenceMatterStatusPresentation,
   condoDisclosurePackageCompletenessPresentation,
@@ -487,6 +488,34 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
       matterLabel,
     })
   }, [condoDiligence, effectiveMatter, matterDocuments, matterDocumentRequests])
+
+  const condoReviewDashboard = useMemo(() => {
+    if (!showCondoDiligenceTab || !effectiveMatter) return null
+    return buildCondoDiligenceReviewDashboard({
+      matterId: effectiveMatter.id,
+      condo: condoDiligence,
+      documents: matterDocuments,
+      documentRequests: matterDocumentRequests,
+      activeReviewTaskCount: activeCondoReviewTasks.length,
+    })
+  }, [
+    showCondoDiligenceTab,
+    effectiveMatter,
+    condoDiligence,
+    matterDocuments,
+    matterDocumentRequests,
+    activeCondoReviewTasks.length,
+  ])
+
+  const goToCondoDiligenceSection = (sectionId: string) => {
+    setActiveTab('Condo Diligence')
+    window.setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }, 80)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -936,6 +965,235 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         </div>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {condoReviewDashboard && (
+                <div
+                  style={{
+                    border: '1px solid rgba(94,82,64,0.12)',
+                    borderRadius: 8,
+                    padding: 12,
+                    background: 'white',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                        Condo Diligence Review Dashboard
+                      </div>
+                      <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '40rem' }}>
+                        {condoReviewDashboard.disclaimer}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '5px 10px',
+                          borderRadius: 999,
+                          fontSize: 11,
+                          fontWeight: 900,
+                          background: condoReviewDashboard.matterStatus.bg,
+                          color: condoReviewDashboard.matterStatus.color,
+                          border: `1px solid ${condoReviewDashboard.matterStatus.border}`,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {condoReviewDashboard.matterStatus.label}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('Condo Diligence')}
+                        aria-label="Open Condo Diligence workflow from review dashboard"
+                        style={{
+                          background: 'white',
+                          border: '1px solid rgba(94,82,64,0.25)',
+                          borderRadius: 6,
+                          padding: '4px 8px',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: '#134252',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Open Condo Diligence
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ border: '1px solid rgba(94,82,64,0.1)', borderRadius: 8, padding: '8px 10px', background: '#fcfcf9' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>Documents</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginTop: 4, lineHeight: 1.4 }}>
+                        {condoReviewDashboard.documentCounts.received} received ·{' '}
+                        {condoReviewDashboard.documentCounts.requested} requested ·{' '}
+                        {condoReviewDashboard.documentCounts.outstanding} outstanding
+                      </div>
+                    </div>
+                    <div style={{ border: '1px solid rgba(94,82,64,0.1)', borderRadius: 8, padding: '8px 10px', background: '#fcfcf9' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>Open findings</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginTop: 4 }}>
+                        {condoReviewDashboard.findingsLine}
+                      </div>
+                    </div>
+                    <div style={{ border: '1px solid rgba(94,82,64,0.1)', borderRadius: 8, padding: '8px 10px', background: '#fcfcf9' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>Active review tasks</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginTop: 4 }}>
+                        {condoReviewDashboard.activeReviewTaskCount}
+                      </div>
+                    </div>
+                    <div style={{ border: '1px solid rgba(94,82,64,0.1)', borderRadius: 8, padding: '8px 10px', background: '#fcfcf9' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>Attention rows</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginTop: 4 }}>
+                        {condoReviewDashboard.concernRowCount}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 12, color: '#134252', lineHeight: 1.45 }}>
+                    <span style={{ fontWeight: 800 }}>Next action:</span> {condoReviewDashboard.nextAction}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {condoReviewDashboard.rows.map((row) => (
+                      <div
+                        key={row.id}
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                          padding: '8px 10px',
+                          borderRadius: 8,
+                          border: row.attention
+                            ? '1px solid rgba(240,180,41,0.45)'
+                            : '1px solid rgba(94,82,64,0.1)',
+                          background: row.attention ? '#fffaf0' : '#fcfcf9',
+                        }}
+                      >
+                        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: '#134252' }}>{row.title}</div>
+                          {row.detail ? (
+                            <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.4 }}>{row.detail}</div>
+                          ) : null}
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '4px 8px',
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 900,
+                              background: row.badge.bg,
+                              color: row.badge.color,
+                              border: `1px solid ${row.badge.border}`,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {row.badge.label}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => goToCondoDiligenceSection(row.sectionId)}
+                            aria-label={`Open ${row.title} in Condo Diligence`}
+                            style={{
+                              background: 'white',
+                              border: '1px solid rgba(94,82,64,0.25)',
+                              borderRadius: 6,
+                              padding: '4px 8px',
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: '#134252',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            View
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {condoReviewDashboard.latestInternalSummaryDocumentId ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const id = condoReviewDashboard.latestInternalSummaryDocumentId
+                          if (id) setPreviewDocumentId(id)
+                        }}
+                        style={{
+                          background: 'white',
+                          border: '1px solid rgba(94,82,64,0.25)',
+                          borderRadius: 6,
+                          padding: '4px 8px',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: '#134252',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        View latest internal summary
+                      </button>
+                    ) : null}
+                    {condoReviewDashboard.lawyerCheckpoint.linkedSummaryDocumentId ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const id = condoReviewDashboard.lawyerCheckpoint.linkedSummaryDocumentId
+                          if (id) setPreviewDocumentId(id)
+                        }}
+                        style={{
+                          background: 'white',
+                          border: '1px solid rgba(94,82,64,0.25)',
+                          borderRadius: 6,
+                          padding: '4px 8px',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: '#134252',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        View checkpoint summary
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => goToCondoDiligenceSection('condo-lawyer-review-checkpoint')}
+                      style={{
+                        background: 'white',
+                        border: '1px solid rgba(94,82,64,0.25)',
+                        borderRadius: 6,
+                        padding: '4px 8px',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: '#134252',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Lawyer checkpoint
+                    </button>
                   </div>
                 </div>
               )}
