@@ -4,12 +4,13 @@ import { useParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { demoSeedData, DEMO_MILESTONE_LOGS, MILESTONE_LABELS, MILESTONE_ORDER } from '@/lib/demo/demoData'
 import type { MatterMilestoneStatus } from '@/lib/demo/types'
+import { buildClientDocumentRequestStatusView } from '@/lib/demo/clientDocumentRequestStatus'
 import { useDemoStore } from '@/lib/demo/store'
 
 export default function ClientPortalPage() {
   const params = useParams()
   const token = typeof params.token === 'string' ? params.token : ''
-  const { matters, documentRequests, fulfillDemoDocumentRequest } = useDemoStore()
+  const { matters, documentRequests, documents, fulfillDemoDocumentRequest } = useDemoStore()
   const [fulfillRequestId, setFulfillRequestId] = useState<string | null>(null)
   const [fulfillFileName, setFulfillFileName] = useState('')
   const [fulfillError, setFulfillError] = useState<string | null>(null)
@@ -46,12 +47,14 @@ export default function ClientPortalPage() {
     [matters, token],
   )
 
-  const openDocumentRequestsForMatter = useMemo(() => {
-    if (!matter) return []
-    return documentRequests
-      .filter((r) => r.matter_id === matter.id && r.status === 'open')
-      .sort((a, b) => new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime())
-  }, [documentRequests, matter])
+  const documentRequestStatus = useMemo(() => {
+    if (!matter) return null
+    return buildClientDocumentRequestStatusView({
+      matterId: matter.id,
+      documentRequests,
+      documents,
+    })
+  }, [documentRequests, documents, matter])
 
   const logs = useMemo(
     () => (matter ? DEMO_MILESTONE_LOGS.filter((l) => l.matter_id === matter.id) : []),
@@ -138,8 +141,8 @@ export default function ClientPortalPage() {
           </div>
         </div>
 
-        {/* Open document requests — same `documentRequests` as /demo/documents (DemoProvider) */}
-        {openDocumentRequestsForMatter.length > 0 && (
+        {/* Document request status — open + fulfilled (client-facing) */}
+        {documentRequestStatus && documentRequestStatus.totalCount > 0 && (
           <div
             style={{
               background: 'white',
@@ -157,34 +160,69 @@ export default function ClientPortalPage() {
                 color: '#627c71',
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
-                marginBottom: 14,
+                marginBottom: 6,
               }}
             >
-              Requested documents
+              Document request status
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#134252', marginBottom: 6 }}>
+              {documentRequestStatus.summaryLabel}
+            </div>
+            <div style={{ fontSize: 12, color: '#627c71', lineHeight: 1.45, marginBottom: 14 }}>
+              {documentRequestStatus.disclaimer}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {openDocumentRequestsForMatter.map((req, idx) => (
+              {documentRequestStatus.rows.map((row, idx) => (
                 <div
-                  key={req.id}
+                  key={row.id}
                   style={{
-                    paddingBottom: idx < openDocumentRequestsForMatter.length - 1 ? 16 : 0,
-                    borderBottom: idx < openDocumentRequestsForMatter.length - 1 ? '1px solid #f3f4f6' : 'none',
+                    paddingBottom: idx < documentRequestStatus.rows.length - 1 ? 16 : 0,
+                    borderBottom:
+                      idx < documentRequestStatus.rows.length - 1 ? '1px solid #f3f4f6' : 'none',
                   }}
                 >
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#134252', marginBottom: 4 }}>{req.title}</div>
-                  {req.description && (
-                    <div style={{ fontSize: 13, color: '#627c71', marginBottom: 8, lineHeight: 1.45 }}>{req.description}</div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#134252' }}>{row.title}</div>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '4px 10px',
+                        borderRadius: 999,
+                        fontSize: 11,
+                        fontWeight: 800,
+                        whiteSpace: 'nowrap',
+                        background: row.status === 'fulfilled' ? '#ecfdf5' : '#fff8e6',
+                        color: row.status === 'fulfilled' ? '#166534' : '#b45309',
+                        border:
+                          row.status === 'fulfilled'
+                            ? '1px solid rgba(47,133,90,0.35)'
+                            : '1px solid rgba(240,180,41,0.35)',
+                      }}
+                    >
+                      {row.statusLabel}
+                    </span>
+                  </div>
+                  {row.description && (
+                    <div style={{ fontSize: 13, color: '#627c71', marginBottom: 8, lineHeight: 1.45 }}>
+                      {row.description}
+                    </div>
                   )}
                   <div style={{ fontSize: 12, color: '#9ca3af', display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
                     <span>
-                      <span style={{ color: '#627c71' }}>Category:</span> {req.category}
-                    </span>
-                    <span style={{ textTransform: 'capitalize' }}>
-                      <span style={{ color: '#627c71' }}>Status:</span> {req.status}
+                      <span style={{ color: '#627c71' }}>Category:</span> {row.category}
                     </span>
                     <span>
                       <span style={{ color: '#627c71' }}>Requested:</span>{' '}
-                      {new Date(req.requested_at).toLocaleString('en-US', {
+                      {new Date(row.requestedAt).toLocaleString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',
@@ -192,32 +230,39 @@ export default function ClientPortalPage() {
                         minute: '2-digit',
                       })}
                     </span>
+                    {row.fulfilledDocumentName && (
+                      <span>
+                        <span style={{ color: '#627c71' }}>On file:</span> {row.fulfilledDocumentName}
+                      </span>
+                    )}
                   </div>
-                  <div style={{ marginTop: 12 }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFulfillRequestId(req.id)
-                        setFulfillFileName('')
-                        setFulfillError(null)
-                      }}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: 8,
-                        border: 'none',
-                        background: '#0f766e',
-                        color: 'white',
-                        fontWeight: 700,
-                        fontSize: 13,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Upload document
-                    </button>
-                    <span style={{ marginLeft: 10, fontSize: 12, color: '#9ca3af' }}>
-                      Demo: records metadata only; no real file is uploaded, stored, or downloaded.
-                    </span>
-                  </div>
+                  {row.canUpload && (
+                    <div style={{ marginTop: 12 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFulfillRequestId(row.id)
+                          setFulfillFileName('')
+                          setFulfillError(null)
+                        }}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: 8,
+                          border: 'none',
+                          background: '#0f766e',
+                          color: 'white',
+                          fontWeight: 700,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Upload document
+                      </button>
+                      <span style={{ marginLeft: 10, fontSize: 12, color: '#9ca3af' }}>
+                        Demo: records metadata only; no real file is uploaded, stored, or downloaded.
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
