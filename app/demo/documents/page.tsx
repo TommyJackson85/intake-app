@@ -157,14 +157,15 @@ export default function DemoDocumentsPage() {
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Matter</th>
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Uploaded file</th>
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Uploaded</th>
+              <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Receipt status</th>
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Action</th>
             </tr>
           </thead>
           <tbody>
             {clientUploadReceiptQueue.items.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding: '14px', color: '#627c71' }}>
-                  No client portal uploads awaiting receipt acknowledgment.
+                <td colSpan={6} style={{ padding: '14px', color: '#627c71' }}>
+                  No client portal uploads awaiting receipt review.
                 </td>
               </tr>
             ) : (
@@ -205,6 +206,9 @@ export default function DemoDocumentsPage() {
                   <td style={{ padding: '14px', color: '#627c71', verticalAlign: 'top' }}>
                     {formatDemoDateTime(item.uploadedAt)}
                   </td>
+                  <td style={{ padding: '14px', color: '#0f766e', fontWeight: 700, verticalAlign: 'top', fontSize: 13 }}>
+                    {item.receiptStatusLabel}
+                  </td>
                   <td style={{ padding: '14px', verticalAlign: 'top' }}>
                     <button
                       type="button"
@@ -220,7 +224,7 @@ export default function DemoDocumentsPage() {
                         cursor: 'pointer',
                       }}
                     >
-                      Acknowledge receipt
+                      Record receipt review
                     </button>
                   </td>
                 </tr>

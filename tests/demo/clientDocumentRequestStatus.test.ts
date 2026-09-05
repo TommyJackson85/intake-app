@@ -11,6 +11,8 @@ function request(partial: Partial<DemoDocumentRequest> & Pick<DemoDocumentReques
     requested_by_staff_id: 'staff-emma-kline',
     fulfilled_document_id: null,
     staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
     ...partial,
   }
 }
@@ -61,6 +63,8 @@ describe('clientDocumentRequestStatus', () => {
             requested_at: '2026-03-04T10:00:00.000Z',
             fulfilled_document_id: 'doc-001',
             staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
           }),
           request({
             id: 'r-other',
@@ -111,6 +115,8 @@ describe('clientDocumentRequestStatus', () => {
             status: 'fulfilled',
             fulfilled_document_id: 'doc-001',
             staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
           }),
         ],
         documents: docs,

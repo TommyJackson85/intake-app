@@ -50,6 +50,7 @@ import {
   type AddDemoDocumentRequestInput,
 } from '@/lib/demo/demoDocumentRequest'
 import { tryLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
+import { recordDocumentRequestReceiptReview } from '@/lib/demo/staffDocumentRequestReceiptReview'
 import { attemptClientDocumentRequestUpload } from '@/lib/demo/clientDocumentRequestUpload'
 import {
   buildDefaultCondoDiligence,
@@ -124,6 +125,8 @@ type DemoContextType = {
   fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => boolean
   /** Staff acknowledgment that a client-portal upload was received for review. */
   acknowledgeClientUploadReceipt: (requestId: string) => boolean
+  /** Staff records receipt review for an eligible fulfilled client-portal upload. */
+  recordDocumentRequestReceiptReview: (requestId: string, documentId?: string) => boolean
   /** Staff repair: link an eligible client-portal upload to an open same-matter document request. */
   linkClientUploadToDocumentRequest: (documentId: string, requestId: string) => boolean
   addMatterReviewTask: (input: AddDemoMatterReviewTaskInput) => void
@@ -1777,7 +1780,33 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       acknowledgeClientUploadReceipt: (requestId) => {
         let succeeded = false
         setState((prev) => {
-          const documentRequests = acknowledgeClientUploadReceipt(prev.documentRequests, requestId)
+          const staffId = prev.staff[0]?.id ?? ''
+          const request = prev.documentRequests.find((r) => r.id === requestId)
+          const documentId = request?.fulfilled_document_id ?? ''
+          const documentRequests = recordDocumentRequestReceiptReview(
+            prev.matters,
+            prev.documents,
+            prev.documentRequests,
+            { requestId, documentId, staffId },
+          )
+          if (documentRequests === prev.documentRequests) return prev
+          succeeded = true
+          return { ...prev, documentRequests }
+        })
+        return succeeded
+      },
+      recordDocumentRequestReceiptReview: (requestId, documentId) => {
+        let succeeded = false
+        setState((prev) => {
+          const staffId = prev.staff[0]?.id ?? ''
+          const request = prev.documentRequests.find((r) => r.id === requestId)
+          const resolvedDocumentId = (documentId ?? request?.fulfilled_document_id ?? '').trim()
+          const documentRequests = recordDocumentRequestReceiptReview(
+            prev.matters,
+            prev.documents,
+            prev.documentRequests,
+            { requestId, documentId: resolvedDocumentId, staffId },
+          )
           if (documentRequests === prev.documentRequests) return prev
           succeeded = true
           return { ...prev, documentRequests }

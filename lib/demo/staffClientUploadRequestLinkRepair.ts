@@ -118,6 +118,8 @@ export function tryLinkClientUploadToDocumentRequest(
         status: 'fulfilled' as const,
         fulfilled_document_id: document.id,
         staff_receipt_acknowledged_at: null,
+        staff_receipt_reviewed_by_staff_id: null,
+        staff_receipt_reviewed_document_id: null,
       }
     }
     if (r.fulfilled_document_id === document.id) {
@@ -127,6 +129,8 @@ export function tryLinkClientUploadToDocumentRequest(
         status: 'open' as const,
         fulfilled_document_id: null,
         staff_receipt_acknowledged_at: null,
+        staff_receipt_reviewed_by_staff_id: null,
+        staff_receipt_reviewed_document_id: null,
       }
     }
     return r

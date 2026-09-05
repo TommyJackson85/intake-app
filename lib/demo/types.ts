@@ -740,11 +740,15 @@ export type DemoDocumentRequest = {
   /** Set when fulfilled (e.g. portal simulated upload); links to `DemoDocument.id`. */
   fulfilled_document_id: string | null
   /**
-   * Staff acknowledgment of a client-portal upload against this request.
+   * Staff acknowledgment / receipt-review timestamp for a client-portal upload.
    * Null means the upload (if any) still needs receipt review in the staff queue.
    * Absent/legacy rows are coerced to null.
    */
   staff_receipt_acknowledged_at: string | null
+  /** Staff member who recorded receipt review (staff-only; not shown on portal). */
+  staff_receipt_reviewed_by_staff_id: string | null
+  /** Client-provided document id confirmed during receipt review (staff-only). */
+  staff_receipt_reviewed_document_id: string | null
 }
 
 /** Internal-only review of a saved Condo Diligence summary snapshot (not shared to portal). */

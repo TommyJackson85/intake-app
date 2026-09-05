@@ -37,6 +37,8 @@ function openRequest(overrides: Partial<DemoDocumentRequest> = {}): DemoDocument
     status: 'open',
     fulfilled_document_id: null,
     staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
     ...overrides,
   }
 }
@@ -58,6 +60,8 @@ describe('staffClientUploadRequestLinkRepair', () => {
       status: 'fulfilled',
       fulfilled_document_id: document.id,
       staff_receipt_acknowledged_at: null,
+      staff_receipt_reviewed_by_staff_id: null,
+      staff_receipt_reviewed_document_id: null,
     })
     expect(document.source).toBe(CLIENT_PORTAL_DOCUMENT_SOURCE)
     expect(document.uploaded_by_staff_id).toBe('staff-emma-kline')
@@ -70,6 +74,8 @@ describe('staffClientUploadRequestLinkRepair', () => {
       status: 'fulfilled',
       fulfilled_document_id: document.id,
       staff_receipt_acknowledged_at: '2026-03-12T11:00:00.000Z',
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
     }
     const target = openRequest({ id: 'req-correct', title: 'Correct request' })
     const result = tryLinkClientUploadToDocumentRequest(
@@ -85,11 +91,15 @@ describe('staffClientUploadRequestLinkRepair', () => {
       status: 'open',
       fulfilled_document_id: null,
       staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
     })
     expect(byId['req-correct']).toMatchObject({
       status: 'fulfilled',
       fulfilled_document_id: document.id,
       staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
     })
   })
 

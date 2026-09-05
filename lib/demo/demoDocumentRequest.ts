@@ -51,6 +51,8 @@ export function buildDemoDocumentRequest(
     status,
     fulfilled_document_id: null,
     staff_receipt_acknowledged_at: null,
+    staff_receipt_reviewed_by_staff_id: null,
+    staff_receipt_reviewed_document_id: null,
   }
 }
 
@@ -65,6 +67,8 @@ export function withCoercedDocumentRequestStatus(
     status?: unknown
     fulfilled_document_id?: unknown
     staff_receipt_acknowledged_at?: unknown
+    staff_receipt_reviewed_by_staff_id?: unknown
+    staff_receipt_reviewed_document_id?: unknown
   }
 ): DemoDocumentRequest {
   const fulfilled =
@@ -75,11 +79,23 @@ export function withCoercedDocumentRequestStatus(
     typeof r.staff_receipt_acknowledged_at === 'string' && r.staff_receipt_acknowledged_at.trim().length > 0
       ? r.staff_receipt_acknowledged_at
       : null
+  const staff_receipt_reviewed_by_staff_id =
+    typeof r.staff_receipt_reviewed_by_staff_id === 'string' &&
+    r.staff_receipt_reviewed_by_staff_id.trim().length > 0
+      ? r.staff_receipt_reviewed_by_staff_id
+      : null
+  const staff_receipt_reviewed_document_id =
+    typeof r.staff_receipt_reviewed_document_id === 'string' &&
+    r.staff_receipt_reviewed_document_id.trim().length > 0
+      ? r.staff_receipt_reviewed_document_id
+      : null
   return {
     ...r,
     status: coerceDemoDocumentRequestStatus(r.status),
     fulfilled_document_id: fulfilled,
     staff_receipt_acknowledged_at,
+    staff_receipt_reviewed_by_staff_id,
+    staff_receipt_reviewed_document_id,
   }
 }
 
@@ -136,6 +152,8 @@ export function tryFulfillDemoDocumentRequest(
           status: 'fulfilled' as const,
           fulfilled_document_id: created.id,
           staff_receipt_acknowledged_at: null,
+          staff_receipt_reviewed_by_staff_id: null,
+          staff_receipt_reviewed_document_id: null,
         }
       : r
   )
@@ -169,18 +187,27 @@ export function getFulfilledRequestDocumentName(
 export function acknowledgeClientUploadReceipt(
   documentRequests: DemoDocumentRequest[],
   requestId: string,
-  options?: { nowIso?: () => string },
+  options?: { nowIso?: () => string; staffId?: string },
 ): DemoDocumentRequest[] {
   const id = requestId.trim()
   if (!id) return documentRequests
   const nowIso = options?.nowIso ?? (() => new Date().toISOString())
+  const staffId =
+    typeof options?.staffId === 'string' && options.staffId.trim().length > 0
+      ? options.staffId.trim()
+      : null
   let changed = false
   const next = documentRequests.map((r) => {
     if (r.id !== id) return r
     if (r.status !== 'fulfilled' || !r.fulfilled_document_id) return r
     if (r.staff_receipt_acknowledged_at) return r
     changed = true
-    return { ...r, staff_receipt_acknowledged_at: nowIso() }
+    return {
+      ...r,
+      staff_receipt_acknowledged_at: nowIso(),
+      staff_receipt_reviewed_by_staff_id: staffId,
+      staff_receipt_reviewed_document_id: r.fulfilled_document_id,
+    }
   })
   return changed ? next : documentRequests
 }

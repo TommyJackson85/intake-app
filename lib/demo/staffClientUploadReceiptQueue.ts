@@ -1,14 +1,16 @@
 /**
  * Staff **Client upload receipt queue** — internal review of portal-submitted documents.
  *
- * Surfaces fulfilled document requests that were satisfied by a client-portal upload and have
- * not yet been staff-acknowledged. Does not expose AML / Condo Diligence internals to clients,
- * and does not change client-visible receipt wording beyond the existing Received state.
+ * Surfaces fulfilled document requests that were satisfied by a client-portal upload and still
+ * need staff receipt review. Does not expose AML / Condo Diligence internals to clients, and
+ * does not change client-visible receipt wording beyond the existing Received state.
  */
+import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
 import {
-  CLIENT_PORTAL_DOCUMENT_SOURCE,
-  getFulfilledRequestDocumentName,
-} from '@/lib/demo/demoDocumentRequest'
+  getDocumentRequestReceiptReviewPresentation,
+  isEligibleDocumentRequestForReceiptReview,
+  normalizeDocumentRequestReceiptReview,
+} from '@/lib/demo/staffDocumentRequestReceiptReview'
 import type { DemoDocument, DemoDocumentRequest, DemoMatter } from '@/lib/demo/types'
 
 export type StaffClientUploadReceiptQueueItem = {
@@ -22,6 +24,7 @@ export type StaffClientUploadReceiptQueueItem = {
   documentName: string
   uploadedAt: string
   requestedAt: string
+  receiptStatusLabel: string
 }
 
 export type StaffClientUploadReceiptQueue = {
@@ -31,7 +34,7 @@ export type StaffClientUploadReceiptQueue = {
 }
 
 /**
- * Pure staff queue of unacknowledged client-portal uploads linked to fulfilled requests.
+ * Pure staff queue of client-portal uploads pending receipt review.
  */
 export function buildStaffClientUploadReceiptQueue(input: {
   documentRequests: DemoDocumentRequest[]
@@ -43,13 +46,14 @@ export function buildStaffClientUploadReceiptQueue(input: {
 
   const items: StaffClientUploadReceiptQueueItem[] = []
   for (const request of input.documentRequests) {
-    if (request.status !== 'fulfilled') continue
-    if (request.staff_receipt_acknowledged_at) continue
-    const documentId = request.fulfilled_document_id
-    if (!documentId) continue
-    const document = documentsById.get(documentId)
+    if (!isEligibleDocumentRequestForReceiptReview(request, input.documents, input.matters)) {
+      continue
+    }
+    const review = normalizeDocumentRequestReceiptReview(request, input.documents)
+    if (review.status !== 'pending_review' || !review.document_id) continue
+    const presentation = getDocumentRequestReceiptReviewPresentation(review)
+    const document = documentsById.get(review.document_id)
     if (!document || document.deletedAt) continue
-    if ((document.source ?? '').trim() !== CLIENT_PORTAL_DOCUMENT_SOURCE) continue
     const matter = mattersById.get(request.matter_id)
     if (!matter) continue
 
@@ -64,6 +68,7 @@ export function buildStaffClientUploadReceiptQueue(input: {
       documentName: getFulfilledRequestDocumentName(request, input.documents) ?? document.name,
       uploadedAt: document.uploaded_at,
       requestedAt: request.requested_at,
+      receiptStatusLabel: presentation.statusLabel,
     })
   }
 
@@ -73,6 +78,6 @@ export function buildStaffClientUploadReceiptQueue(input: {
     pendingCount: items.length,
     items,
     disclaimer:
-      'Internal client-upload receipt queue. Items appear after a portal upload fulfills a client-visible document request. Acknowledging receipt is staff-only and is not shown on the client portal.',
+      'Internal client-upload receipt queue. Items appear after a portal upload fulfills a client-visible document request. Recording receipt review is staff-only and is not shown on the client portal.',
   }
 }

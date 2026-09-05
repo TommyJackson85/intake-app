@@ -127,6 +127,8 @@ export const demoSeedData: DemoSeedData = {
       status: 'open',
       fulfilled_document_id: null,
       staff_receipt_acknowledged_at: null,
+      staff_receipt_reviewed_by_staff_id: null,
+      staff_receipt_reviewed_document_id: null,
     },
     {
       id: 'docreq-002',
@@ -140,6 +142,8 @@ export const demoSeedData: DemoSeedData = {
       fulfilled_document_id: 'doc-001',
       // Staff-uploaded fulfillment historically — not in client-upload receipt queue.
       staff_receipt_acknowledged_at: '2026-03-04T11:00:00.000Z',
+      staff_receipt_reviewed_by_staff_id: 'staff-emma-kline',
+      staff_receipt_reviewed_document_id: 'doc-001',
     },
     {
       id: 'docreq-003',
@@ -152,6 +156,8 @@ export const demoSeedData: DemoSeedData = {
       status: 'fulfilled',
       fulfilled_document_id: 'doc-005',
       staff_receipt_acknowledged_at: null,
+      staff_receipt_reviewed_by_staff_id: null,
+      staff_receipt_reviewed_document_id: null,
     },
   ],
   demoFirm: {
