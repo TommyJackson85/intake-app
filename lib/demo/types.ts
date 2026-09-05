@@ -393,6 +393,50 @@ export type DemoCondoDisclosurePackageReview = {
   notes: string
 }
 
+/** Whether questionnaire / lender review appears needed (lawyer-scoped; does not change matter financing). */
+export type DemoCondoQuestionnaireApplicability =
+  | 'unknown'
+  | 'not_applicable'
+  | 'appears_applicable'
+  | 'lawyer_review_required'
+
+/** Operational questionnaire workflow status (not lender/project approval). */
+export type DemoCondoQuestionnaireStatus =
+  | 'not_started'
+  | 'requested'
+  | 'received'
+  | 'reviewed'
+  | 'issue_found'
+  | 'not_applicable'
+
+/** Issues disclosed in a lender/condo questionnaire (operational only). */
+export type DemoCondoQuestionnaireLenderIssueStatus =
+  | 'unknown'
+  | 'none_disclosed'
+  | 'issue_disclosed'
+  | 'lawyer_review_required'
+
+/** Structured condo questionnaire / lender review (demo) — internal tracking only. */
+export type DemoCondoQuestionnaireLenderReview = {
+  applicability: DemoCondoQuestionnaireApplicability
+  questionnaireStatus: DemoCondoQuestionnaireStatus
+  lenderName: string
+  lenderContactName: string
+  lenderContactEmail: string
+  lenderContactPhone: string
+  /** Linked matter document id when set; null when unset. */
+  questionnaireEvidenceDocumentId: string | null
+  /** YYYY-MM-DD when set; empty string when unset. */
+  requestDate: string
+  /** YYYY-MM-DD when set; empty string when unset. */
+  requestedResponseDate: string
+  /** YYYY-MM-DD when set; empty string when unset. */
+  receivedDate: string
+  lenderIssueStatus: DemoCondoQuestionnaireLenderIssueStatus
+  issueNote: string
+  notes: string
+}
+
 export type DemoCondoDiligence = {
   applicable: boolean
   status: DemoCondoDiligenceMatterStatus
@@ -410,6 +454,8 @@ export type DemoCondoDiligence = {
   associationRecordsGovernanceReview?: DemoCondoAssociationRecordsGovernanceReview
   /** Optional structured disclosure package fields; absent on older persisted demo rows. */
   disclosurePackageReview?: DemoCondoDisclosurePackageReview
+  /** Optional structured questionnaire / lender fields; absent on older persisted demo rows. */
+  questionnaireLenderReview?: DemoCondoQuestionnaireLenderReview
 }
 
 export type DemoFirm = {

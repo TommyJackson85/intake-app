@@ -28,6 +28,10 @@ import type {
   DemoCondoFinancialRiskLevel,
   DemoCondoGovernanceConcernLevel,
   DemoCondoLitigationOrDbprStatus,
+  DemoCondoQuestionnaireApplicability,
+  DemoCondoQuestionnaireLenderIssueStatus,
+  DemoCondoQuestionnaireLenderReview,
+  DemoCondoQuestionnaireStatus,
   DemoCondoRecordsAccessStatus,
   DemoCondoRentalRestrictionStatus,
   DemoCondoReserveFundingStatus,
@@ -334,6 +338,7 @@ export function isCondoDiligenceUntouched(
     associationFinancialReview?: DemoCondoAssociationFinancialReview | null
     associationRecordsGovernanceReview?: DemoCondoAssociationRecordsGovernanceReview | null
     disclosurePackageReview?: DemoCondoDisclosurePackageReview | null
+    questionnaireLenderReview?: DemoCondoQuestionnaireLenderReview | null
   },
 ): boolean {
   const notesEmpty = input.notes.trim() === ''
@@ -346,6 +351,7 @@ export function isCondoDiligenceUntouched(
     input.associationRecordsGovernanceReview,
   )
   const disclosureUntouched = isCondoDisclosurePackageReviewUntouched(input.disclosurePackageReview)
+  const questionnaireUntouched = isCondoQuestionnaireLenderReviewUntouched(input.questionnaireLenderReview)
   return (
     input.status === 'not_started' &&
     notesEmpty &&
@@ -355,7 +361,8 @@ export function isCondoDiligenceUntouched(
     sirsUntouched &&
     financialUntouched &&
     governanceUntouched &&
-    disclosureUntouched
+    disclosureUntouched &&
+    questionnaireUntouched
   )
 }
 
@@ -1262,6 +1269,288 @@ export function condoDisclosurePackageDeliveryMethodLabel(
   }
 }
 
+/** Matter financing → questionnaire UI eligibility (does not mutate matter financing). */
+export type CondoQuestionnaireFinancingEligibility =
+  | 'potentially_financed'
+  | 'not_applicable_cash'
+  | 'lawyer_review_required'
+
+/**
+ * Smallest consistent financing eligibility for Questionnaire / Lender Review.
+ * Uses existing `financingType` only — Cash → N/A; blank/missing → lawyer confirmation; else potentially financed.
+ */
+export function resolveCondoQuestionnaireFinancingEligibility(
+  matter: Pick<DemoMatter, 'financingType'>,
+): CondoQuestionnaireFinancingEligibility {
+  const raw = (matter.financingType ?? '').trim()
+  if (!raw) return 'lawyer_review_required'
+  if (/^cash$/i.test(raw)) return 'not_applicable_cash'
+  return 'potentially_financed'
+}
+
+export function condoQuestionnaireFinancingEligibilityPresentation(
+  eligibility: CondoQuestionnaireFinancingEligibility,
+): { label: string; detail: string; bg: string; color: string; border: string } {
+  switch (eligibility) {
+    case 'potentially_financed':
+      return {
+        label: 'Potentially financed matter',
+        detail: 'Questionnaire review may apply',
+        bg: '#dbeafe',
+        color: '#1e40af',
+        border: 'rgba(30,64,175,0.25)',
+      }
+    case 'not_applicable_cash':
+      return {
+        label: 'Not applicable',
+        detail: 'Matter financing is recorded as cash / non-financed.',
+        bg: '#f5f5f5',
+        color: '#627c71',
+        border: 'rgba(94,82,64,0.2)',
+      }
+    case 'lawyer_review_required':
+    default:
+      return {
+        label: 'Lawyer review required',
+        detail: 'Financing status requires lawyer confirmation',
+        bg: '#fff4d6',
+        color: '#b45309',
+        border: 'rgba(240,180,41,0.35)',
+      }
+  }
+}
+
+/** Default empty structured questionnaire / lender review for newly seeded rows. */
+export function buildDefaultCondoQuestionnaireLenderReview(): DemoCondoQuestionnaireLenderReview {
+  return {
+    applicability: 'unknown',
+    questionnaireStatus: 'not_started',
+    lenderName: '',
+    lenderContactName: '',
+    lenderContactEmail: '',
+    lenderContactPhone: '',
+    questionnaireEvidenceDocumentId: null,
+    requestDate: '',
+    requestedResponseDate: '',
+    receivedDate: '',
+    lenderIssueStatus: 'unknown',
+    issueNote: '',
+    notes: '',
+  }
+}
+
+export function normalizeCondoQuestionnaireLenderReview(
+  input?: Partial<DemoCondoQuestionnaireLenderReview> | null,
+): DemoCondoQuestionnaireLenderReview {
+  return {
+    ...buildDefaultCondoQuestionnaireLenderReview(),
+    ...(input ?? {}),
+  }
+}
+
+function isQuestionnaireApplicability(value: unknown): value is DemoCondoQuestionnaireApplicability {
+  return (
+    value === 'unknown' ||
+    value === 'not_applicable' ||
+    value === 'appears_applicable' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+function isQuestionnaireStatus(value: unknown): value is DemoCondoQuestionnaireStatus {
+  return (
+    value === 'not_started' ||
+    value === 'requested' ||
+    value === 'received' ||
+    value === 'reviewed' ||
+    value === 'issue_found' ||
+    value === 'not_applicable'
+  )
+}
+
+function isQuestionnaireLenderIssueStatus(value: unknown): value is DemoCondoQuestionnaireLenderIssueStatus {
+  return (
+    value === 'unknown' ||
+    value === 'none_disclosed' ||
+    value === 'issue_disclosed' ||
+    value === 'lawyer_review_required'
+  )
+}
+
+function parseOptionalDocumentId(value: unknown): string | null | undefined {
+  if (value === null) return null
+  if (value === undefined) return undefined
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed === '' ? null : trimmed
+}
+
+/**
+ * Parse optional persisted `questionnaireLenderReview`.
+ * Missing/invalid object → undefined (older rows). Partial objects get defaults.
+ */
+export function parseDemoCondoQuestionnaireLenderReview(
+  raw: unknown,
+): DemoCondoQuestionnaireLenderReview | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const o = raw as Record<string, unknown>
+  const base = buildDefaultCondoQuestionnaireLenderReview()
+  const evidenceId = parseOptionalDocumentId(o.questionnaireEvidenceDocumentId)
+
+  return {
+    applicability: isQuestionnaireApplicability(o.applicability) ? o.applicability : base.applicability,
+    questionnaireStatus: isQuestionnaireStatus(o.questionnaireStatus)
+      ? o.questionnaireStatus
+      : base.questionnaireStatus,
+    lenderName: typeof o.lenderName === 'string' ? o.lenderName : base.lenderName,
+    lenderContactName: typeof o.lenderContactName === 'string' ? o.lenderContactName : base.lenderContactName,
+    lenderContactEmail: typeof o.lenderContactEmail === 'string' ? o.lenderContactEmail : base.lenderContactEmail,
+    lenderContactPhone: typeof o.lenderContactPhone === 'string' ? o.lenderContactPhone : base.lenderContactPhone,
+    questionnaireEvidenceDocumentId:
+      evidenceId !== undefined ? evidenceId : base.questionnaireEvidenceDocumentId,
+    requestDate: isYmdDateString(o.requestDate) ? o.requestDate.trim() : base.requestDate,
+    requestedResponseDate: isYmdDateString(o.requestedResponseDate)
+      ? o.requestedResponseDate.trim()
+      : base.requestedResponseDate,
+    receivedDate: isYmdDateString(o.receivedDate) ? o.receivedDate.trim() : base.receivedDate,
+    lenderIssueStatus: isQuestionnaireLenderIssueStatus(o.lenderIssueStatus)
+      ? o.lenderIssueStatus
+      : base.lenderIssueStatus,
+    issueNote: typeof o.issueNote === 'string' ? o.issueNote : base.issueNote,
+    notes: typeof o.notes === 'string' ? o.notes : base.notes,
+  }
+}
+
+export function isCondoQuestionnaireLenderReviewUntouched(
+  input?: DemoCondoQuestionnaireLenderReview | null,
+): boolean {
+  if (!input) return true
+  const d = normalizeCondoQuestionnaireLenderReview(input)
+  return (
+    d.applicability === 'unknown' &&
+    d.questionnaireStatus === 'not_started' &&
+    d.lenderName.trim() === '' &&
+    d.lenderContactName.trim() === '' &&
+    d.lenderContactEmail.trim() === '' &&
+    d.lenderContactPhone.trim() === '' &&
+    d.questionnaireEvidenceDocumentId === null &&
+    d.requestDate.trim() === '' &&
+    d.requestedResponseDate.trim() === '' &&
+    d.receivedDate.trim() === '' &&
+    d.lenderIssueStatus === 'unknown' &&
+    d.issueNote.trim() === '' &&
+    d.notes.trim() === ''
+  )
+}
+
+export function condoQuestionnaireApplicabilityPresentation(
+  applicability: DemoCondoQuestionnaireApplicability,
+): { label: string; bg: string; color: string; border: string } {
+  switch (applicability) {
+    case 'appears_applicable':
+      return {
+        label: 'Questionnaire review may apply',
+        bg: '#dbeafe',
+        color: '#1e40af',
+        border: 'rgba(30,64,175,0.25)',
+      }
+    case 'not_applicable':
+      return {
+        label: 'Not applicable',
+        bg: '#f5f5f5',
+        color: '#627c71',
+        border: 'rgba(94,82,64,0.2)',
+      }
+    case 'lawyer_review_required':
+      return {
+        label: 'Lawyer review required',
+        bg: '#fff4d6',
+        color: '#b45309',
+        border: 'rgba(240,180,41,0.35)',
+      }
+    case 'unknown':
+    default:
+      return {
+        label: 'Unknown',
+        bg: '#f5f5f5',
+        color: '#627c71',
+        border: 'rgba(94,82,64,0.2)',
+      }
+  }
+}
+
+export function condoQuestionnaireStatusPresentation(
+  status: DemoCondoQuestionnaireStatus,
+): { label: string; bg: string; color: string; border: string } {
+  switch (status) {
+    case 'reviewed':
+      return { label: 'Reviewed', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'issue_found':
+      return { label: 'Issue found', bg: '#fee2e2', color: '#991b1b', border: 'rgba(185,28,28,0.35)' }
+    case 'received':
+      return { label: 'Received', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'requested':
+      return { label: 'Requested', bg: '#dbeafe', color: '#1e40af', border: 'rgba(30,64,175,0.25)' }
+    case 'not_applicable':
+      return { label: 'Not applicable', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+    case 'not_started':
+    default:
+      return { label: 'Not started', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+export function condoQuestionnaireLenderIssueStatusPresentation(
+  status: DemoCondoQuestionnaireLenderIssueStatus,
+): { label: string; bg: string; color: string; border: string } {
+  switch (status) {
+    case 'none_disclosed':
+      return { label: 'None disclosed', bg: '#e8f5f0', color: '#166534', border: 'rgba(47,133,90,0.35)' }
+    case 'issue_disclosed':
+      return { label: 'Issue disclosed', bg: '#fff4d6', color: '#b45309', border: 'rgba(240,180,41,0.35)' }
+    case 'lawyer_review_required':
+      return {
+        label: 'Lawyer review required',
+        bg: '#fee2e2',
+        color: '#991b1b',
+        border: 'rgba(185,28,28,0.35)',
+      }
+    case 'unknown':
+    default:
+      return { label: 'Unknown', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+  }
+}
+
+/**
+ * Whether the full questionnaire / lender form should render.
+ * Lawyer applicability override is local to this review object — does not change matter financing.
+ */
+export function shouldShowCondoQuestionnaireLenderReviewForm(input: {
+  financingEligibility: CondoQuestionnaireFinancingEligibility
+  applicability: DemoCondoQuestionnaireApplicability
+}): boolean {
+  if (input.financingEligibility === 'potentially_financed') return true
+  if (input.applicability === 'appears_applicable') return true
+  if (input.financingEligibility === 'lawyer_review_required' && input.applicability === 'lawyer_review_required') {
+    return true
+  }
+  return false
+}
+
+/** Keyword match for questionnaire / lender supporting documents (no new checklist row required). */
+export function condoQuestionnaireDocumentMatchesHaystack(haystack: string): boolean {
+  const t = haystack.toLowerCase().replace(/\s+/g, ' ').trim()
+  if (!t) return false
+  return (
+    /\b(condo|lender|loan|mortgage)\s+questionnaire\b/.test(t) ||
+    /\bquestionnaire\b/.test(t) ||
+    /\blender\s+(form|package|cert)\b/.test(t) ||
+    /\bfannie\b/.test(t) ||
+    /\bfreddie\b/.test(t) ||
+    /\bfha\s+condo\b/.test(t)
+  )
+}
+
 const CONDO_SUMMARY_MONTHS = [
   'Jan',
   'Feb',
@@ -1701,6 +1990,9 @@ export function buildCondoDiligenceInternalReport(input: {
   const disclosure = condo?.disclosurePackageReview
     ? normalizeCondoDisclosurePackageReview(condo.disclosurePackageReview)
     : normalizeCondoDisclosurePackageReview(undefined)
+  const questionnaire = condo?.questionnaireLenderReview
+    ? normalizeCondoQuestionnaireLenderReview(condo.questionnaireLenderReview)
+    : normalizeCondoQuestionnaireLenderReview(undefined)
 
   const estoppelLines = [
     `Review status: ${condoEstoppelReviewStatusPresentation(estoppel.reviewStatus).label}`,
@@ -1776,6 +2068,20 @@ export function buildCondoDiligenceInternalReport(input: {
     `Notes: ${nonEmptyOrDash(disclosure.notes)}`,
   ]
 
+  const questionnaireLines = [
+    `Applicability: ${condoQuestionnaireApplicabilityPresentation(questionnaire.applicability).label}`,
+    `Questionnaire status: ${condoQuestionnaireStatusPresentation(questionnaire.questionnaireStatus).label}`,
+    `Lender name: ${nonEmptyOrDash(questionnaire.lenderName)}`,
+    `Lender contact: ${nonEmptyOrDash(questionnaire.lenderContactName)} · ${nonEmptyOrDash(questionnaire.lenderContactEmail)} · ${nonEmptyOrDash(questionnaire.lenderContactPhone)}`,
+    `Evidence document id: ${questionnaire.questionnaireEvidenceDocumentId ?? '—'}`,
+    `Request date: ${nonEmptyOrDash(questionnaire.requestDate)}`,
+    `Requested response date: ${nonEmptyOrDash(questionnaire.requestedResponseDate)}`,
+    `Received date: ${nonEmptyOrDash(questionnaire.receivedDate)}`,
+    `Lender / project issues: ${condoQuestionnaireLenderIssueStatusPresentation(questionnaire.lenderIssueStatus).label}`,
+    `Issue note: ${nonEmptyOrDash(questionnaire.issueNote)}`,
+    `Notes: ${nonEmptyOrDash(questionnaire.notes)}`,
+  ]
+
   const findingLines =
     findings.length === 0
       ? ['No findings recorded']
@@ -1807,6 +2113,7 @@ export function buildCondoDiligenceInternalReport(input: {
     { title: 'Financial review', lines: financialLines },
     { title: 'Records / governance review', lines: governanceLines },
     { title: 'Disclosure package review', lines: disclosureLines },
+    { title: 'Questionnaire / lender review', lines: questionnaireLines },
     { title: 'Open findings', lines: findingLines },
     {
       title: 'Open requests',
@@ -1825,6 +2132,7 @@ export function buildCondoDiligenceInternalReport(input: {
         `Financial notes: ${nonEmptyOrDash(financial.notes)}`,
         `Records / governance notes: ${nonEmptyOrDash(governance.notes)}`,
         `Disclosure package notes: ${nonEmptyOrDash(disclosure.notes)}`,
+        `Questionnaire / lender notes: ${nonEmptyOrDash(questionnaire.notes)}`,
       ],
     },
   ]
@@ -2238,5 +2546,6 @@ export function buildDefaultCondoDiligence(options?: BuildDefaultCondoDiligenceO
     associationFinancialReview: buildDefaultCondoAssociationFinancialReview(),
     associationRecordsGovernanceReview: buildDefaultCondoAssociationRecordsGovernanceReview(),
     disclosurePackageReview: buildDefaultCondoDisclosurePackageReview(),
+    questionnaireLenderReview: buildDefaultCondoQuestionnaireLenderReview(),
   }
 }

@@ -15,6 +15,7 @@ import {
   buildDefaultCondoDiligence,
   buildDefaultCondoDisclosurePackageReview,
   buildDefaultCondoEstoppelReview,
+  buildDefaultCondoQuestionnaireLenderReview,
   buildDefaultCondoSirsMilestoneReview,
   condoDiligenceMatterStatusPresentation,
   condoDisclosurePackageCompletenessPresentation,
@@ -26,6 +27,11 @@ import {
   condoFinancialDocReviewStatusPresentation,
   condoFinancialRiskLevelPresentation,
   condoGovernanceConcernLevelPresentation,
+  condoQuestionnaireApplicabilityPresentation,
+  condoQuestionnaireDocumentMatchesHaystack,
+  condoQuestionnaireFinancingEligibilityPresentation,
+  condoQuestionnaireLenderIssueStatusPresentation,
+  condoQuestionnaireStatusPresentation,
   condoRequiredDocMatchesLinkageHaystack,
   condoRequiredDocSavedStatusAfterLinkedSync,
   condoSirsApplicabilityPresentation,
@@ -42,18 +48,23 @@ import {
   isCondoDisclosurePackageReviewUntouched,
   isCondoEstoppelReviewUntouched,
   isCondoOrCoopMatter,
+  isCondoQuestionnaireLenderReviewUntouched,
   isCondoSirsMilestoneReviewUntouched,
   isFloridaPropertyAddress,
   normalizeCondoAssociationFinancialReview,
   normalizeCondoAssociationRecordsGovernanceReview,
   normalizeCondoDisclosurePackageReview,
   normalizeCondoEstoppelReview,
+  normalizeCondoQuestionnaireLenderReview,
   normalizeCondoSirsMilestoneReview,
   parseDemoCondoAssociationFinancialReview,
   parseDemoCondoAssociationRecordsGovernanceReview,
   parseDemoCondoDisclosurePackageReview,
   parseDemoCondoEstoppelReview,
+  parseDemoCondoQuestionnaireLenderReview,
   parseDemoCondoSirsMilestoneReview,
+  resolveCondoQuestionnaireFinancingEligibility,
+  shouldShowCondoQuestionnaireLenderReviewForm,
   syncRequiredDocumentsFromDerivedLinkage,
 } from '@/lib/demo/condoDiligence'
 import type { DemoCondoDiligence, DemoDocument, DemoDocumentRequest, DemoMatter } from '@/lib/demo/types'
@@ -596,6 +607,8 @@ describe('condoDiligence', () => {
       expect(isCondoAssociationRecordsGovernanceReviewUntouched(d.associationRecordsGovernanceReview)).toBe(true)
       expect(d.disclosurePackageReview).toEqual(buildDefaultCondoDisclosurePackageReview())
       expect(isCondoDisclosurePackageReviewUntouched(d.disclosurePackageReview)).toBe(true)
+      expect(d.questionnaireLenderReview).toEqual(buildDefaultCondoQuestionnaireLenderReview())
+      expect(isCondoQuestionnaireLenderReviewUntouched(d.questionnaireLenderReview)).toBe(true)
     })
 
     it('keeps the original six rows and adds exactly seven new core doc-pack rows without duplicates', () => {
@@ -1120,6 +1133,158 @@ describe('condoDiligence', () => {
     })
   })
 
+  describe('questionnaireLenderReview', () => {
+    it('resolves financing eligibility from financingType without inventing matter fields', () => {
+      expect(resolveCondoQuestionnaireFinancingEligibility({ financingType: 'Conventional' })).toBe(
+        'potentially_financed',
+      )
+      expect(resolveCondoQuestionnaireFinancingEligibility({ financingType: 'FHA' })).toBe('potentially_financed')
+      expect(resolveCondoQuestionnaireFinancingEligibility({ financingType: 'Cash' })).toBe('not_applicable_cash')
+      expect(resolveCondoQuestionnaireFinancingEligibility({ financingType: 'cash' })).toBe('not_applicable_cash')
+      expect(resolveCondoQuestionnaireFinancingEligibility({ financingType: '' })).toBe('lawyer_review_required')
+      expect(resolveCondoQuestionnaireFinancingEligibility({ financingType: '   ' })).toBe('lawyer_review_required')
+      expect(condoQuestionnaireFinancingEligibilityPresentation('potentially_financed').label).toBe(
+        'Potentially financed matter',
+      )
+      expect(condoQuestionnaireFinancingEligibilityPresentation('potentially_financed').detail).toBe(
+        'Questionnaire review may apply',
+      )
+      expect(condoQuestionnaireFinancingEligibilityPresentation('not_applicable_cash').label).toBe('Not applicable')
+      expect(condoQuestionnaireFinancingEligibilityPresentation('lawyer_review_required').detail).toBe(
+        'Financing status requires lawyer confirmation',
+      )
+    })
+
+    it('shows full form for potentially financed and lawyer override without changing financing', () => {
+      expect(
+        shouldShowCondoQuestionnaireLenderReviewForm({
+          financingEligibility: 'potentially_financed',
+          applicability: 'unknown',
+        }),
+      ).toBe(true)
+      expect(
+        shouldShowCondoQuestionnaireLenderReviewForm({
+          financingEligibility: 'not_applicable_cash',
+          applicability: 'unknown',
+        }),
+      ).toBe(false)
+      expect(
+        shouldShowCondoQuestionnaireLenderReviewForm({
+          financingEligibility: 'not_applicable_cash',
+          applicability: 'appears_applicable',
+        }),
+      ).toBe(true)
+      expect(
+        shouldShowCondoQuestionnaireLenderReviewForm({
+          financingEligibility: 'lawyer_review_required',
+          applicability: 'unknown',
+        }),
+      ).toBe(false)
+      expect(
+        shouldShowCondoQuestionnaireLenderReviewForm({
+          financingEligibility: 'lawyer_review_required',
+          applicability: 'appears_applicable',
+        }),
+      ).toBe(true)
+      expect(
+        shouldShowCondoQuestionnaireLenderReviewForm({
+          financingEligibility: 'lawyer_review_required',
+          applicability: 'lawyer_review_required',
+        }),
+      ).toBe(true)
+    })
+
+    it('parses missing or invalid questionnaireLenderReview as undefined for older persisted rows', () => {
+      expect(parseDemoCondoQuestionnaireLenderReview(undefined)).toBeUndefined()
+      expect(parseDemoCondoQuestionnaireLenderReview(null)).toBeUndefined()
+      expect(parseDemoCondoQuestionnaireLenderReview('nope')).toBeUndefined()
+      expect(parseDemoCondoQuestionnaireLenderReview([])).toBeUndefined()
+    })
+
+    it('fills defaults for partial valid questionnaireLenderReview objects', () => {
+      expect(
+        parseDemoCondoQuestionnaireLenderReview({
+          applicability: 'appears_applicable',
+          questionnaireStatus: 'requested',
+          lenderName: 'Demo Lender',
+          questionnaireEvidenceDocumentId: 'doc-1',
+          lenderIssueStatus: 'issue_disclosed',
+          issueNote: 'Insurance deductibles high',
+          notes: 'Chase response',
+        }),
+      ).toEqual({
+        ...buildDefaultCondoQuestionnaireLenderReview(),
+        applicability: 'appears_applicable',
+        questionnaireStatus: 'requested',
+        lenderName: 'Demo Lender',
+        questionnaireEvidenceDocumentId: 'doc-1',
+        lenderIssueStatus: 'issue_disclosed',
+        issueNote: 'Insurance deductibles high',
+        notes: 'Chase response',
+      })
+    })
+
+    it('normalizeCondoQuestionnaireLenderReview merges onto defaults', () => {
+      expect(normalizeCondoQuestionnaireLenderReview(undefined)).toEqual(buildDefaultCondoQuestionnaireLenderReview())
+      expect(normalizeCondoQuestionnaireLenderReview({ requestDate: '2026-09-01' })).toEqual({
+        ...buildDefaultCondoQuestionnaireLenderReview(),
+        requestDate: '2026-09-01',
+      })
+    })
+
+    it('marks diligence as touched when questionnaire lender review has progress', () => {
+      const base = buildDefaultCondoDiligence({ nowIso: () => '2026-04-27T12:00:00.000Z' })
+      expect(isCondoDiligenceUntouched(base)).toBe(true)
+      expect(
+        isCondoDiligenceUntouched({
+          ...base,
+          questionnaireLenderReview: {
+            ...buildDefaultCondoQuestionnaireLenderReview(),
+            questionnaireStatus: 'requested',
+            lenderName: 'Acme Mortgage',
+          },
+        }),
+      ).toBe(false)
+    })
+
+    it('keeps older saved checklists without questionnaireLenderReview loadable and untouched', () => {
+      const older: DemoCondoDiligence = {
+        applicable: true,
+        status: 'not_started',
+        notes: '',
+        findings: [],
+        updated_at: '2026-01-01T00:00:00.000Z',
+        requiredDocuments: ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS.map((id) => ({
+          id,
+          label: id,
+          status: 'outstanding' as const,
+          detail: null,
+        })),
+      }
+      expect(older.questionnaireLenderReview).toBeUndefined()
+      expect(isCondoDiligenceUntouched(older)).toBe(true)
+      expect(isCondoQuestionnaireLenderReviewUntouched(older.questionnaireLenderReview)).toBe(true)
+    })
+
+    it('presentation helpers stay operational and do not imply lender or project approval', () => {
+      expect(condoQuestionnaireApplicabilityPresentation('appears_applicable').label).toBe(
+        'Questionnaire review may apply',
+      )
+      expect(condoQuestionnaireStatusPresentation('issue_found').label).toBe('Issue found')
+      expect(condoQuestionnaireLenderIssueStatusPresentation('none_disclosed').label).toBe('None disclosed')
+      expect(condoQuestionnaireDocumentMatchesHaystack('Lender Condo Questionnaire.pdf')).toBe(true)
+      expect(condoQuestionnaireDocumentMatchesHaystack('Condo Estoppel Certificate.pdf')).toBe(false)
+      const checklist = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' }).requiredDocuments
+      expect(checklist.some((d) => d.id === 'condo_questionnaire')).toBe(false)
+      expect(
+        deriveCondoDiligenceMatterStatusFromChecklist({
+          requiredDocuments: checklist,
+          findings: [],
+        }),
+      ).toBe('not_started')
+    })
+  })
+
   describe('buildCondoDiligenceOperationalSummary', () => {
     const matterId = 'm-summary'
     const now = new Date('2026-09-15T12:00:00')
@@ -1404,6 +1569,13 @@ describe('condoDiligence', () => {
         followUpNeeded: true,
         notes: 'Waiting on FAQ addendum',
       }
+      condo.questionnaireLenderReview = {
+        ...buildDefaultCondoQuestionnaireLenderReview(),
+        applicability: 'appears_applicable',
+        questionnaireStatus: 'requested',
+        lenderName: 'Harbor Lending',
+        notes: 'Waiting on condo questionnaire response',
+      }
       condo.findings = [{ id: 'f1', text: 'Special assessment disclosed' }]
       condo.notes = 'Matter-level diligence note'
 
@@ -1440,6 +1612,7 @@ describe('condoDiligence', () => {
         'Financial review',
         'Records / governance review',
         'Disclosure package review',
+        'Questionnaire / lender review',
         'Open findings',
         'Open requests',
         'Evidence links',
@@ -1455,6 +1628,8 @@ describe('condoDiligence', () => {
       expect(report.plainText).toContain('Chase association')
       expect(report.plainText).toContain('Bay Mgmt')
       expect(report.plainText).toContain('Waiting on FAQ addendum')
+      expect(report.plainText).toContain('Harbor Lending')
+      expect(report.plainText).toContain('Waiting on condo questionnaire response')
       expect(report.plainText).toContain('Matter-level diligence note')
     })
 

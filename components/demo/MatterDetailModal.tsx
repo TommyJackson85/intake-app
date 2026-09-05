@@ -25,6 +25,10 @@ import type {
   DemoCondoFinancialRiskLevel,
   DemoCondoGovernanceConcernLevel,
   DemoCondoLitigationOrDbprStatus,
+  DemoCondoQuestionnaireApplicability,
+  DemoCondoQuestionnaireLenderIssueStatus,
+  DemoCondoQuestionnaireLenderReview,
+  DemoCondoQuestionnaireStatus,
   DemoCondoRecordsAccessStatus,
   DemoCondoRentalRestrictionStatus,
   DemoCondoReserveFundingStatus,
@@ -59,6 +63,11 @@ import {
   condoFinancialDocReviewStatusPresentation,
   condoFinancialRiskLevelPresentation,
   condoGovernanceConcernLevelPresentation,
+  condoQuestionnaireApplicabilityPresentation,
+  condoQuestionnaireDocumentMatchesHaystack,
+  condoQuestionnaireFinancingEligibilityPresentation,
+  condoQuestionnaireLenderIssueStatusPresentation,
+  condoQuestionnaireStatusPresentation,
   condoRequiredDocMatchesLinkageHaystack,
   condoRequiredDocDerivedStatusPresentation,
   condoSirsApplicabilityPresentation,
@@ -74,7 +83,10 @@ import {
   normalizeCondoAssociationRecordsGovernanceReview,
   normalizeCondoDisclosurePackageReview,
   normalizeCondoEstoppelReview,
+  normalizeCondoQuestionnaireLenderReview,
   normalizeCondoSirsMilestoneReview,
+  resolveCondoQuestionnaireFinancingEligibility,
+  shouldShowCondoQuestionnaireLenderReviewForm,
   syncRequiredDocumentsFromDerivedLinkage,
 } from '@/lib/demo/condoDiligence'
 import DocumentPreviewModal from '@/app/demo/_components/DocumentPreviewModal'
@@ -4280,6 +4292,466 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             </ul>
                           )}
                         </div>
+                      </div>
+                    )
+                  })()}
+
+                  {(() => {
+                    const financingEligibility = resolveCondoQuestionnaireFinancingEligibility(effectiveMatter)
+                    const financingPresent = condoQuestionnaireFinancingEligibilityPresentation(financingEligibility)
+                    const questionnaireReview = normalizeCondoQuestionnaireLenderReview(
+                      condoDiligence.questionnaireLenderReview,
+                    )
+                    const showFullForm = shouldShowCondoQuestionnaireLenderReviewForm({
+                      financingEligibility,
+                      applicability: questionnaireReview.applicability,
+                    })
+                    const applicabilityPresent = condoQuestionnaireApplicabilityPresentation(
+                      questionnaireReview.applicability,
+                    )
+                    const statusPresent = condoQuestionnaireStatusPresentation(
+                      questionnaireReview.questionnaireStatus,
+                    )
+                    const issuePresent = condoQuestionnaireLenderIssueStatusPresentation(
+                      questionnaireReview.lenderIssueStatus,
+                    )
+                    const fieldLabel: React.CSSProperties = {
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: '#627c71',
+                      marginBottom: 4,
+                    }
+                    const fieldInput: React.CSSProperties = {
+                      width: '100%',
+                      padding: '7px 8px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(94,82,64,0.25)',
+                      fontSize: 13,
+                      color: '#134252',
+                      background: '#fff',
+                    }
+                    const questionnaireLinkedDocuments = matterDocuments.filter((d) => {
+                      const haystack = [d.name, d.document_subtype ?? '', d.category].filter(Boolean).join(' ')
+                      return condoQuestionnaireDocumentMatchesHaystack(haystack)
+                    })
+                    const questionnaireLinkedRequests = matterDocumentRequests.filter((r) => {
+                      const haystack = [r.title, r.description ?? '', r.category].filter(Boolean).join(' ')
+                      return condoQuestionnaireDocumentMatchesHaystack(haystack)
+                    })
+                    const evidenceDoc = questionnaireReview.questionnaireEvidenceDocumentId
+                      ? matterDocuments.find((d) => d.id === questionnaireReview.questionnaireEvidenceDocumentId)
+                      : undefined
+                    const patchQuestionnaire = (patch: Partial<DemoCondoQuestionnaireLenderReview>) => {
+                      if (!matterId) return
+                      patchCondoDiligence(matterId, {
+                        questionnaireLenderReview: { ...questionnaireReview, ...patch },
+                      })
+                    }
+                    const matterFinancingHint = [
+                      effectiveMatter.financingType?.trim() || 'Financing type unset',
+                      effectiveMatter.lenderName?.trim() ? `Lender on matter: ${effectiveMatter.lenderName.trim()}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                    const showQuestionnaireAttention =
+                      questionnaireReview.questionnaireStatus === 'issue_found' ||
+                      questionnaireReview.questionnaireStatus === 'requested' ||
+                      questionnaireReview.lenderIssueStatus === 'issue_disclosed' ||
+                      questionnaireReview.lenderIssueStatus === 'lawyer_review_required' ||
+                      questionnaireReview.applicability === 'lawyer_review_required' ||
+                      (questionnaireReview.requestedResponseDate.trim() !== '' &&
+                        questionnaireReview.questionnaireStatus !== 'received' &&
+                        questionnaireReview.questionnaireStatus !== 'reviewed' &&
+                        questionnaireReview.questionnaireStatus !== 'not_applicable')
+                    const responseDatePassed =
+                      questionnaireReview.requestedResponseDate.trim() !== '' &&
+                      /^\d{4}-\d{2}-\d{2}$/.test(questionnaireReview.requestedResponseDate.trim()) &&
+                      questionnaireReview.requestedResponseDate.trim() <
+                        new Date().toISOString().slice(0, 10) &&
+                      questionnaireReview.questionnaireStatus !== 'received' &&
+                      questionnaireReview.questionnaireStatus !== 'reviewed' &&
+                      questionnaireReview.questionnaireStatus !== 'not_applicable'
+
+                    return (
+                      <div
+                        id="condo-questionnaire-lender-review"
+                        style={{
+                          border: '1px solid rgba(94,82,64,0.12)',
+                          borderRadius: 8,
+                          padding: 14,
+                          background: 'white',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                              Condo Questionnaire / Lender Review
+                            </div>
+                            <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '36rem' }}>
+                              Internal tracking for lender/condo questionnaire request, receipt, and issue-spotting.
+                              Does not determine lender approval, project eligibility, mortgage eligibility, or closing
+                              readiness. Does not change matter financing fields.
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '5px 10px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                background: financingPresent.bg,
+                                color: financingPresent.color,
+                                border: `1px solid ${financingPresent.border}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {financingPresent.label}
+                            </span>
+                            {showFullForm && (
+                              <>
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '5px 10px',
+                                    borderRadius: 999,
+                                    fontSize: 11,
+                                    fontWeight: 900,
+                                    background: statusPresent.bg,
+                                    color: statusPresent.color,
+                                    border: `1px solid ${statusPresent.border}`,
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  Questionnaire: {statusPresent.label}
+                                </span>
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '5px 10px',
+                                    borderRadius: 999,
+                                    fontSize: 11,
+                                    fontWeight: 900,
+                                    background: issuePresent.bg,
+                                    color: issuePresent.color,
+                                    border: `1px solid ${issuePresent.border}`,
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  Issues: {issuePresent.label}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: 12, color: '#627c71', fontWeight: 700 }}>{matterFinancingHint}</div>
+
+                        {!showFullForm ? (
+                          <div
+                            style={{
+                              padding: '10px 12px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(94,82,64,0.18)',
+                              background: '#fcfcf9',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 10,
+                            }}
+                          >
+                            <div style={{ fontSize: 13, color: '#134252', fontWeight: 800 }}>
+                              {financingEligibility === 'not_applicable_cash'
+                                ? 'Not applicable — matter financing is recorded as cash / non-financed.'
+                                : financingPresent.detail}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.45 }}>
+                              Mark applicability here only when the lawyer confirms questionnaire review should (or
+                              should not) proceed. This override stays on Condo Diligence state and does not edit
+                              matter financing.
+                            </div>
+                            <label style={{ maxWidth: 280 }}>
+                              <span style={fieldLabel}>Questionnaire applicability (lawyer override)</span>
+                              <select
+                                value={questionnaireReview.applicability}
+                                onChange={(e) =>
+                                  patchQuestionnaire({
+                                    applicability: e.target.value as DemoCondoQuestionnaireApplicability,
+                                  })
+                                }
+                                style={fieldInput}
+                              >
+                                <option value="unknown">Unknown</option>
+                                <option value="not_applicable">Not applicable</option>
+                                <option value="appears_applicable">Questionnaire review may apply</option>
+                                <option value="lawyer_review_required">Lawyer review required</option>
+                              </select>
+                            </label>
+                            {questionnaireReview.applicability !== 'unknown' && (
+                              <div style={{ fontSize: 12, fontWeight: 800, color: applicabilityPresent.color }}>
+                                Local mark: {applicabilityPresent.label}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            {(showQuestionnaireAttention || responseDatePassed) && (
+                              <div
+                                role="status"
+                                style={{
+                                  padding: '8px 10px',
+                                  borderRadius: 8,
+                                  border: '1px solid rgba(240,180,41,0.45)',
+                                  background: '#fff8e6',
+                                  color: '#b45309',
+                                  fontSize: 12,
+                                  fontWeight: 800,
+                                }}
+                              >
+                                {responseDatePassed
+                                  ? 'Attention: requested response date has passed and the questionnaire is not marked received/reviewed. Demo follow-up prompt only — not a closing or lender determination.'
+                                  : 'Attention: questionnaire status, lender/project issues, or follow-up signals need lawyer review. Demo reminder only — not lender approval or project eligibility.'}
+                              </div>
+                            )}
+
+                            <div
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                                gap: 10,
+                              }}
+                            >
+                              <label>
+                                <span style={fieldLabel}>Applicability</span>
+                                <select
+                                  value={questionnaireReview.applicability}
+                                  onChange={(e) =>
+                                    patchQuestionnaire({
+                                      applicability: e.target.value as DemoCondoQuestionnaireApplicability,
+                                    })
+                                  }
+                                  style={fieldInput}
+                                >
+                                  <option value="unknown">Unknown</option>
+                                  <option value="not_applicable">Not applicable</option>
+                                  <option value="appears_applicable">Questionnaire review may apply</option>
+                                  <option value="lawyer_review_required">Lawyer review required</option>
+                                </select>
+                              </label>
+                              <label>
+                                <span style={fieldLabel}>Questionnaire status</span>
+                                <select
+                                  value={questionnaireReview.questionnaireStatus}
+                                  onChange={(e) =>
+                                    patchQuestionnaire({
+                                      questionnaireStatus: e.target.value as DemoCondoQuestionnaireStatus,
+                                    })
+                                  }
+                                  style={fieldInput}
+                                >
+                                  <option value="not_started">Not started</option>
+                                  <option value="requested">Requested</option>
+                                  <option value="received">Received</option>
+                                  <option value="reviewed">Reviewed</option>
+                                  <option value="issue_found">Issue found</option>
+                                  <option value="not_applicable">Not applicable</option>
+                                </select>
+                              </label>
+                              <label>
+                                <span style={fieldLabel}>Request date</span>
+                                <input
+                                  type="date"
+                                  value={questionnaireReview.requestDate}
+                                  onChange={(e) => patchQuestionnaire({ requestDate: e.target.value })}
+                                  style={fieldInput}
+                                />
+                              </label>
+                              <label>
+                                <span style={fieldLabel}>Requested response date</span>
+                                <input
+                                  type="date"
+                                  value={questionnaireReview.requestedResponseDate}
+                                  onChange={(e) => patchQuestionnaire({ requestedResponseDate: e.target.value })}
+                                  style={fieldInput}
+                                />
+                              </label>
+                              <label>
+                                <span style={fieldLabel}>Received date</span>
+                                <input
+                                  type="date"
+                                  value={questionnaireReview.receivedDate}
+                                  onChange={(e) => patchQuestionnaire({ receivedDate: e.target.value })}
+                                  style={fieldInput}
+                                />
+                              </label>
+                              <label>
+                                <span style={fieldLabel}>Lender / project issues</span>
+                                <select
+                                  value={questionnaireReview.lenderIssueStatus}
+                                  onChange={(e) =>
+                                    patchQuestionnaire({
+                                      lenderIssueStatus: e.target.value as DemoCondoQuestionnaireLenderIssueStatus,
+                                    })
+                                  }
+                                  style={fieldInput}
+                                >
+                                  <option value="unknown">Unknown</option>
+                                  <option value="none_disclosed">None disclosed</option>
+                                  <option value="issue_disclosed">Issue disclosed</option>
+                                  <option value="lawyer_review_required">Lawyer review required</option>
+                                </select>
+                              </label>
+                            </div>
+
+                            <div
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                                gap: 10,
+                              }}
+                            >
+                              <label>
+                                <span style={fieldLabel}>Lender name</span>
+                                <input
+                                  type="text"
+                                  value={questionnaireReview.lenderName}
+                                  onChange={(e) => patchQuestionnaire({ lenderName: e.target.value })}
+                                  placeholder={effectiveMatter.lenderName?.trim() || 'Lender name (demo)'}
+                                  style={fieldInput}
+                                />
+                              </label>
+                              <label>
+                                <span style={fieldLabel}>Lender contact name</span>
+                                <input
+                                  type="text"
+                                  value={questionnaireReview.lenderContactName}
+                                  onChange={(e) => patchQuestionnaire({ lenderContactName: e.target.value })}
+                                  placeholder="Contact name (demo)"
+                                  style={fieldInput}
+                                />
+                              </label>
+                              <label>
+                                <span style={fieldLabel}>Lender contact email</span>
+                                <input
+                                  type="email"
+                                  value={questionnaireReview.lenderContactEmail}
+                                  onChange={(e) => patchQuestionnaire({ lenderContactEmail: e.target.value })}
+                                  placeholder={effectiveMatter.lenderEmail?.trim() || 'email@example.com'}
+                                  style={fieldInput}
+                                />
+                              </label>
+                              <label>
+                                <span style={fieldLabel}>Lender contact phone</span>
+                                <input
+                                  type="text"
+                                  value={questionnaireReview.lenderContactPhone}
+                                  onChange={(e) => patchQuestionnaire({ lenderContactPhone: e.target.value })}
+                                  placeholder="Phone (demo)"
+                                  style={fieldInput}
+                                />
+                              </label>
+                              <label>
+                                <span style={fieldLabel}>Questionnaire evidence document</span>
+                                <select
+                                  value={questionnaireReview.questionnaireEvidenceDocumentId ?? ''}
+                                  onChange={(e) =>
+                                    patchQuestionnaire({
+                                      questionnaireEvidenceDocumentId: e.target.value.trim()
+                                        ? e.target.value
+                                        : null,
+                                    })
+                                  }
+                                  style={fieldInput}
+                                >
+                                  <option value="">None linked</option>
+                                  {matterDocuments.map((d) => (
+                                    <option key={d.id} value={d.id}>
+                                      {d.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                {evidenceDoc && (
+                                  <div style={{ fontSize: 11, color: '#627c71', marginTop: 4 }}>
+                                    Linked: {evidenceDoc.name}
+                                  </div>
+                                )}
+                              </label>
+                            </div>
+
+                            <label style={{ display: 'block' }}>
+                              <span style={fieldLabel}>Issue note</span>
+                              <textarea
+                                value={questionnaireReview.issueNote}
+                                onChange={(e) => patchQuestionnaire({ issueNote: e.target.value })}
+                                rows={2}
+                                placeholder="Issues disclosed in the questionnaire (internal)"
+                                style={{ ...fieldInput, resize: 'vertical' }}
+                              />
+                            </label>
+
+                            <label style={{ display: 'block' }}>
+                              <span style={fieldLabel}>Lawyer notes</span>
+                              <textarea
+                                value={questionnaireReview.notes}
+                                onChange={(e) => patchQuestionnaire({ notes: e.target.value })}
+                                rows={3}
+                                placeholder="Internal questionnaire / lender review notes (demo)"
+                                style={{ ...fieldInput, resize: 'vertical' }}
+                              />
+                            </label>
+
+                            <div>
+                              <div style={{ fontSize: 12, fontWeight: 900, color: '#134252', marginBottom: 6 }}>
+                                Linked questionnaire / lender documents &amp; requests
+                              </div>
+                              <div style={{ fontSize: 11, color: '#627c71', marginBottom: 8, lineHeight: 1.4 }}>
+                                Read-only keyword matches (questionnaire, lender form/package, Fannie/Freddie/FHA condo
+                                references). Complements the evidence document select — no new required-doc checklist
+                                row.
+                              </div>
+                              {questionnaireLinkedDocuments.length === 0 &&
+                              questionnaireLinkedRequests.length === 0 ? (
+                                <div style={{ fontSize: 13, color: '#627c71' }}>
+                                  No matching questionnaire / lender documents or requests linked yet.
+                                </div>
+                              ) : (
+                                <ul
+                                  style={{
+                                    margin: 0,
+                                    paddingLeft: 18,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 6,
+                                  }}
+                                >
+                                  {questionnaireLinkedDocuments.map((d) => (
+                                    <li key={d.id} style={{ fontSize: 13, color: '#134252' }}>
+                                      <strong>Document:</strong> {d.name}
+                                      {d.document_subtype ? ` · ${d.document_subtype}` : ''}
+                                    </li>
+                                  ))}
+                                  {questionnaireLinkedRequests.map((r) => (
+                                    <li key={r.id} style={{ fontSize: 13, color: '#134252' }}>
+                                      <strong>Request ({r.status}):</strong> {r.title}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
                     )
                   })()}
