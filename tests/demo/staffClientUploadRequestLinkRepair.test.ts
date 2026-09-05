@@ -39,6 +39,7 @@ function openRequest(overrides: Partial<DemoDocumentRequest> = {}): DemoDocument
     staff_receipt_acknowledged_at: null,
     staff_receipt_reviewed_by_staff_id: null,
     staff_receipt_reviewed_document_id: null,
+    staff_follow_up: { status: 'none' as const, note: '', markedById: null, markedByName: null, markedAt: null },
     ...overrides,
   }
 }
@@ -62,6 +63,7 @@ describe('staffClientUploadRequestLinkRepair', () => {
       staff_receipt_acknowledged_at: null,
       staff_receipt_reviewed_by_staff_id: null,
       staff_receipt_reviewed_document_id: null,
+    staff_follow_up: { status: 'none' as const, note: '', markedById: null, markedByName: null, markedAt: null }
     })
     expect(document.source).toBe(CLIENT_PORTAL_DOCUMENT_SOURCE)
     expect(document.uploaded_by_staff_id).toBe('staff-emma-kline')
@@ -76,6 +78,7 @@ describe('staffClientUploadRequestLinkRepair', () => {
       staff_receipt_acknowledged_at: '2026-03-12T11:00:00.000Z',
     staff_receipt_reviewed_by_staff_id: null,
     staff_receipt_reviewed_document_id: null,
+    staff_follow_up: { status: 'none' as const, note: '', markedById: null, markedByName: null, markedAt: null }
     }
     const target = openRequest({ id: 'req-correct', title: 'Correct request' })
     const result = tryLinkClientUploadToDocumentRequest(
@@ -93,6 +96,7 @@ describe('staffClientUploadRequestLinkRepair', () => {
       staff_receipt_acknowledged_at: null,
     staff_receipt_reviewed_by_staff_id: null,
     staff_receipt_reviewed_document_id: null,
+    staff_follow_up: { status: 'none' as const, note: '', markedById: null, markedByName: null, markedAt: null }
     })
     expect(byId['req-correct']).toMatchObject({
       status: 'fulfilled',
@@ -100,6 +104,7 @@ describe('staffClientUploadRequestLinkRepair', () => {
       staff_receipt_acknowledged_at: null,
     staff_receipt_reviewed_by_staff_id: null,
     staff_receipt_reviewed_document_id: null,
+    staff_follow_up: { status: 'none' as const, note: '', markedById: null, markedByName: null, markedAt: null }
     })
   })
 

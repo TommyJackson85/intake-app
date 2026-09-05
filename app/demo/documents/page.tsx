@@ -6,9 +6,15 @@ import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentMo
 import RequestDemoDocumentModal from '@/app/demo/_components/RequestDemoDocumentModal'
 import DocumentPreviewModal from '@/app/demo/_components/DocumentPreviewModal'
 import LinkClientUploadToDocumentRequestModal from '@/app/demo/_components/LinkClientUploadToDocumentRequestModal'
+import MarkDocumentRequestNeedsFollowUpModal from '@/app/demo/_components/MarkDocumentRequestNeedsFollowUpModal'
 import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
 import { buildStaffClientUploadReceiptQueue } from '@/lib/demo/staffClientUploadReceiptQueue'
 import { canStaffLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
+import {
+  getDocumentRequestFollowUpDetailPresentation,
+  getDocumentRequestFollowUpPresentation,
+  normalizeDocumentRequestFollowUp,
+} from '@/lib/demo/staffDocumentRequestFollowUp'
 
 function formatDemoDateTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -24,11 +30,20 @@ function formatDemoDateTime(value: string) {
 }
 
 export default function DemoDocumentsPage() {
-  const { documents, documentRequests, matters, staff, acknowledgeClientUploadReceipt } = useDemoStore()
+  const {
+    documents,
+    documentRequests,
+    matters,
+    staff,
+    acknowledgeClientUploadReceipt,
+    markDocumentRequestNeedsFollowUp,
+    clearDocumentRequestNeedsFollowUp,
+  } = useDemoStore()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [requestOpen, setRequestOpen] = useState(false)
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null)
   const [linkRepairDocumentId, setLinkRepairDocumentId] = useState<string | null>(null)
+  const [followUpRequestId, setFollowUpRequestId] = useState<string | null>(null)
 
   const sorted = useMemo(
     () => [...documents].sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()),
@@ -69,6 +84,11 @@ export default function DemoDocumentsPage() {
         ? documentRequests.find((r) => r.fulfilled_document_id === previewDocument.id) ?? null
         : null,
     [documentRequests, previewDocument]
+  )
+
+  const followUpRequest = useMemo(
+    () => documentRequests.find((r) => r.id === followUpRequestId) ?? null,
+    [documentRequests, followUpRequestId],
   )
 
   return (
@@ -132,6 +152,12 @@ export default function DemoDocumentsPage() {
         isOpen={Boolean(linkRepairDocument)}
         document={linkRepairDocument}
         onClose={() => setLinkRepairDocumentId(null)}
+      />
+
+      <MarkDocumentRequestNeedsFollowUpModal
+        isOpen={Boolean(followUpRequest)}
+        request={followUpRequest}
+        onClose={() => setFollowUpRequestId(null)}
       />
 
       <h2 style={{ fontSize: '18px', marginBottom: '8px', marginTop: '8px', color: '#134252', fontWeight: 800 }}>
@@ -253,14 +279,16 @@ export default function DemoDocumentsPage() {
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Matter</th>
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Category</th>
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Status</th>
+              <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Follow-up</th>
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Requested</th>
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>By</th>
+              <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Action</th>
             </tr>
           </thead>
           <tbody>
             {sortedRequests.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ padding: '14px', color: '#627c71' }}>
+                <td colSpan={8} style={{ padding: '14px', color: '#627c71' }}>
                   No document requests yet.
                 </td>
               </tr>
@@ -269,6 +297,19 @@ export default function DemoDocumentsPage() {
                 const matter = matters.find((m) => m.id === req.matter_id)
                 const by = staff.find((s) => s.id === req.requested_by_staff_id)
                 const fulfilledDocName = getFulfilledRequestDocumentName(req, documents)
+                const followUpDetail = getDocumentRequestFollowUpDetailPresentation({
+                  request: req,
+                  documents,
+                  matters,
+                  staffId: staff[0]?.id,
+                })
+                // Prefer detail path (reuses eligibility/canMark/presentation/normalize).
+                // Fall back to presentation helpers when detail is denied.
+                const followUp =
+                  followUpDetail?.followUp ??
+                  getDocumentRequestFollowUpPresentation(
+                    normalizeDocumentRequestFollowUp(req.staff_follow_up),
+                  )
                 return (
                   <tr key={req.id} style={{ borderBottom: '1px solid rgba(94,82,64,0.12)' }}>
                     <td style={{ padding: '14px', color: '#134252', fontWeight: 700, verticalAlign: 'top' }}>
@@ -298,11 +339,93 @@ export default function DemoDocumentsPage() {
                     >
                       {req.status}
                     </td>
+                    <td style={{ padding: '14px', verticalAlign: 'top' }}>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          color: followUp.status === 'needs_follow_up' ? '#b45309' : '#627c71',
+                          fontSize: 13,
+                        }}
+                      >
+                        {followUp.statusLabel}
+                      </div>
+                      {followUp.status === 'needs_follow_up' && followUpDetail ? (
+                        <div style={{ marginTop: 8, display: 'grid', gap: 6 }}>
+                          <div style={{ fontSize: 12, color: '#627c71' }}>
+                            <span style={{ fontWeight: 700, color: '#134252' }}>Matter</span>
+                            <div>{followUpDetail.matterLabel}</div>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#627c71' }}>
+                            <span style={{ fontWeight: 700, color: '#134252' }}>Document request</span>
+                            <div>{followUpDetail.requestLabel}</div>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#627c71' }}>
+                            <span style={{ fontWeight: 700, color: '#134252' }}>Receipt review</span>
+                            <div>{followUpDetail.receiptReviewLabel}</div>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#627c71' }}>
+                            <span style={{ fontWeight: 700, color: '#134252' }}>Linked client upload</span>
+                            <div>{followUpDetail.linkedClientUploadLabel ?? '—'}</div>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#627c71' }}>
+                            <span style={{ fontWeight: 700, color: '#134252' }}>Uploaded</span>
+                            <div>
+                              {followUpDetail.uploadedAt
+                                ? formatDemoDateTime(followUpDetail.uploadedAt)
+                                : '—'}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#627c71' }}>
+                            <span style={{ fontWeight: 700, color: '#134252' }}>Internal follow-up note</span>
+                            <div>{followUpDetail.internalFollowUpNote || '—'}</div>
+                          </div>
+                        </div>
+                      ) : followUp.note ? (
+                        <div style={{ marginTop: 4, color: '#627c71', fontSize: 12 }}>{followUp.note}</div>
+                      ) : null}
+                    </td>
                     <td style={{ padding: '14px', color: '#627c71', verticalAlign: 'top' }}>
                       {formatDemoDateTime(req.requested_at)}
                     </td>
                     <td style={{ padding: '14px', color: '#627c71', verticalAlign: 'top' }}>
                       {by?.full_name ?? 'Staff'}
+                    </td>
+                    <td style={{ padding: '14px', verticalAlign: 'top' }}>
+                      {followUp.status === 'needs_follow_up' ? (
+                        <button
+                          type="button"
+                          onClick={() => clearDocumentRequestNeedsFollowUp(req.id)}
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: 8,
+                            border: '1px solid rgba(94,82,64,0.3)',
+                            background: '#fff',
+                            color: '#134252',
+                            fontWeight: 800,
+                            fontSize: 13,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Clear follow-up
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setFollowUpRequestId(req.id)}
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: 8,
+                            border: '1px solid rgba(180,83,9,0.35)',
+                            background: '#fffbeb',
+                            color: '#b45309',
+                            fontWeight: 800,
+                            fontSize: 13,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Needs follow-up
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )

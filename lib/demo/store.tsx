@@ -51,6 +51,10 @@ import {
 } from '@/lib/demo/demoDocumentRequest'
 import { tryLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
 import { recordDocumentRequestReceiptReview } from '@/lib/demo/staffDocumentRequestReceiptReview'
+import {
+  clearDocumentRequestNeedsFollowUp,
+  markDocumentRequestNeedsFollowUp,
+} from '@/lib/demo/staffDocumentRequestFollowUp'
 import { attemptClientDocumentRequestUpload } from '@/lib/demo/clientDocumentRequestUpload'
 import {
   buildDefaultCondoDiligence,
@@ -127,6 +131,10 @@ type DemoContextType = {
   acknowledgeClientUploadReceipt: (requestId: string) => boolean
   /** Staff records receipt review for an eligible fulfilled client-portal upload. */
   recordDocumentRequestReceiptReview: (requestId: string, documentId?: string) => boolean
+  /** Staff-only: mark an ordinary document request as needing follow-up. */
+  markDocumentRequestNeedsFollowUp: (requestId: string, note?: string) => boolean
+  /** Staff-only: clear Needs follow-up on a document request. */
+  clearDocumentRequestNeedsFollowUp: (requestId: string) => boolean
   /** Staff repair: link an eligible client-portal upload to an open same-matter document request. */
   linkClientUploadToDocumentRequest: (documentId: string, requestId: string) => boolean
   addMatterReviewTask: (input: AddDemoMatterReviewTaskInput) => void
@@ -1807,6 +1815,34 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             prev.documentRequests,
             { requestId, documentId: resolvedDocumentId, staffId },
           )
+          if (documentRequests === prev.documentRequests) return prev
+          succeeded = true
+          return { ...prev, documentRequests }
+        })
+        return succeeded
+      },
+      markDocumentRequestNeedsFollowUp: (requestId, note) => {
+        let succeeded = false
+        setState((prev) => {
+          const staffId = prev.staff[0]?.id ?? ''
+          const documentRequests = markDocumentRequestNeedsFollowUp(
+            prev.matters,
+            prev.documentRequests,
+            prev.staff,
+            { requestId, staffId, note },
+          )
+          if (documentRequests === prev.documentRequests) return prev
+          succeeded = true
+          return { ...prev, documentRequests }
+        })
+        return succeeded
+      },
+      clearDocumentRequestNeedsFollowUp: (requestId) => {
+        let succeeded = false
+        setState((prev) => {
+          const documentRequests = clearDocumentRequestNeedsFollowUp(prev.matters, prev.documentRequests, {
+            requestId,
+          })
           if (documentRequests === prev.documentRequests) return prev
           succeeded = true
           return { ...prev, documentRequests }
