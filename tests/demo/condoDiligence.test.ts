@@ -4,6 +4,7 @@ import {
   ORIGINAL_CONDO_DILIGENCE_REQUIRED_DOC_IDS,
   buildCondoDiligenceInternalReport,
   buildCondoDiligenceOperationalSummary,
+  buildCondoDiligenceReviewDashboard,
   buildCondoDiligenceSummaryDraftDocumentInput,
   CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE,
   isCondoDiligenceInternalSummaryDocument,
@@ -1857,6 +1858,125 @@ describe('condoDiligence', () => {
       expect(deriveCondoDiligenceMatterStatusFromChecklist({ requiredDocuments, findings: [{ text: 'flagged' }] })).toBe(
         'flagged',
       )
+    })
+  })
+
+  describe('buildCondoDiligenceReviewDashboard', () => {
+    const matterId = 'm-review-dashboard'
+    const now = new Date('2026-09-15T12:00:00')
+
+    it('projects operational counts, nine review rows, and an operational-only disclaimer', () => {
+      const condo = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' })
+      condo.findings = [{ id: 'f1', text: 'Reserve shortfall flagged', linkedReviewTaskIds: [] }]
+      condo.estoppelReview = {
+        ...buildDefaultCondoEstoppelReview(),
+        reviewStatus: 'issue_found',
+        notes: 'Amounts mismatch',
+      }
+      condo.associationFinancialReview = {
+        ...buildDefaultCondoAssociationFinancialReview(),
+        financialRiskLevel: 'high',
+      }
+      condo.lawyerReviewCheckpoint = {
+        ...buildDefaultCondoLawyerReviewCheckpoint(),
+        status: 'follow_up_required',
+        reviewedAt: '2026-09-10',
+        linkedSummaryDocumentId: 'doc-sum-old',
+      }
+
+      const documents = [
+        {
+          id: 'doc-sum-new',
+          matter_id: matterId,
+          name: 'Internal Diligence Summary',
+          category: 'Compliance' as const,
+          document_subtype: CONDO_DILIGENCE_INTERNAL_SUMMARY_SUBTYPE,
+          description: null,
+          deletedAt: null,
+          uploaded_at: '2026-09-12T10:00:00.000Z',
+          generatedInternalSummary: {
+            generatedType: 'condo_diligence_internal_summary' as const,
+            generatedAt: '2026-09-12T10:00:00.000Z',
+            sourceMatterId: matterId,
+            content: 'Internal Diligence Summary — Lawyer Review Required\n\n## Status\nFlagged',
+            visibility: 'internal' as const,
+          },
+        },
+      ]
+
+      const dashboard = buildCondoDiligenceReviewDashboard({
+        matterId,
+        condo,
+        documents,
+        activeReviewTaskCount: 2,
+        now,
+      })
+
+      expect(dashboard.openFindingsCount).toBe(1)
+      expect(dashboard.findingsLine).toContain('1')
+      expect(dashboard.activeReviewTaskCount).toBe(2)
+      expect(dashboard.latestInternalSummaryDocumentId).toBe('doc-sum-new')
+      expect(dashboard.lawyerCheckpoint.linkedSummaryDocumentId).toBe('doc-sum-old')
+      expect(dashboard.rows).toHaveLength(9)
+      expect(dashboard.rows.map((r) => r.id)).toEqual([
+        'estoppel',
+        'sirs',
+        'financial',
+        'governance',
+        'insurance',
+        'disclosure',
+        'questionnaire',
+        'unit_closing',
+        'lawyer_checkpoint',
+      ])
+      expect(dashboard.rows.find((r) => r.id === 'estoppel')?.attention).toBe(true)
+      expect(dashboard.rows.find((r) => r.id === 'financial')?.attention).toBe(true)
+      expect(dashboard.rows.find((r) => r.id === 'lawyer_checkpoint')?.attention).toBe(true)
+      expect(dashboard.concernRowCount).toBeGreaterThanOrEqual(3)
+      expect(dashboard.disclaimer.toLowerCase()).toContain('operational snapshot only')
+      expect(dashboard.disclaimer.toLowerCase()).toContain('not a compliance determination')
+      expect(dashboard.disclaimer.toLowerCase()).toContain('closing-readiness certification')
+      expect(dashboard.nextAction.toLowerCase()).not.toContain('ready to close')
+      expect(dashboard.rows.every((r) => r.sectionId.startsWith('condo-'))).toBe(true)
+    })
+
+    it('handles missing condo diligence without mutating inputs', () => {
+      const documents: never[] = []
+      const documentRequests: never[] = []
+      const beforeDocs = JSON.stringify(documents)
+      const beforeReqs = JSON.stringify(documentRequests)
+      const dashboard = buildCondoDiligenceReviewDashboard({
+        matterId,
+        condo: null,
+        documents,
+        documentRequests,
+        now,
+      })
+      expect(dashboard.documentCounts).toEqual({ received: 0, requested: 0, outstanding: 0, total: 0 })
+      expect(dashboard.activeReviewTaskCount).toBe(0)
+      expect(dashboard.concernRowCount).toBeGreaterThanOrEqual(0)
+      expect(dashboard.rows).toHaveLength(9)
+      expect(dashboard.matterStatus.label).toBe(condoDiligenceMatterStatusPresentation('not_started').label)
+      expect(JSON.stringify(documents)).toBe(beforeDocs)
+      expect(JSON.stringify(documentRequests)).toBe(beforeReqs)
+    })
+
+    it('marks insurance attention from governance insurance fields without inventing a separate review object', () => {
+      const condo = buildDefaultCondoDiligence({ nowIso: () => '2026-01-01T00:00:00.000Z' })
+      condo.associationRecordsGovernanceReview = {
+        ...buildDefaultCondoAssociationRecordsGovernanceReview(),
+        insuranceConcernLevel: 'high',
+        insuranceReviewStatus: 'issue_found',
+      }
+      const dashboard = buildCondoDiligenceReviewDashboard({ matterId, condo, now })
+      const insurance = dashboard.rows.find((r) => r.id === 'insurance')
+      expect(insurance?.attention).toBe(true)
+      expect(insurance?.sectionId).toBe('condo-association-records-governance-review')
+      expect(condo.associationRecordsGovernanceReview).toEqual({
+        ...buildDefaultCondoAssociationRecordsGovernanceReview(),
+        insuranceConcernLevel: 'high',
+        insuranceReviewStatus: 'issue_found',
+      })
     })
   })
 

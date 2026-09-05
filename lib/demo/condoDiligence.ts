@@ -2470,6 +2470,355 @@ export function buildCondoDiligenceOperationalSummary(input: {
   }
 }
 
+
+
+export type CondoDiligenceReviewDashboardBadge = {
+  label: string
+  bg: string
+  color: string
+  border: string
+}
+
+export type CondoDiligenceReviewDashboardRowId =
+  | 'estoppel'
+  | 'sirs'
+  | 'financial'
+  | 'governance'
+  | 'insurance'
+  | 'disclosure'
+  | 'questionnaire'
+  | 'unit_closing'
+  | 'lawyer_checkpoint'
+
+export type CondoDiligenceReviewDashboardRow = {
+  id: CondoDiligenceReviewDashboardRowId
+  title: string
+  /** Existing Condo Diligence tab section element id for deep-link scroll. */
+  sectionId: string
+  badge: CondoDiligenceReviewDashboardBadge
+  attention: boolean
+  detail: string | null
+}
+
+export type CondoDiligenceReviewDashboard = {
+  matterStatus: CondoDiligenceReviewDashboardBadge
+  documentCounts: CondoDiligenceSummaryDocumentCounts
+  documentsLine: string
+  openFindingsCount: number
+  findingsLine: string
+  estoppelAttention: string | null
+  nextAction: string
+  nextActionKind: CondoDiligenceNextActionKind
+  activeReviewTaskCount: number
+  concernRowCount: number
+  latestInternalSummaryDocumentId: string | null
+  lawyerCheckpoint: {
+    badge: CondoDiligenceReviewDashboardBadge
+    reviewedAt: string | null
+    reviewerName: string | null
+    linkedSummaryDocumentId: string | null
+    openFindingCountAtReview: number | null
+    activeFollowUpTaskCountAtReview: number | null
+  }
+  rows: CondoDiligenceReviewDashboardRow[]
+  disclaimer: string
+}
+
+function condoReviewDashboardFinancialNeedsAttention(
+  review: DemoCondoAssociationFinancialReview,
+): boolean {
+  return (
+    review.financialRiskLevel === 'medium' ||
+    review.financialRiskLevel === 'high' ||
+    review.delinquencyConcern === 'material' ||
+    review.reserveFundingStatus === 'material_shortfall' ||
+    review.budgetReviewStatus === 'issue_found' ||
+    review.financialStatementsReviewStatus === 'issue_found' ||
+    review.reserveScheduleReviewStatus === 'issue_found' ||
+    review.specialAssessmentStatus === 'active' ||
+    review.specialAssessmentStatus === 'proposed_or_pending'
+  )
+}
+
+function condoReviewDashboardGovernanceNeedsAttention(
+  review: DemoCondoAssociationRecordsGovernanceReview,
+): boolean {
+  return (
+    review.governanceConcernLevel === 'medium' ||
+    review.governanceConcernLevel === 'high' ||
+    review.insuranceConcernLevel === 'medium' ||
+    review.insuranceConcernLevel === 'high' ||
+    review.governingDocumentsReviewStatus === 'issue_found' ||
+    review.restrictionsReviewStatus === 'issue_found' ||
+    review.insuranceReviewStatus === 'issue_found' ||
+    review.boardMinutesReviewStatus === 'issue_found' ||
+    review.rentalRestrictionStatus === 'lawyer_review_required' ||
+    review.buyerApprovalStatus === 'lawyer_review_required' ||
+    review.litigationOrDbprStatus === 'lawyer_review_required' ||
+    review.recordsAccessStatus === 'lawyer_review_required' ||
+    review.recordsAccessStatus === 'not_provided'
+  )
+}
+
+function condoReviewDashboardInsuranceNeedsAttention(
+  review: DemoCondoAssociationRecordsGovernanceReview,
+): boolean {
+  return (
+    review.insuranceConcernLevel === 'medium' ||
+    review.insuranceConcernLevel === 'high' ||
+    review.insuranceReviewStatus === 'issue_found'
+  )
+}
+
+function condoReviewDashboardDisclosureNeedsAttention(
+  review: DemoCondoDisclosurePackageReview,
+): boolean {
+  return (
+    review.followUpNeeded ||
+    review.missingItemsNotes.trim() !== '' ||
+    review.reviewStatus === 'issue_found' ||
+    review.packageRequestStatus === 'requested' ||
+    review.packageRequestStatus === 'not_requested' ||
+    review.packageCompletenessStatus === 'lawyer_review_required' ||
+    review.packageCompletenessStatus === 'partial_or_incomplete' ||
+    review.packageCompletenessStatus === 'not_received' ||
+    review.packageConcernLevel === 'medium' ||
+    review.packageConcernLevel === 'high' ||
+    review.litigationOrClaimsDisclosureStatus === 'disclosed' ||
+    review.litigationOrClaimsDisclosureStatus === 'lawyer_review_required'
+  )
+}
+
+function condoReviewDashboardQuestionnaireNeedsAttention(
+  review: DemoCondoQuestionnaireLenderReview,
+): boolean {
+  return (
+    review.questionnaireStatus === 'issue_found' ||
+    review.questionnaireStatus === 'requested' ||
+    review.lenderIssueStatus === 'issue_disclosed' ||
+    review.lenderIssueStatus === 'lawyer_review_required' ||
+    review.applicability === 'lawyer_review_required' ||
+    (review.requestedResponseDate.trim() !== '' &&
+      review.questionnaireStatus !== 'received' &&
+      review.questionnaireStatus !== 'reviewed' &&
+      review.questionnaireStatus !== 'not_applicable')
+  )
+}
+
+function condoReviewDashboardSirsNeedsAttention(review: DemoCondoSirsMilestoneReview): boolean {
+  return (
+    review.reserveRiskLevel === 'elevated' ||
+    review.reserveRiskLevel === 'high' ||
+    review.structuralRiskLevel === 'elevated' ||
+    review.structuralRiskLevel === 'high' ||
+    review.result === 'fail' ||
+    review.result === 'pass_with_findings'
+  )
+}
+
+function condoReviewDashboardUnitClosingNeedsAttention(
+  review: DemoCondoUnitClosingDependenciesReview,
+): boolean {
+  return (
+    review.titleReviewStatus === 'issue_found' ||
+    review.legalDescriptionStatus === 'difference_noted' ||
+    review.legalDescriptionStatus === 'lawyer_review_required' ||
+    review.parkingStorageStatus === 'issue_found' ||
+    review.parkingStorageStatus === 'lawyer_review_required' ||
+    review.limitedCommonElementStatus === 'issue_found' ||
+    review.limitedCommonElementStatus === 'lawyer_review_required' ||
+    review.permitsCodeStatus === 'possible_issue_noted' ||
+    review.permitsCodeStatus === 'issue_disclosed' ||
+    review.permitsCodeStatus === 'lawyer_review_required' ||
+    review.municipalLienStatus === 'possible_issue_noted' ||
+    review.municipalLienStatus === 'issue_disclosed' ||
+    review.municipalLienStatus === 'lawyer_review_required' ||
+    review.inspectionStatus === 'issue_found' ||
+    review.sellerRepairDisclosureStatus === 'issue_found' ||
+    review.closingDependencyStatus === 'open_item' ||
+    review.closingDependencyStatus === 'issue_flagged' ||
+    review.closingDependencyStatus === 'lawyer_review_required'
+  )
+}
+
+/**
+ * Read-only Condo Diligence Review Dashboard projection for Matter Overview.
+ * Composes existing operational summary + nested review presentation helpers.
+ * Does not persist, score readiness, or invent a second source of truth.
+ */
+export function buildCondoDiligenceReviewDashboard(input: {
+  matterId: string
+  condo: DemoCondoDiligence | null | undefined
+  documents?: Array<
+    DeriveCondoRequiredDocumentStatusInput['documents'][number] &
+      Pick<DemoDocument, 'id' | 'uploaded_at' | 'generatedInternalSummary'>
+  >
+  documentRequests?: DeriveCondoRequiredDocumentStatusInput['documentRequests']
+  /** Precomputed active (non-completed) summary review task count. */
+  activeReviewTaskCount?: number
+  now?: Date
+}): CondoDiligenceReviewDashboard {
+  const documents = input.documents ?? []
+  const documentRequests = input.documentRequests ?? []
+  const now = input.now ?? new Date()
+  const ops = buildCondoDiligenceOperationalSummary({
+    matterId: input.matterId,
+    condo: input.condo,
+    documents,
+    documentRequests,
+    now,
+  })
+
+  const estoppel = normalizeCondoEstoppelReview(input.condo?.estoppelReview)
+  const sirs = normalizeCondoSirsMilestoneReview(input.condo?.sirsMilestoneReview)
+  const financial = normalizeCondoAssociationFinancialReview(input.condo?.associationFinancialReview)
+  const governance = normalizeCondoAssociationRecordsGovernanceReview(
+    input.condo?.associationRecordsGovernanceReview,
+  )
+  const disclosure = normalizeCondoDisclosurePackageReview(input.condo?.disclosurePackageReview)
+  const questionnaire = normalizeCondoQuestionnaireLenderReview(input.condo?.questionnaireLenderReview)
+  const unitClosing = normalizeCondoUnitClosingDependenciesReview(
+    input.condo?.unitClosingDependenciesReview,
+  )
+  const lawyerCheckpoint = normalizeCondoLawyerReviewCheckpoint(input.condo?.lawyerReviewCheckpoint)
+
+  const estoppelBadge = condoEstoppelReviewStatusPresentation(estoppel.reviewStatus)
+  const sirsBadge =
+    sirs.result !== 'unknown'
+      ? condoSirsResultPresentation(sirs.result)
+      : condoSirsApplicabilityPresentation(sirs.applicability)
+  const financialBadge = condoFinancialRiskLevelPresentation(financial.financialRiskLevel)
+  const governanceBadge = condoGovernanceConcernLevelPresentation(governance.governanceConcernLevel)
+  const insuranceBadge =
+    governance.insuranceConcernLevel !== 'unknown'
+      ? condoGovernanceConcernLevelPresentation(governance.insuranceConcernLevel)
+      : condoFinancialDocReviewStatusPresentation(governance.insuranceReviewStatus)
+  const disclosureBadge = condoDisclosurePackageCompletenessPresentation(
+    disclosure.packageCompletenessStatus,
+  )
+  const questionnaireBadge = condoQuestionnaireStatusPresentation(questionnaire.questionnaireStatus)
+  const unitClosingBadge =
+    unitClosing.closingDependencyStatus !== 'none_noted'
+      ? condoClosingDependencyStatusPresentation(unitClosing.closingDependencyStatus)
+      : condoTitleReviewStatusPresentation(unitClosing.titleReviewStatus)
+  const lawyerBadge = condoLawyerReviewCheckpointStatusPresentation(lawyerCheckpoint.status)
+
+  const rows: CondoDiligenceReviewDashboardRow[] = [
+    {
+      id: 'estoppel',
+      title: 'Estoppel',
+      sectionId: 'condo-estoppel-review',
+      badge: estoppelBadge,
+      attention: Boolean(ops.estoppelAttention) || estoppel.reviewStatus === 'issue_found',
+      detail: ops.estoppelAttention,
+    },
+    {
+      id: 'sirs',
+      title: 'SIRS / Milestone',
+      sectionId: 'condo-sirs-milestone-review',
+      badge: sirsBadge,
+      attention: condoReviewDashboardSirsNeedsAttention(sirs),
+      detail:
+        sirs.reserveRiskLevel === 'elevated' || sirs.reserveRiskLevel === 'high'
+          ? `Reserve risk: ${condoSirsRiskLevelPresentation(sirs.reserveRiskLevel).label}`
+          : sirs.structuralRiskLevel === 'elevated' || sirs.structuralRiskLevel === 'high'
+            ? `Structural risk: ${condoSirsRiskLevelPresentation(sirs.structuralRiskLevel).label}`
+            : null,
+    },
+    {
+      id: 'financial',
+      title: 'Association financial',
+      sectionId: 'condo-association-financial-review',
+      badge: financialBadge,
+      attention: condoReviewDashboardFinancialNeedsAttention(financial),
+      detail: null,
+    },
+    {
+      id: 'governance',
+      title: 'Records / governance',
+      sectionId: 'condo-association-records-governance-review',
+      badge: governanceBadge,
+      attention: condoReviewDashboardGovernanceNeedsAttention(governance),
+      detail: null,
+    },
+    {
+      id: 'insurance',
+      title: 'Association insurance',
+      sectionId: 'condo-association-records-governance-review',
+      badge: insuranceBadge,
+      attention: condoReviewDashboardInsuranceNeedsAttention(governance),
+      detail: null,
+    },
+    {
+      id: 'disclosure',
+      title: 'Disclosure package',
+      sectionId: 'condo-disclosure-package-review',
+      badge: disclosureBadge,
+      attention: condoReviewDashboardDisclosureNeedsAttention(disclosure),
+      detail: disclosure.followUpNeeded ? 'Follow-up noted' : null,
+    },
+    {
+      id: 'questionnaire',
+      title: 'Questionnaire / lender',
+      sectionId: 'condo-questionnaire-lender-review',
+      badge: questionnaireBadge,
+      attention: condoReviewDashboardQuestionnaireNeedsAttention(questionnaire),
+      detail:
+        questionnaire.lenderIssueStatus === 'issue_disclosed' ||
+        questionnaire.lenderIssueStatus === 'lawyer_review_required'
+          ? condoQuestionnaireLenderIssueStatusPresentation(questionnaire.lenderIssueStatus).label
+          : null,
+    },
+    {
+      id: 'unit_closing',
+      title: 'Unit / closing dependencies',
+      sectionId: 'condo-unit-closing-dependencies',
+      badge: unitClosingBadge,
+      attention: condoReviewDashboardUnitClosingNeedsAttention(unitClosing),
+      detail: null,
+    },
+    {
+      id: 'lawyer_checkpoint',
+      title: 'Lawyer review checkpoint',
+      sectionId: 'condo-lawyer-review-checkpoint',
+      badge: lawyerBadge,
+      attention: lawyerCheckpoint.status === 'follow_up_required',
+      detail: lawyerCheckpoint.reviewedAt ? `Recorded ${lawyerCheckpoint.reviewedAt}` : null,
+    },
+  ]
+
+  const summaries = listCondoDiligenceInternalSummaryDocuments(documents)
+  const activeReviewTaskCount =
+    typeof input.activeReviewTaskCount === 'number' && input.activeReviewTaskCount >= 0
+      ? Math.floor(input.activeReviewTaskCount)
+      : 0
+
+  return {
+    matterStatus: condoDiligenceMatterStatusPresentation(input.condo?.status ?? 'not_started'),
+    documentCounts: ops.documentCounts,
+    documentsLine: ops.documentsLine,
+    openFindingsCount: ops.openFindingsCount,
+    findingsLine: ops.findingsLine,
+    estoppelAttention: ops.estoppelAttention,
+    nextAction: ops.nextAction,
+    nextActionKind: ops.nextActionKind,
+    activeReviewTaskCount,
+    concernRowCount: rows.filter((row) => row.attention).length,
+    latestInternalSummaryDocumentId: summaries[0]?.id ?? null,
+    lawyerCheckpoint: {
+      badge: lawyerBadge,
+      reviewedAt: lawyerCheckpoint.reviewedAt,
+      reviewerName: lawyerCheckpoint.reviewerName,
+      linkedSummaryDocumentId: lawyerCheckpoint.linkedSummaryDocumentId,
+      openFindingCountAtReview: lawyerCheckpoint.openFindingCountAtReview,
+      activeFollowUpTaskCountAtReview: lawyerCheckpoint.activeFollowUpTaskCountAtReview,
+    },
+    rows,
+    disclaimer:
+      'Operational snapshot only — not a compliance determination, safety finding, insurance conclusion, lender eligibility decision, or closing-readiness certification.',
+  }
+}
+
 export type CondoDiligenceInternalReportSection = {
   title: string
   lines: string[]
@@ -2839,7 +3188,17 @@ export function condoDiligenceInternalSummarySortTime(
  * Matter-document rows that are Internal Condo Diligence Summary snapshots, newest first.
  * Does not create a separate store — filters the existing document list.
  */
-export function listCondoDiligenceInternalSummaryDocuments<T extends DemoDocument>(documents: T[]): T[] {
+export function listCondoDiligenceInternalSummaryDocuments<
+  T extends Pick<
+    DemoDocument,
+    | 'id'
+    | 'name'
+    | 'deletedAt'
+    | 'uploaded_at'
+    | 'document_subtype'
+    | 'generatedInternalSummary'
+  >,
+>(documents: readonly T[]): T[] {
   return documents
     .filter((d) => !d.deletedAt && isCondoDiligenceInternalSummaryDocument(d))
     .slice()
