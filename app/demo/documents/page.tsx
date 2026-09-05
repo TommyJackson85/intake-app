@@ -9,6 +9,10 @@ import LinkClientUploadToDocumentRequestModal from '@/app/demo/_components/LinkC
 import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
 import { buildStaffClientUploadReceiptQueue } from '@/lib/demo/staffClientUploadReceiptQueue'
 import { canStaffLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
+import {
+  getDocumentRequestFollowUpPresentation,
+  normalizeDocumentRequestFollowUp,
+} from '@/lib/demo/staffDocumentRequestFollowUp'
 
 function formatDemoDateTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -24,7 +28,15 @@ function formatDemoDateTime(value: string) {
 }
 
 export default function DemoDocumentsPage() {
-  const { documents, documentRequests, matters, staff, acknowledgeClientUploadReceipt } = useDemoStore()
+  const {
+    documents,
+    documentRequests,
+    matters,
+    staff,
+    acknowledgeClientUploadReceipt,
+    markDocumentRequestNeedsFollowUp,
+    clearDocumentRequestNeedsFollowUp,
+  } = useDemoStore()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [requestOpen, setRequestOpen] = useState(false)
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null)
@@ -253,14 +265,16 @@ export default function DemoDocumentsPage() {
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Matter</th>
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Category</th>
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Status</th>
+              <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Follow-up</th>
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Requested</th>
               <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>By</th>
+              <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Action</th>
             </tr>
           </thead>
           <tbody>
             {sortedRequests.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ padding: '14px', color: '#627c71' }}>
+                <td colSpan={8} style={{ padding: '14px', color: '#627c71' }}>
                   No document requests yet.
                 </td>
               </tr>
@@ -269,6 +283,9 @@ export default function DemoDocumentsPage() {
                 const matter = matters.find((m) => m.id === req.matter_id)
                 const by = staff.find((s) => s.id === req.requested_by_staff_id)
                 const fulfilledDocName = getFulfilledRequestDocumentName(req, documents)
+                const followUp = getDocumentRequestFollowUpPresentation(
+                  normalizeDocumentRequestFollowUp(req.staff_follow_up),
+                )
                 return (
                   <tr key={req.id} style={{ borderBottom: '1px solid rgba(94,82,64,0.12)' }}>
                     <td style={{ padding: '14px', color: '#134252', fontWeight: 700, verticalAlign: 'top' }}>
@@ -298,11 +315,62 @@ export default function DemoDocumentsPage() {
                     >
                       {req.status}
                     </td>
+                    <td style={{ padding: '14px', verticalAlign: 'top' }}>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          color: followUp.status === 'needs_follow_up' ? '#b45309' : '#627c71',
+                          fontSize: 13,
+                        }}
+                      >
+                        {followUp.statusLabel}
+                      </div>
+                      {followUp.note ? (
+                        <div style={{ marginTop: 4, color: '#627c71', fontSize: 12 }}>{followUp.note}</div>
+                      ) : null}
+                    </td>
                     <td style={{ padding: '14px', color: '#627c71', verticalAlign: 'top' }}>
                       {formatDemoDateTime(req.requested_at)}
                     </td>
                     <td style={{ padding: '14px', color: '#627c71', verticalAlign: 'top' }}>
                       {by?.full_name ?? 'Staff'}
+                    </td>
+                    <td style={{ padding: '14px', verticalAlign: 'top' }}>
+                      {followUp.status === 'needs_follow_up' ? (
+                        <button
+                          type="button"
+                          onClick={() => clearDocumentRequestNeedsFollowUp(req.id)}
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: 8,
+                            border: '1px solid rgba(94,82,64,0.3)',
+                            background: '#fff',
+                            color: '#134252',
+                            fontWeight: 800,
+                            fontSize: 13,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Clear follow-up
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => markDocumentRequestNeedsFollowUp(req.id)}
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: 8,
+                            border: '1px solid rgba(180,83,9,0.35)',
+                            background: '#fffbeb',
+                            color: '#b45309',
+                            fontWeight: 800,
+                            fontSize: 13,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Needs follow-up
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )

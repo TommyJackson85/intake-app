@@ -3,6 +3,7 @@
  */
 import { appendDemoDocumentIfValid, type BuildDemoDocumentOptions } from '@/lib/demo/demoDocument'
 import type { DemoDocument, DemoMatter, DemoDocumentRequest, DemoDocumentRequestStatus } from '@/lib/demo/types'
+import { normalizeDocumentRequestFollowUp } from '@/lib/demo/staffDocumentRequestFollowUp'
 
 export type AddDemoDocumentRequestInput = {
   matter_id: string
@@ -53,6 +54,7 @@ export function buildDemoDocumentRequest(
     staff_receipt_acknowledged_at: null,
     staff_receipt_reviewed_by_staff_id: null,
     staff_receipt_reviewed_document_id: null,
+    staff_follow_up: { status: 'none' as const, note: '', markedById: null, markedByName: null, markedAt: null },
   }
 }
 
@@ -69,6 +71,7 @@ export function withCoercedDocumentRequestStatus(
     staff_receipt_acknowledged_at?: unknown
     staff_receipt_reviewed_by_staff_id?: unknown
     staff_receipt_reviewed_document_id?: unknown
+    staff_follow_up?: unknown
   }
 ): DemoDocumentRequest {
   const fulfilled =
@@ -96,6 +99,7 @@ export function withCoercedDocumentRequestStatus(
     staff_receipt_acknowledged_at,
     staff_receipt_reviewed_by_staff_id,
     staff_receipt_reviewed_document_id,
+    staff_follow_up: normalizeDocumentRequestFollowUp(r.staff_follow_up),
   }
 }
 
@@ -154,6 +158,7 @@ export function tryFulfillDemoDocumentRequest(
           staff_receipt_acknowledged_at: null,
           staff_receipt_reviewed_by_staff_id: null,
           staff_receipt_reviewed_document_id: null,
+          staff_follow_up: normalizeDocumentRequestFollowUp(r.staff_follow_up),
         }
       : r
   )

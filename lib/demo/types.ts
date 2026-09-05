@@ -727,6 +727,15 @@ export type DemoGeneratedInternalSummaryMetadata = {
 
 export type DemoDocumentRequestStatus = 'open' | 'fulfilled'
 
+/** Staff-only follow-up signal on an ordinary document request. */
+export type DocumentRequestFollowUp = {
+  status?: 'none' | 'needs_follow_up'
+  note?: string
+  markedById?: string | null
+  markedByName?: string | null
+  markedAt?: string | null
+}
+
 /** Lawyer-side document request tracked in demo store and visible in portal. */
 export type DemoDocumentRequest = {
   id: string
@@ -749,6 +758,11 @@ export type DemoDocumentRequest = {
   staff_receipt_reviewed_by_staff_id: string | null
   /** Client-provided document id confirmed during receipt review (staff-only). */
   staff_receipt_reviewed_document_id: string | null
+  /**
+   * Internal staff follow-up signal for an ordinary document request.
+   * Not exposed on the client portal.
+   */
+  staff_follow_up: DocumentRequestFollowUp
 }
 
 /** Internal-only review of a saved Condo Diligence summary snapshot (not shared to portal). */
