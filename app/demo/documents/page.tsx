@@ -10,6 +10,7 @@ import MarkDocumentRequestNeedsFollowUpModal from '@/app/demo/_components/MarkDo
 import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
 import { buildStaffClientUploadReceiptQueue } from '@/lib/demo/staffClientUploadReceiptQueue'
 import { canStaffLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
+import { buildStaffDocumentRequestFollowUpList } from '@/lib/demo/staffDocumentRequestFollowUpList'
 import {
   getDocumentRequestFollowUpDetailPresentation,
   getDocumentRequestFollowUpPresentation,
@@ -61,6 +62,16 @@ export default function DemoDocumentsPage() {
   const clientUploadReceiptQueue = useMemo(
     () =>
       buildStaffClientUploadReceiptQueue({
+        documentRequests,
+        documents,
+        matters,
+      }),
+    [documentRequests, documents, matters]
+  )
+
+  const documentRequestFollowUpList = useMemo(
+    () =>
+      buildStaffDocumentRequestFollowUpList({
         documentRequests,
         documents,
         matters,
@@ -252,6 +263,114 @@ export default function DemoDocumentsPage() {
                     >
                       Record receipt review
                     </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 style={{ fontSize: '18px', marginBottom: '8px', marginTop: '8px', color: '#134252', fontWeight: 800 }}>
+        Document requests needing follow-up
+        {documentRequestFollowUpList.pendingCount > 0
+          ? ` (${documentRequestFollowUpList.pendingCount})`
+          : ''}
+      </h2>
+      <p style={{ marginTop: 0, marginBottom: '10px', color: '#627c71', fontSize: 13, lineHeight: 1.45, maxWidth: '46rem' }}>
+        {documentRequestFollowUpList.disclaimer}
+      </p>
+      <div
+        style={{
+          background: 'white',
+          borderRadius: '8px',
+          border: '1px solid rgba(94,82,64,0.2)',
+          overflowX: 'auto',
+          marginBottom: '28px',
+        }}
+      >
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#fcfcf9', borderBottom: '1px solid rgba(94,82,64,0.2)' }}>
+              <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Request</th>
+              <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Matter</th>
+              <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Follow-up</th>
+              <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Receipt review</th>
+              <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Linked upload</th>
+              <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Marked</th>
+              <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {documentRequestFollowUpList.items.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ padding: '14px', color: '#627c71' }}>
+                  No document requests currently marked Needs follow-up.
+                </td>
+              </tr>
+            ) : (
+              documentRequestFollowUpList.items.map((item) => (
+                <tr key={item.requestId} style={{ borderBottom: '1px solid rgba(94,82,64,0.12)' }}>
+                  <td style={{ padding: '14px', color: '#134252', fontWeight: 700, verticalAlign: 'top' }}>
+                    <div>{item.requestTitle}</div>
+                    <div style={{ marginTop: 4, fontWeight: 500, color: '#627c71', fontSize: 13 }}>
+                      {item.requestCategory}
+                    </div>
+                    {item.internalFollowUpNote ? (
+                      <div style={{ marginTop: 6, fontWeight: 500, color: '#627c71', fontSize: 12 }}>
+                        {item.internalFollowUpNote}
+                      </div>
+                    ) : null}
+                  </td>
+                  <td style={{ padding: '14px', color: '#627c71', verticalAlign: 'top' }}>
+                    <div style={{ fontWeight: 700, color: '#134252' }}>{item.matterFileId}</div>
+                    <div style={{ marginTop: 4, fontSize: 13 }}>{item.matterLabel}</div>
+                  </td>
+                  <td
+                    style={{
+                      padding: '14px',
+                      color: '#b45309',
+                      fontWeight: 700,
+                      verticalAlign: 'top',
+                      fontSize: 13,
+                    }}
+                  >
+                    {item.followUpStatusLabel}
+                  </td>
+                  <td style={{ padding: '14px', color: '#627c71', verticalAlign: 'top', fontSize: 13 }}>
+                    {item.receiptReviewLabel}
+                  </td>
+                  <td style={{ padding: '14px', color: '#627c71', verticalAlign: 'top', fontSize: 13 }}>
+                    <div>{item.linkedClientUploadLabel ?? '—'}</div>
+                    {item.uploadedAt ? (
+                      <div style={{ marginTop: 4, fontSize: 12 }}>{formatDemoDateTime(item.uploadedAt)}</div>
+                    ) : null}
+                  </td>
+                  <td style={{ padding: '14px', color: '#627c71', verticalAlign: 'top', fontSize: 13 }}>
+                    <div>{item.markedByName ?? 'Staff'}</div>
+                    {item.markedAt ? (
+                      <div style={{ marginTop: 4, fontSize: 12 }}>{formatDemoDateTime(item.markedAt)}</div>
+                    ) : null}
+                  </td>
+                  <td style={{ padding: '14px', verticalAlign: 'top' }}>
+                    {item.canClearNeedsFollowUp ? (
+                      <button
+                        type="button"
+                        onClick={() => clearDocumentRequestNeedsFollowUp(item.requestId)}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: 8,
+                          border: '1px solid rgba(94,82,64,0.3)',
+                          background: '#fff',
+                          color: '#134252',
+                          fontWeight: 800,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Clear follow-up
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))
