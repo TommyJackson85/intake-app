@@ -53,8 +53,10 @@ import type {
   DemoDocument,
   DemoDocumentRequest,
   DemoMatter,
+  DemoMatterReviewTask,
 } from '@/lib/demo/types'
 import type { AddDemoDocumentInput } from '@/lib/demo/demoDocument'
+import { listCondoDiligenceSummaryReviewTasks } from '@/lib/demo/demoMatterReviewTask'
 
 /** Label + pill colors for matter-level condo diligence status (lists + modal). */
 export function condoDiligenceMatterStatusPresentation(status: DemoCondoDiligenceMatterStatus): {
@@ -353,7 +355,11 @@ export function isCondoDiligenceUntouched(
   },
 ): boolean {
   const notesEmpty = input.notes.trim() === ''
-  const noFindings = input.findings.length === 0 || input.findings.every((f) => f.text.trim() === '')
+  const noFindings =
+    input.findings.length === 0 ||
+    input.findings.every(
+      (f) => f.text.trim() === '' && !(f.linkedReviewTaskIds && f.linkedReviewTaskIds.length > 0),
+    )
   const allOutstanding = input.requiredDocuments.length > 0 && input.requiredDocuments.every((d) => d.status === 'outstanding')
   const estoppelUntouched = isCondoEstoppelReviewUntouched(input.estoppelReview)
   const sirsUntouched = isCondoSirsMilestoneReviewUntouched(input.sirsMilestoneReview)
@@ -377,6 +383,65 @@ export function isCondoDiligenceUntouched(
     questionnaireUntouched &&
     unitClosingUntouched
   )
+}
+
+/**
+ * Parse optional `linkedReviewTaskIds` on a finding.
+ * Missing/invalid → undefined (older findings). Dedupes trimmed string ids.
+ */
+export function parseCondoDiligenceFindingLinkedReviewTaskIds(raw: unknown): string[] | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!Array.isArray(raw)) return undefined
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const item of raw) {
+    if (typeof item !== 'string') continue
+    const id = item.trim()
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    out.push(id)
+  }
+  return out
+}
+
+/** Append a review-task id to a finding without duplicates (immutable). */
+export function withCondoDiligenceFindingLinkedReviewTaskId(
+  finding: DemoCondoDiligenceFinding,
+  taskId: string,
+): DemoCondoDiligenceFinding {
+  const id = taskId.trim()
+  if (!id) return finding
+  const existing = finding.linkedReviewTaskIds ?? []
+  if (existing.includes(id)) return finding
+  return { ...finding, linkedReviewTaskIds: [...existing, id] }
+}
+
+/**
+ * Matter Condo Diligence summary review tasks that can still be linked to this finding
+ * (same matter, internal summary-review type, not already linked).
+ */
+export function listLinkableCondoDiligenceReviewTasksForFinding(input: {
+  tasks: readonly DemoMatterReviewTask[]
+  matterId: string
+  finding: Pick<DemoCondoDiligenceFinding, 'linkedReviewTaskIds'>
+}): DemoMatterReviewTask[] {
+  const linked = new Set(input.finding.linkedReviewTaskIds ?? [])
+  return listCondoDiligenceSummaryReviewTasks([...input.tasks], input.matterId).filter((t) => !linked.has(t.id))
+}
+
+/** Prefill helpers for creating a follow-up review task from a finding (lawyer-controlled). */
+export function buildCondoDiligenceFindingFollowUpTaskPrefill(finding: Pick<DemoCondoDiligenceFinding, 'text'>): {
+  title: string
+  internalNote: string
+} {
+  const text = finding.text.trim()
+  const excerpt = text.length > 80 ? `${text.slice(0, 77)}…` : text
+  return {
+    title: excerpt ? `Follow up: ${excerpt}` : 'Follow up: Condo diligence finding',
+    internalNote: text
+      ? `From Condo Diligence finding:\n${text}`
+      : 'From Condo Diligence finding (empty text at create time).',
+  }
 }
 
 /** Default empty structured estoppel review for newly seeded diligence rows. */

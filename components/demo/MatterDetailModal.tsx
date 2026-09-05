@@ -95,10 +95,12 @@ import {
   condoSirsResultPresentation,
   condoSirsRiskLevelPresentation,
   deriveCondoRequiredDocumentStatus,
+  buildCondoDiligenceFindingFollowUpTaskPrefill,
   isCondoDiligenceUntouched,
   isCondoDiligenceEligible,
   isCondoDiligenceInternalSummaryDocument,
   listCondoDiligenceInternalSummaryDocuments,
+  listLinkableCondoDiligenceReviewTasksForFinding,
   normalizeCondoAssociationFinancialReview,
   normalizeCondoAssociationRecordsGovernanceReview,
   normalizeCondoDisclosurePackageReview,
@@ -109,6 +111,7 @@ import {
   resolveCondoQuestionnaireFinancingEligibility,
   shouldShowCondoQuestionnaireLenderReviewForm,
   syncRequiredDocumentsFromDerivedLinkage,
+  withCondoDiligenceFindingLinkedReviewTaskId,
 } from '@/lib/demo/condoDiligence'
 import DocumentPreviewModal from '@/app/demo/_components/DocumentPreviewModal'
 import {
@@ -314,6 +317,12 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null)
   const [compareSummariesOpen, setCompareSummariesOpen] = useState(false)
   const [reviewTaskDocumentId, setReviewTaskDocumentId] = useState<string | null>(null)
+  const [reviewTaskLinkFindingId, setReviewTaskLinkFindingId] = useState<string | null>(null)
+  const [reviewTaskPrefill, setReviewTaskPrefill] = useState<{ title: string; internalNote: string } | null>(
+    null,
+  )
+  const [findingLinkSelectById, setFindingLinkSelectById] = useState<Record<string, string>>({})
+  const [findingCreateDocSelectById, setFindingCreateDocSelectById] = useState<Record<string, string>>({})
   const [condoActivityExpanded, setCondoActivityExpanded] = useState(false)
   const [condoActivityFilter, setCondoActivityFilter] =
     useState<CondoDiligenceActivityViewFilter>('all')
@@ -5277,31 +5286,291 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       ))}
                     </div>
                     {condoDiligence.findings.length === 0 ? (
-                      <div style={{ fontSize: 13, color: '#627c71' }}>No findings yet. Add a line when something material shows up in diligence.</div>
+                      <div style={{ fontSize: 13, color: '#627c71' }}>
+                        No findings yet. Add a line when something material shows up in diligence.
+                      </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {condoDiligence.findings.map((f) => (
-                          <textarea
-                            key={f.id}
-                            value={f.text}
-                            onChange={(e) => {
-                              const text = e.target.value
-                              const findings = condoDiligence.findings.map((x) => (x.id === f.id ? { ...x, text } : x))
-                              patchCondoDiligence(matterId, { findings })
-                            }}
-                            rows={2}
-                            placeholder="Finding (demo)"
-                            style={{
-                              width: '100%',
-                              padding: '8px 10px',
-                              borderRadius: 6,
-                              border: '1px solid rgba(94,82,64,0.22)',
-                              fontSize: 13,
-                              resize: 'vertical',
-                              boxSizing: 'border-box',
-                            }}
-                          />
-                        ))}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {condoDiligence.findings.map((f) => {
+                          const linkedTasks = (f.linkedReviewTaskIds ?? [])
+                            .map((taskId) => condoReviewTasks.find((t) => t.id === taskId))
+                            .filter((t): t is NonNullable<typeof t> => Boolean(t))
+                          const linkableTasks = listLinkableCondoDiligenceReviewTasksForFinding({
+                            tasks: matterReviewTasks,
+                            matterId,
+                            finding: f,
+                          })
+                          const selectedLinkTaskId = findingLinkSelectById[f.id] ?? ''
+                          const selectedCreateDocId = findingCreateDocSelectById[f.id] ?? ''
+                          return (
+                            <div
+                              key={f.id}
+                              style={{
+                                border: '1px solid rgba(94,82,64,0.14)',
+                                borderRadius: 8,
+                                padding: 10,
+                                background: '#fcfcf9',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 8,
+                              }}
+                            >
+                              <textarea
+                                value={f.text}
+                                onChange={(e) => {
+                                  const text = e.target.value
+                                  const findings = condoDiligence.findings.map((x) =>
+                                    x.id === f.id ? { ...x, text } : x,
+                                  )
+                                  patchCondoDiligence(matterId, { findings })
+                                }}
+                                rows={2}
+                                placeholder="Finding (demo)"
+                                style={{
+                                  width: '100%',
+                                  padding: '8px 10px',
+                                  borderRadius: 6,
+                                  border: '1px solid rgba(94,82,64,0.22)',
+                                  fontSize: 13,
+                                  resize: 'vertical',
+                                  boxSizing: 'border-box',
+                                  background: '#fff',
+                                }}
+                              />
+
+                              {linkedTasks.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>
+                                    Linked review tasks (internal)
+                                  </div>
+                                  {linkedTasks.map((task) => {
+                                    const statusPresent = demoMatterReviewTaskStatusPresentation(task.status)
+                                    const linkedSummary = matterDocuments.find(
+                                      (d) => d.id === task.linked_document_id,
+                                    )
+                                    return (
+                                      <div
+                                        key={task.id}
+                                        style={{
+                                          display: 'flex',
+                                          flexWrap: 'wrap',
+                                          alignItems: 'center',
+                                          gap: 8,
+                                          fontSize: 12,
+                                          color: '#134252',
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            display: 'inline-block',
+                                            padding: '3px 8px',
+                                            borderRadius: 999,
+                                            fontSize: 11,
+                                            fontWeight: 900,
+                                            background: statusPresent.bg,
+                                            color: statusPresent.color,
+                                            border: `1px solid ${statusPresent.border}`,
+                                          }}
+                                        >
+                                          {statusPresent.label}
+                                        </span>
+                                        <span style={{ fontWeight: 700 }}>{task.title}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => setActiveTab('Tasks')}
+                                          style={{
+                                            border: '1px solid rgba(94,82,64,0.25)',
+                                            background: '#fff',
+                                            borderRadius: 6,
+                                            padding: '4px 8px',
+                                            fontWeight: 800,
+                                            fontSize: 11,
+                                            color: '#134252',
+                                            cursor: 'pointer',
+                                          }}
+                                        >
+                                          Open tasks
+                                        </button>
+                                        {linkedSummary && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setPreviewDocumentId(linkedSummary.id)}
+                                            style={{
+                                              border: '1px solid rgba(94,82,64,0.25)',
+                                              background: '#fff',
+                                              borderRadius: 6,
+                                              padding: '4px 8px',
+                                              fontWeight: 800,
+                                              fontSize: 11,
+                                              color: '#134252',
+                                              cursor: 'pointer',
+                                            }}
+                                          >
+                                            View summary
+                                          </button>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )}
+
+                              <div
+                                style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                  gap: 8,
+                                  alignItems: 'end',
+                                }}
+                              >
+                                <label style={{ display: 'block' }}>
+                                  <span
+                                    style={{
+                                      display: 'block',
+                                      fontSize: 11,
+                                      fontWeight: 800,
+                                      color: '#627c71',
+                                      marginBottom: 4,
+                                    }}
+                                  >
+                                    Create follow-up from saved summary
+                                  </span>
+                                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                    <select
+                                      value={selectedCreateDocId}
+                                      onChange={(e) =>
+                                        setFindingCreateDocSelectById((prev) => ({
+                                          ...prev,
+                                          [f.id]: e.target.value,
+                                        }))
+                                      }
+                                      style={{
+                                        flex: 1,
+                                        minWidth: 140,
+                                        padding: '6px 8px',
+                                        borderRadius: 6,
+                                        border: '1px solid rgba(94,82,64,0.25)',
+                                        fontSize: 12,
+                                        color: '#134252',
+                                        background: '#fff',
+                                      }}
+                                    >
+                                      <option value="">
+                                        {condoSummaryHistory.length === 0
+                                          ? 'Save an internal summary first'
+                                          : 'Select summary snapshot'}
+                                      </option>
+                                      {condoSummaryHistory.map((d) => (
+                                        <option key={d.id} value={d.id}>
+                                          {d.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <button
+                                      type="button"
+                                      disabled={!selectedCreateDocId}
+                                      onClick={() => {
+                                        if (!selectedCreateDocId) return
+                                        const prefill = buildCondoDiligenceFindingFollowUpTaskPrefill(f)
+                                        setReviewTaskPrefill(prefill)
+                                        setReviewTaskLinkFindingId(f.id)
+                                        setReviewTaskDocumentId(selectedCreateDocId)
+                                      }}
+                                      style={{
+                                        padding: '6px 10px',
+                                        borderRadius: 6,
+                                        border: '1px solid rgba(94,82,64,0.25)',
+                                        background: selectedCreateDocId ? '#208096' : '#f5f5f5',
+                                        color: selectedCreateDocId ? '#fff' : '#9aa8a1',
+                                        fontWeight: 800,
+                                        fontSize: 11,
+                                        cursor: selectedCreateDocId ? 'pointer' : 'not-allowed',
+                                      }}
+                                    >
+                                      Create task
+                                    </button>
+                                  </div>
+                                </label>
+
+                                <label style={{ display: 'block' }}>
+                                  <span
+                                    style={{
+                                      display: 'block',
+                                      fontSize: 11,
+                                      fontWeight: 800,
+                                      color: '#627c71',
+                                      marginBottom: 4,
+                                    }}
+                                  >
+                                    Link existing review task
+                                  </span>
+                                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                    <select
+                                      value={selectedLinkTaskId}
+                                      onChange={(e) =>
+                                        setFindingLinkSelectById((prev) => ({
+                                          ...prev,
+                                          [f.id]: e.target.value,
+                                        }))
+                                      }
+                                      style={{
+                                        flex: 1,
+                                        minWidth: 140,
+                                        padding: '6px 8px',
+                                        borderRadius: 6,
+                                        border: '1px solid rgba(94,82,64,0.25)',
+                                        fontSize: 12,
+                                        color: '#134252',
+                                        background: '#fff',
+                                      }}
+                                    >
+                                      <option value="">
+                                        {linkableTasks.length === 0
+                                          ? 'No eligible tasks to link'
+                                          : 'Select review task'}
+                                      </option>
+                                      {linkableTasks.map((t) => (
+                                        <option key={t.id} value={t.id}>
+                                          {t.title} ({demoMatterReviewTaskStatusPresentation(t.status).label})
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <button
+                                      type="button"
+                                      disabled={!selectedLinkTaskId}
+                                      onClick={() => {
+                                        if (!selectedLinkTaskId) return
+                                        const findings = condoDiligence.findings.map((x) =>
+                                          x.id === f.id
+                                            ? withCondoDiligenceFindingLinkedReviewTaskId(x, selectedLinkTaskId)
+                                            : x,
+                                        )
+                                        patchCondoDiligence(matterId, { findings })
+                                        setFindingLinkSelectById((prev) => ({ ...prev, [f.id]: '' }))
+                                      }}
+                                      style={{
+                                        padding: '6px 10px',
+                                        borderRadius: 6,
+                                        border: '1px solid rgba(94,82,64,0.25)',
+                                        background: selectedLinkTaskId ? '#fff' : '#f5f5f5',
+                                        color: selectedLinkTaskId ? '#134252' : '#9aa8a1',
+                                        fontWeight: 800,
+                                        fontSize: 11,
+                                        cursor: selectedLinkTaskId ? 'pointer' : 'not-allowed',
+                                      }}
+                                    >
+                                      Link task
+                                    </button>
+                                  </div>
+                                </label>
+                              </div>
+                              <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.4 }}>
+                                Lawyer-controlled links only. Does not auto-create tasks, auto-resolve findings, or
+                                share to the client portal.
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -5386,10 +5655,18 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                 : null
             }
             staff={staff}
-            onClose={() => setReviewTaskDocumentId(null)}
+            initialTitle={reviewTaskPrefill?.title ?? null}
+            initialInternalNote={reviewTaskPrefill?.internalNote ?? null}
+            onClose={() => {
+              setReviewTaskDocumentId(null)
+              setReviewTaskLinkFindingId(null)
+              setReviewTaskPrefill(null)
+            }}
             onCreate={({ title, assignee_id, due_date, internal_note }) => {
               if (!effectiveMatter || !reviewTaskDocumentId) return
+              const taskId = `review-task-${Date.now()}`
               addMatterReviewTask({
+                id: taskId,
                 matter_id: effectiveMatter.id,
                 title,
                 linked_document_id: reviewTaskDocumentId,
@@ -5397,7 +5674,17 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                 due_date,
                 internal_note,
               })
+              if (reviewTaskLinkFindingId && condoDiligence) {
+                const findings = condoDiligence.findings.map((x) =>
+                  x.id === reviewTaskLinkFindingId
+                    ? withCondoDiligenceFindingLinkedReviewTaskId(x, taskId)
+                    : x,
+                )
+                patchCondoDiligence(effectiveMatter.id, { findings })
+              }
               setReviewTaskDocumentId(null)
+              setReviewTaskLinkFindingId(null)
+              setReviewTaskPrefill(null)
               setActiveTab('Tasks')
             }}
           />
