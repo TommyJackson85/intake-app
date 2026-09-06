@@ -3119,14 +3119,14 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                   textOverflow: 'ellipsis',
                                 }}
                               >
-                                {item?.name || doc.name}
+                                {doc.name}
                               </div>
                               <div style={{ color: '#627c71', fontSize: 12, fontWeight: 700 }}>
                                 Saved: {new Date(savedAt).toLocaleString()}
                                 {' · '}
                                 Internal only
                                 {' · '}
-                                {item?.status || doc.status}
+                                {doc.status}
                               </div>
                             </div>
                             <button
@@ -3316,14 +3316,14 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                   textOverflow: 'ellipsis',
                                 }}
                               >
-                                {doc.name}
+                                {item?.name || doc.name}
                               </div>
                               <div style={{ color: '#627c71', fontSize: 12, fontWeight: 700 }}>
                                 Saved: {new Date(savedAt).toLocaleString()}
                                 {' · '}
                                 Internal only
                                 {' · '}
-                                {doc.status}
+                                {item?.status || doc.status}
                               </div>
                             </div>
                             <button
