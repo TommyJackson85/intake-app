@@ -218,6 +218,8 @@ The firm needs a routine client document for an active matter and wants to reque
 
 **Goal:** Record post-closing undertakings on a closed matter and confirm cross-matter visibility on the Post-Closing worklist for outstanding follow-up only.
 
+A completed transaction has manually recorded post-closing follow-up items involving a client, seller, lender, attorney, or title/settlement party.
+
 ### Entry points
 
 - Matter: `/demo/matters` → `FL-2026-004` (Closed/Post-Closing) → **Overview** / **Post-Closing Undertakings**
@@ -228,7 +230,7 @@ The firm needs a routine client document for an active matter and wants to reque
 1. Open `FL-2026-004` and the Post-Closing Undertakings panel.
 2. Read the internal disclaimer (operational tracking only; not obligation/closing/title/escrow/recording/payoff/trust-account completion).
 3. Set applicability / internal review as the UI allows; add a **Recorded item** with outstanding follow-up status (`outstanding`, `received_for_review`, or `follow_up_needed`).
-4. Set a target date and follow-up note; save.
+4. Assign a responsible party (client, seller, lender, attorney, or title/settlement party), set a target date and follow-up note; save.
 5. Open `/demo/post-closing-undertakings` and confirm the item appears with matter file id, status, responsible party, and target date.
 6. Mark the item internally recorded/complete (or equivalent) and confirm it leaves the outstanding worklist.
 7. Confirm the worklist disclaimer matches the “visibility only / not a determination” standard.
