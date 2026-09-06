@@ -32,8 +32,15 @@ export type ClientDocumentRequestStatusView = {
   disclaimer: string
 }
 
-function statusLabelFor(status: DemoDocumentRequestStatus): ClientDocumentRequestStatusLabel {
+/** Existing safe client-facing status display for an ordinary document request. */
+export function getClientDocumentRequestStatusLabel(
+  status: DemoDocumentRequestStatus,
+): ClientDocumentRequestStatusLabel {
   return status === 'fulfilled' ? 'Received' : 'Awaiting upload'
+}
+
+function statusLabelFor(status: DemoDocumentRequestStatus): ClientDocumentRequestStatusLabel {
+  return getClientDocumentRequestStatusLabel(status)
 }
 
 function summaryLabel(openCount: number, fulfilledCount: number, totalCount: number): string {

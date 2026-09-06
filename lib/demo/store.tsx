@@ -53,6 +53,10 @@ import {
   createStaffClientDocumentRequest,
   type ClientDocumentRequestDraft,
 } from '@/lib/demo/staffCreateClientDocumentRequest'
+import {
+  applyClientDocumentRequestEdit,
+  type ClientDocumentRequestEditDraft,
+} from '@/lib/demo/staffEditClientDocumentRequest'
 import { tryLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
 import { recordDocumentRequestReceiptReview } from '@/lib/demo/staffDocumentRequestReceiptReview'
 import {
@@ -130,6 +134,8 @@ type DemoContextType = {
   addDemoDocumentRequest: (input: AddDemoDocumentRequestInput) => void
   /** Staff: create a client-visible ordinary document request (portal Awaiting upload). */
   createClientDocumentRequest: (input: ClientDocumentRequestDraft) => boolean
+  /** Staff: edit client-facing fields on an open request before upload. */
+  editClientDocumentRequest: (input: ClientDocumentRequestEditDraft) => boolean
   /** Appends one `DemoDocument` (same helper as `addDemoDocument`) and marks the request fulfilled — one `setState`. */
   /** Client portal upload: appends one `DemoDocument` and marks the request fulfilled — one `setState`. Returns whether fulfillment succeeded. */
   fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => boolean
@@ -1771,6 +1777,21 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             prev.matters,
             prev.documentRequests,
             prev.staff,
+            input,
+          )
+          if (documentRequests === prev.documentRequests) return prev
+          succeeded = true
+          return { ...prev, documentRequests }
+        })
+        return succeeded
+      },
+
+      editClientDocumentRequest: (input) => {
+        let succeeded = false
+        setState((prev) => {
+          const documentRequests = applyClientDocumentRequestEdit(
+            prev.documentRequests,
+            prev.matters,
             input,
           )
           if (documentRequests === prev.documentRequests) return prev

@@ -8,6 +8,7 @@ import DocumentPreviewModal from '@/app/demo/_components/DocumentPreviewModal'
 import LinkClientUploadToDocumentRequestModal from '@/app/demo/_components/LinkClientUploadToDocumentRequestModal'
 import MarkDocumentRequestNeedsFollowUpModal from '@/app/demo/_components/MarkDocumentRequestNeedsFollowUpModal'
 import ClearDocumentRequestNeedsFollowUpModal from '@/app/demo/_components/ClearDocumentRequestNeedsFollowUpModal'
+import EditClientDocumentRequestModal from '@/app/demo/_components/EditClientDocumentRequestModal'
 import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
 import { buildStaffClientUploadReceiptQueue } from '@/lib/demo/staffClientUploadReceiptQueue'
 import { canStaffLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
@@ -17,6 +18,7 @@ import {
   getDocumentRequestFollowUpPresentation,
   normalizeDocumentRequestFollowUp,
 } from '@/lib/demo/staffDocumentRequestFollowUp'
+import { canEditClientDocumentRequest } from '@/lib/demo/staffEditClientDocumentRequest'
 
 function formatDemoDateTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -46,6 +48,7 @@ export default function DemoDocumentsPage() {
   const [linkRepairDocumentId, setLinkRepairDocumentId] = useState<string | null>(null)
   const [followUpRequestId, setFollowUpRequestId] = useState<string | null>(null)
   const [clearFollowUpRequestId, setClearFollowUpRequestId] = useState<string | null>(null)
+  const [editRequestId, setEditRequestId] = useState<string | null>(null)
 
   const sorted = useMemo(
     () => [...documents].sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()),
@@ -106,6 +109,11 @@ export default function DemoDocumentsPage() {
   const clearFollowUpRequest = useMemo(
     () => documentRequests.find((r) => r.id === clearFollowUpRequestId) ?? null,
     [documentRequests, clearFollowUpRequestId],
+  )
+
+  const editRequest = useMemo(
+    () => documentRequests.find((r) => r.id === editRequestId) ?? null,
+    [documentRequests, editRequestId],
   )
 
   return (
@@ -181,6 +189,12 @@ export default function DemoDocumentsPage() {
         isOpen={Boolean(clearFollowUpRequest)}
         request={clearFollowUpRequest}
         onClose={() => setClearFollowUpRequestId(null)}
+      />
+
+      <EditClientDocumentRequestModal
+        isOpen={Boolean(editRequest)}
+        request={editRequest}
+        onClose={() => setEditRequestId(null)}
       />
 
       <h2 style={{ fontSize: '18px', marginBottom: '8px', marginTop: '8px', color: '#134252', fontWeight: 800 }}>
@@ -522,41 +536,61 @@ export default function DemoDocumentsPage() {
                       {by?.full_name ?? 'Staff'}
                     </td>
                     <td style={{ padding: '14px', verticalAlign: 'top' }}>
-                      {followUp.status === 'needs_follow_up' ? (
-                        <button
-                          type="button"
-                          onClick={() => setClearFollowUpRequestId(req.id)}
-                          style={{
-                            padding: '8px 12px',
-                            borderRadius: 8,
-                            border: '1px solid rgba(94,82,64,0.3)',
-                            background: '#fff',
-                            color: '#134252',
-                            fontWeight: 800,
-                            fontSize: 13,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Clear follow-up
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setFollowUpRequestId(req.id)}
-                          style={{
-                            padding: '8px 12px',
-                            borderRadius: 8,
-                            border: '1px solid rgba(180,83,9,0.35)',
-                            background: '#fffbeb',
-                            color: '#b45309',
-                            fontWeight: 800,
-                            fontSize: 13,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Needs follow-up
-                        </button>
-                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+                        {canEditClientDocumentRequest(req, matters) ? (
+                          <button
+                            type="button"
+                            onClick={() => setEditRequestId(req.id)}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(94,82,64,0.3)',
+                              background: '#fff',
+                              color: '#134252',
+                              fontWeight: 800,
+                              fontSize: 13,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Edit client document request
+                          </button>
+                        ) : null}
+                        {followUp.status === 'needs_follow_up' ? (
+                          <button
+                            type="button"
+                            onClick={() => setClearFollowUpRequestId(req.id)}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(94,82,64,0.3)',
+                              background: '#fff',
+                              color: '#134252',
+                              fontWeight: 800,
+                              fontSize: 13,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Clear follow-up
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setFollowUpRequestId(req.id)}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(180,83,9,0.35)',
+                              background: '#fffbeb',
+                              color: '#b45309',
+                              fontWeight: 800,
+                              fontSize: 13,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Needs follow-up
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
