@@ -63,6 +63,7 @@ describe('staffCancelClientDocumentRequest helpers', () => {
     expect(ok.actionLabel).toBe('Cancel client document request')
     expect(ok.matterLabel).toBe(matter.file_id)
     expect(ok.clientLabel).toBe(matter.buyer.name.trim())
+    expect(ok.requestTitle).toBe(openRequest.title)
     expect(ok.requestStatusLabel).toBe('Awaiting upload')
     expect(ok.lifecycleStatus).toBe('active')
   })

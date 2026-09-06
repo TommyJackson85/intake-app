@@ -195,11 +195,7 @@ export default function CancelClientDocumentRequestModal({
             </div>
             <div>
               <div style={labelStyle}>Document request</div>
-              <div style={valueStyle}>{cancelContext.requestTitle ?? request.title}</div>
-            </div>
-            <div>
-              <div style={labelStyle}>Request status</div>
-              <div style={valueStyle}>{cancelContext.requestStatusLabel ?? '—'}</div>
+              <div style={valueStyle}>{cancelContext.requestTitle ?? '—'}</div>
             </div>
           </div>
 

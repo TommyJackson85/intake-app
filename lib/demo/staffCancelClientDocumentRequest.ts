@@ -53,10 +53,13 @@ export type ClientDocumentRequestCancelContext = {
   detailLabel: string
   requestId: string | null
   matterId: string | null
+  /** Existing safe internal matter label (file id). */
   matterLabel: string | null
   matterFileId: string | null
+  /** Existing safe client label for the matter (buyer name). */
   clientLabel: string | null
   requestStatusLabel: ClientDocumentRequestStatusLabel | null
+  /** Existing safe document request name (title). */
   requestTitle: string | null
   lifecycleStatus: 'active' | 'cancelled' | null
 }
