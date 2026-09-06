@@ -177,4 +177,28 @@ describe('staffDocumentRequestReceiptReview', () => {
       true,
     )
   })
+
+  it('excludes cancelled requests from receipt-review eligibility and queue', () => {
+    const document = clientUpload()
+    const cancelledFulfilled = openRequest({
+      status: 'fulfilled',
+      fulfilled_document_id: document.id,
+      lifecycle: {
+        status: 'cancelled',
+        cancelledAt: '2026-03-01T00:00:00.000Z',
+        cancelledById: 'staff-emma-kline',
+        cancelledByName: 'Emma Kline',
+      },
+    })
+    expect(
+      isEligibleDocumentRequestForReceiptReview(cancelledFulfilled, [document], [matter]),
+    ).toBe(false)
+    const queue = buildStaffClientUploadReceiptQueue({
+      documentRequests: [cancelledFulfilled],
+      documents: [document],
+      matters: [matter],
+    })
+    expect(queue.pendingCount).toBe(0)
+    expect(queue.items).toEqual([])
+  })
 })

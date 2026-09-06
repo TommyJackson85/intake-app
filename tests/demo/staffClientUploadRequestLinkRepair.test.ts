@@ -190,4 +190,29 @@ describe('staffClientUploadRequestLinkRepair', () => {
     expect(linkedToUnlinked).toBe(false)
     expect(canStaffLinkClientUploadToDocumentRequest(unlinked, demoSeedData.matters)).toBe(true)
   })
+
+  it('excludes cancelled open requests from link-repair targets and apply', () => {
+    const document = clientUpload()
+    const cancelled = openRequest({
+      lifecycle: {
+        status: 'cancelled',
+        cancelledAt: '2026-03-01T00:00:00.000Z',
+        cancelledById: 'staff-emma-kline',
+        cancelledByName: 'Emma Kline',
+      },
+    })
+    const options = listOpenDocumentRequestsForClientUploadLinkRepair({
+      document,
+      documentRequests: [cancelled, openRequest({ id: 'req-active' })],
+    })
+    expect(options.map((r) => r.id)).toEqual(['req-active'])
+    expect(
+      tryLinkClientUploadToDocumentRequest(
+        [matter],
+        [document],
+        [cancelled],
+        { documentId: document.id, requestId: cancelled.id },
+      ).ok,
+    ).toBe(false)
+  })
 })

@@ -187,4 +187,33 @@ describe('staffDocumentRequestFollowUp', () => {
     ).toBe(false)
   })
 
+  it('denies follow-up mark/clear/list eligibility for cancelled requests', () => {
+    const cancelled = request({
+      lifecycle: {
+        status: 'cancelled',
+        cancelledAt: '2026-03-01T00:00:00.000Z',
+        cancelledById: 'staff-emma-kline',
+        cancelledByName: 'Emma Kline',
+      },
+      staff_follow_up: {
+        status: 'needs_follow_up',
+        note: 'Was marked before cancel',
+        markedById: 'staff-emma-kline',
+        markedByName: 'Emma Kline',
+        markedAt: '2026-03-01T00:00:00.000Z',
+      },
+    })
+    expect(isEligibleDocumentRequestForFollowUp(cancelled, [matter])).toBe(false)
+    expect(
+      canMarkDocumentRequestNeedsFollowUp({
+        request: cancelled,
+        matters: [matter],
+        staffId: 'staff-emma-kline',
+      }),
+    ).toBe(false)
+    expect(canClearDocumentRequestNeedsFollowUp({ request: cancelled, matters: [matter] })).toBe(
+      false,
+    )
+  })
+
 })

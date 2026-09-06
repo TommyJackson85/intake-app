@@ -109,7 +109,7 @@ export function getClientDocumentRequestEditContext(input: {
     actionLabel: 'Edit client document request',
     detailLabel: canEdit
       ? 'This updates client-facing request details. It does not change the matter, client, upload links, request status, receipt review, follow-up state, or any internal review workflow.'
-      : 'Edit client document request is unavailable after upload or for inactive matters.',
+      : 'Edit client document request is unavailable after upload, after cancel, or for inactive matters.',
     requestId: request?.id ?? null,
     matterId: matterActive ? matter!.id : null,
     matterLabel: matterActive ? matter!.file_id : null,
@@ -166,7 +166,7 @@ export function validateClientDocumentRequestEditDraft(input: {
   if (!isEligibleClientDocumentRequestForEdit(request, matters)) {
     return {
       ok: false,
-      error: 'Edit client document request is unavailable after upload or for inactive matters.',
+      error: 'Edit client document request is unavailable after upload, after cancel, or for inactive matters.',
     }
   }
 
