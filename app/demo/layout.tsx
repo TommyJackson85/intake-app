@@ -15,6 +15,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
     { href: '/demo/intakes', label: 'Intake/Leads' },
     { href: '/demo/calendar', label: 'Calendar' },
     { href: '/demo/documents', label: 'Documents' },
+    { href: '/demo/post-closing-undertakings', label: 'Post-Closing' },
     { href: '/demo/clients', label: 'Clients' },
     { href: '/demo/archive/matters', label: 'Archive' },
     /** Dev-only payload inspector; safe to remove when AI handoff is productionized */
