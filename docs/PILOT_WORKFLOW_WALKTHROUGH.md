@@ -9,7 +9,7 @@ This package is for **internal pilot validation** of workflows that already ship
 **In scope**
 
 - Five representative end-to-end walkthroughs using existing `/demo` surfaces and seed data
-- Feedback capture prompts for friction, wording, gaps, privacy, and automation candidates
+- Feedback capture forms for friction, wording, gaps, privacy, and automation candidates
 
 **Out of scope**
 
@@ -58,17 +58,21 @@ Portal URLs follow `/demo/portal/{portal_token}` (copy from the matters list whe
 
 ---
 
-## Feedback log (use on every walkthrough)
+## Feedback capture
 
-For each walkthrough, capture:
+Copy one form per walkthrough (or per distinct friction point). Keep notes operational. Do not treat UI status labels as legal, conflict, AML/FinCEN, title, escrow, recording, payoff, trust-account, or closing determinations.
 
-1. **Product friction** — clicks, dead ends, or unclear next steps  
-2. **Unclear wording** — labels, disclaimers, status names, or empty states  
-3. **Missing information** — data staff expect on screen but cannot find  
-4. **Privacy concerns** — anything that feels over-exposed to portal or too easy to confuse with legal conclusions  
-5. **Automation candidates** — repetitive steps that might deserve future automation (note only; do not implement here)
-
-Keep notes operational. Do not treat UI status labels as legal, conflict, AML/FinCEN, title, escrow, recording, payoff, trust-account, or closing determinations.
+- Participant role:
+- Matter scenario used:
+- Step where friction occurred:
+- What was confusing or missing:
+- Exact wording that felt unclear:
+- Privacy or access concern:
+- Manual workaround currently used:
+- Frequency of this workflow:
+- Perceived value:
+- Suggested next improvement:
+- Would this be used in a live matter? Why or why not?
 
 ---
 
@@ -98,11 +102,9 @@ Keep notes operational. Do not treat UI status labels as legal, conflict, AML/Fi
 - Client vs internal surfaces are visually distinct.
 - Wording does not claim the matter is “cleared” as a legal conclusion.
 
-### Feedback prompts
+### Feedback capture
 
-- Where did conflict language feel like a legal determination?
-- Was memo history discoverable?
-- Any PII or party data that seemed over-shared?
+Complete one **Feedback capture** form (above) for this walkthrough.
 
 ---
 
@@ -133,11 +135,9 @@ A Florida condo purchase includes association documents, SIRS/Milestone material
 - Statuses read as internal tracking, not title/association legal conclusions.
 - Summary review tasks are reachable from both the matter and any list filter.
 
-### Feedback prompts
+### Feedback capture
 
-- Which subsection was hardest to find or complete?
-- Any label that implied legal or association determination?
-- What would you automate first (requests, checklists, reminders)?
+Complete one **Feedback capture** form (above) for this walkthrough.
 
 ---
 
@@ -169,11 +169,9 @@ A residential transaction includes a non-individual purchaser or trust-related p
 - Cert/portal-style collection is clearly not a government filing.
 - Staff can tell what is complete vs still needed without assuming “reportable” means “must file.”
 
-### Feedback prompts
+### Feedback capture
 
-- Did any copy sound like a FinCEN determination or filing instruction?
-- Was beneficial ownership privacy handling clear enough for a pilot firm?
-- Missing fields a compliance coordinator would expect?
+Complete one **Feedback capture** form (above) for this walkthrough.
 
 ---
 
@@ -206,11 +204,9 @@ The firm needs a routine client document for an active matter and wants to reque
 - Cancelled requests are not uploadable; reactivate restores client visibility appropriately.
 - Portal vs staff language stays distinct; internal workflow information stays staff-only.
 
-### Feedback prompts
+### Feedback capture
 
-- Where did lifecycle status confuse staff or “clients”?
-- Any privacy leak of internal notes into the portal?
-- Which queue step feels most automation-ready?
+Complete one **Feedback capture** form (above) for this walkthrough.
 
 ---
 
@@ -241,17 +237,15 @@ A completed transaction has manually recorded post-closing follow-up items invol
 - Deleted or non-applicable matters do not pollute the list.
 - Labels such as “Internally recorded” do not read as legal completion.
 
-### Feedback prompts
+### Feedback capture
 
-- Is “Recorded item” / status wording clear to closers and paralegals?
-- Missing columns or filters for a real post-closing desk?
-- Any confusion with title recording or payoff tracking?
+Complete one **Feedback capture** form (above) for this walkthrough.
 
 ---
 
 ## After the pilot session
 
-1. Consolidate feedback logs from all five walkthroughs.
+1. Consolidate completed **Feedback capture** forms from all five walkthroughs.
 2. Tag each note: friction / wording / missing info / privacy / automation candidate.
 3. Separate **pilot blockers** from **nice-to-haves**.
 4. Do not invent new workflow engines or portal features from this document alone — feed validated gaps into normal product prioritization.
