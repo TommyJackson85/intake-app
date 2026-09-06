@@ -57,6 +57,10 @@ import {
   applyClientDocumentRequestEdit,
   type ClientDocumentRequestEditDraft,
 } from '@/lib/demo/staffEditClientDocumentRequest'
+import {
+  applyCancelClientDocumentRequest,
+  type ClientDocumentRequestCancelDraft,
+} from '@/lib/demo/staffCancelClientDocumentRequest'
 import { tryLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
 import { recordDocumentRequestReceiptReview } from '@/lib/demo/staffDocumentRequestReceiptReview'
 import {
@@ -136,6 +140,8 @@ type DemoContextType = {
   createClientDocumentRequest: (input: ClientDocumentRequestDraft) => boolean
   /** Staff: edit client-facing fields on an open request before upload. */
   editClientDocumentRequest: (input: ClientDocumentRequestEditDraft) => boolean
+  /** Staff: cancel an open request before upload/workflow activity. */
+  cancelClientDocumentRequest: (input: ClientDocumentRequestCancelDraft) => boolean
   /** Appends one `DemoDocument` (same helper as `addDemoDocument`) and marks the request fulfilled — one `setState`. */
   /** Client portal upload: appends one `DemoDocument` and marks the request fulfilled — one `setState`. Returns whether fulfillment succeeded. */
   fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => boolean
@@ -1792,6 +1798,22 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           const documentRequests = applyClientDocumentRequestEdit(
             prev.documentRequests,
             prev.matters,
+            input,
+          )
+          if (documentRequests === prev.documentRequests) return prev
+          succeeded = true
+          return { ...prev, documentRequests }
+        })
+        return succeeded
+      },
+
+      cancelClientDocumentRequest: (input) => {
+        let succeeded = false
+        setState((prev) => {
+          const documentRequests = applyCancelClientDocumentRequest(
+            prev.documentRequests,
+            prev.matters,
+            prev.staff,
             input,
           )
           if (documentRequests === prev.documentRequests) return prev
