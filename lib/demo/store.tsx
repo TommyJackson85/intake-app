@@ -174,6 +174,8 @@ type DemoContextType = {
   getCondoDiligence: (matterId: string) => DemoCondoDiligence | undefined
   ensureCondoDiligence: (matterId: string) => void
   patchCondoDiligence: (matterId: string, patch: Partial<DemoCondoDiligence>) => void
+  /** Matter-scoped Post-Closing Undertakings map (internal demo persistence). */
+  postClosingUndertakingsByMatterId: Record<string, DemoPostClosingUndertakingsReview>
   getPostClosingUndertakings: (matterId: string) => DemoPostClosingUndertakingsReview | undefined
   ensurePostClosingUndertakings: (matterId: string) => void
   patchPostClosingUndertakings: (matterId: string, patch: DemoPostClosingUndertakingsReview) => void
@@ -2209,6 +2211,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           }
         })
       },
+      postClosingUndertakingsByMatterId: state.postClosingUndertakingsByMatterId,
       getPostClosingUndertakings: (matterId) => {
         const id = matterId.trim()
         if (!id) return undefined
