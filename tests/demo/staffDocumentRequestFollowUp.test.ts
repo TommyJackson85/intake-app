@@ -4,6 +4,7 @@ import {
   canClearDocumentRequestNeedsFollowUp,
   canMarkDocumentRequestNeedsFollowUp,
   clearDocumentRequestNeedsFollowUp,
+  getDocumentRequestClearFollowUpPresentation,
   getDocumentRequestFollowUpDetailPresentation,
   getDocumentRequestFollowUpPresentation,
   isEligibleDocumentRequestForFollowUp,
@@ -149,4 +150,41 @@ describe('staffDocumentRequestFollowUp', () => {
     expect(detail!.canClearNeedsFollowUp).toBe(true)
     expect(detail!.internalFollowUpNote).toBe(normalized.note)
   })
+
+  it('Clear follow-up presentation is available only while Needs follow-up is set', () => {
+    const open = request()
+    expect(
+      getDocumentRequestClearFollowUpPresentation({
+        request: open,
+        matters: [matter],
+      }).canClearNeedsFollowUp,
+    ).toBe(false)
+
+    const marked = markDocumentRequestNeedsFollowUp(
+      [matter],
+      [open],
+      staff,
+      { requestId: open.id, staffId: 'staff-emma-kline', note: 'Confirm names' },
+      { nowIso: () => '2026-03-14T10:00:00.000Z' },
+    )
+    const clearPresentation = getDocumentRequestClearFollowUpPresentation({
+      request: marked[0],
+      matters: [matter],
+    })
+    expect(clearPresentation.actionLabel).toBe('Clear follow-up')
+    expect(clearPresentation.canClearNeedsFollowUp).toBe(true)
+    expect(clearPresentation.detailLabel.toLowerCase()).toContain('internal')
+    expect(clearPresentation.detailLabel.toLowerCase()).toContain('does not')
+    expect(clearPresentation.detailLabel.toLowerCase()).toContain('portal')
+
+    const cleared = clearDocumentRequestNeedsFollowUp([matter], marked, { requestId: open.id })
+    expect(normalizeDocumentRequestFollowUp(cleared[0].staff_follow_up).status).toBe('none')
+    expect(
+      getDocumentRequestClearFollowUpPresentation({
+        request: cleared[0],
+        matters: [matter],
+      }).canClearNeedsFollowUp,
+    ).toBe(false)
+  })
+
 })

@@ -7,6 +7,7 @@ import RequestDemoDocumentModal from '@/app/demo/_components/RequestDemoDocument
 import DocumentPreviewModal from '@/app/demo/_components/DocumentPreviewModal'
 import LinkClientUploadToDocumentRequestModal from '@/app/demo/_components/LinkClientUploadToDocumentRequestModal'
 import MarkDocumentRequestNeedsFollowUpModal from '@/app/demo/_components/MarkDocumentRequestNeedsFollowUpModal'
+import ClearDocumentRequestNeedsFollowUpModal from '@/app/demo/_components/ClearDocumentRequestNeedsFollowUpModal'
 import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
 import { buildStaffClientUploadReceiptQueue } from '@/lib/demo/staffClientUploadReceiptQueue'
 import { canStaffLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
@@ -38,13 +39,13 @@ export default function DemoDocumentsPage() {
     staff,
     acknowledgeClientUploadReceipt,
     markDocumentRequestNeedsFollowUp,
-    clearDocumentRequestNeedsFollowUp,
   } = useDemoStore()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [requestOpen, setRequestOpen] = useState(false)
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null)
   const [linkRepairDocumentId, setLinkRepairDocumentId] = useState<string | null>(null)
   const [followUpRequestId, setFollowUpRequestId] = useState<string | null>(null)
+  const [clearFollowUpRequestId, setClearFollowUpRequestId] = useState<string | null>(null)
 
   const sorted = useMemo(
     () => [...documents].sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()),
@@ -100,6 +101,11 @@ export default function DemoDocumentsPage() {
   const followUpRequest = useMemo(
     () => documentRequests.find((r) => r.id === followUpRequestId) ?? null,
     [documentRequests, followUpRequestId],
+  )
+
+  const clearFollowUpRequest = useMemo(
+    () => documentRequests.find((r) => r.id === clearFollowUpRequestId) ?? null,
+    [documentRequests, clearFollowUpRequestId],
   )
 
   return (
@@ -169,6 +175,12 @@ export default function DemoDocumentsPage() {
         isOpen={Boolean(followUpRequest)}
         request={followUpRequest}
         onClose={() => setFollowUpRequestId(null)}
+      />
+
+      <ClearDocumentRequestNeedsFollowUpModal
+        isOpen={Boolean(clearFollowUpRequest)}
+        request={clearFollowUpRequest}
+        onClose={() => setClearFollowUpRequestId(null)}
       />
 
       <h2 style={{ fontSize: '18px', marginBottom: '8px', marginTop: '8px', color: '#134252', fontWeight: 800 }}>
@@ -356,7 +368,7 @@ export default function DemoDocumentsPage() {
                     {item.canClearNeedsFollowUp ? (
                       <button
                         type="button"
-                        onClick={() => clearDocumentRequestNeedsFollowUp(item.requestId)}
+                        onClick={() => setClearFollowUpRequestId(item.requestId)}
                         style={{
                           padding: '8px 12px',
                           borderRadius: 8,
@@ -513,7 +525,7 @@ export default function DemoDocumentsPage() {
                       {followUp.status === 'needs_follow_up' ? (
                         <button
                           type="button"
-                          onClick={() => clearDocumentRequestNeedsFollowUp(req.id)}
+                          onClick={() => setClearFollowUpRequestId(req.id)}
                           style={{
                             padding: '8px 12px',
                             borderRadius: 8,
