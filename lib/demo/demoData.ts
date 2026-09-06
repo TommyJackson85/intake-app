@@ -130,6 +130,7 @@ export const demoSeedData: DemoSeedData = {
       staff_receipt_reviewed_by_staff_id: null,
       staff_receipt_reviewed_document_id: null,
       staff_follow_up: { status: 'none' as const, note: '', markedById: null, markedByName: null, markedAt: null },
+      lifecycle: { status: 'active' as const, cancelledAt: null, cancelledById: null, cancelledByName: null },
     },
     {
       id: 'docreq-002',
@@ -146,6 +147,7 @@ export const demoSeedData: DemoSeedData = {
       staff_receipt_reviewed_by_staff_id: 'staff-emma-kline',
       staff_receipt_reviewed_document_id: 'doc-001',
       staff_follow_up: { status: 'needs_follow_up' as const, note: 'Confirm funds letter matches contract buyer names.', markedById: 'staff-emma-kline', markedByName: 'Emma Kline', markedAt: '2026-03-04T11:30:00.000Z' },
+      lifecycle: { status: 'active' as const, cancelledAt: null, cancelledById: null, cancelledByName: null },
     },
     {
       id: 'docreq-003',
@@ -161,6 +163,7 @@ export const demoSeedData: DemoSeedData = {
       staff_receipt_reviewed_by_staff_id: null,
       staff_receipt_reviewed_document_id: null,
       staff_follow_up: { status: 'none' as const, note: '', markedById: null, markedByName: null, markedAt: null },
+      lifecycle: { status: 'active' as const, cancelledAt: null, cancelledById: null, cancelledByName: null },
     },
   ],
   demoFirm: {

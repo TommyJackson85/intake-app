@@ -9,6 +9,7 @@ import LinkClientUploadToDocumentRequestModal from '@/app/demo/_components/LinkC
 import MarkDocumentRequestNeedsFollowUpModal from '@/app/demo/_components/MarkDocumentRequestNeedsFollowUpModal'
 import ClearDocumentRequestNeedsFollowUpModal from '@/app/demo/_components/ClearDocumentRequestNeedsFollowUpModal'
 import EditClientDocumentRequestModal from '@/app/demo/_components/EditClientDocumentRequestModal'
+import CancelClientDocumentRequestModal from '@/app/demo/_components/CancelClientDocumentRequestModal'
 import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
 import { buildStaffClientUploadReceiptQueue } from '@/lib/demo/staffClientUploadReceiptQueue'
 import { canStaffLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
@@ -19,6 +20,10 @@ import {
   normalizeDocumentRequestFollowUp,
 } from '@/lib/demo/staffDocumentRequestFollowUp'
 import { canEditClientDocumentRequest } from '@/lib/demo/staffEditClientDocumentRequest'
+import {
+  canCancelClientDocumentRequest,
+  getClientDocumentRequestLifecyclePresentation,
+} from '@/lib/demo/staffCancelClientDocumentRequest'
 
 function formatDemoDateTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -49,6 +54,7 @@ export default function DemoDocumentsPage() {
   const [followUpRequestId, setFollowUpRequestId] = useState<string | null>(null)
   const [clearFollowUpRequestId, setClearFollowUpRequestId] = useState<string | null>(null)
   const [editRequestId, setEditRequestId] = useState<string | null>(null)
+  const [cancelRequestId, setCancelRequestId] = useState<string | null>(null)
 
   const sorted = useMemo(
     () => [...documents].sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()),
@@ -114,6 +120,11 @@ export default function DemoDocumentsPage() {
   const editRequest = useMemo(
     () => documentRequests.find((r) => r.id === editRequestId) ?? null,
     [documentRequests, editRequestId],
+  )
+
+  const cancelRequest = useMemo(
+    () => documentRequests.find((r) => r.id === cancelRequestId) ?? null,
+    [documentRequests, cancelRequestId],
   )
 
   return (
@@ -195,6 +206,12 @@ export default function DemoDocumentsPage() {
         isOpen={Boolean(editRequest)}
         request={editRequest}
         onClose={() => setEditRequestId(null)}
+      />
+
+      <CancelClientDocumentRequestModal
+        isOpen={Boolean(cancelRequest)}
+        request={cancelRequest}
+        onClose={() => setCancelRequestId(null)}
       />
 
       <h2 style={{ fontSize: '18px', marginBottom: '8px', marginTop: '8px', color: '#134252', fontWeight: 800 }}>
@@ -482,7 +499,9 @@ export default function DemoDocumentsPage() {
                         textTransform: 'capitalize',
                       }}
                     >
-                      {req.status}
+                      {getClientDocumentRequestLifecyclePresentation(req).statusLabel === 'Cancelled'
+                        ? 'Cancelled'
+                        : req.status}
                     </td>
                     <td style={{ padding: '14px', verticalAlign: 'top' }}>
                       <div
@@ -553,6 +572,24 @@ export default function DemoDocumentsPage() {
                             }}
                           >
                             Edit client document request
+                          </button>
+                        ) : null}
+                        {canCancelClientDocumentRequest(req, matters) ? (
+                          <button
+                            type="button"
+                            onClick={() => setCancelRequestId(req.id)}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(180,83,9,0.35)',
+                              background: '#fff',
+                              color: '#b45309',
+                              fontWeight: 800,
+                              fontSize: 13,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Cancel client document request
                           </button>
                         ) : null}
                         {followUp.status === 'needs_follow_up' ? (

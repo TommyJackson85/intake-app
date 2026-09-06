@@ -736,6 +736,17 @@ export type DocumentRequestFollowUp = {
   markedAt?: string | null
 }
 
+/**
+ * Staff/client request lifecycle overlay (orthogonal to open/fulfilled upload status).
+ * Cancelled requests are no longer active for client upload or pre-upload staff edits.
+ */
+export type ClientDocumentRequestLifecycle = {
+  status?: 'active' | 'cancelled'
+  cancelledAt?: string | null
+  cancelledById?: string | null
+  cancelledByName?: string | null
+}
+
 /** Lawyer-side document request tracked in demo store and visible in portal. */
 export type DemoDocumentRequest = {
   id: string
@@ -763,6 +774,11 @@ export type DemoDocumentRequest = {
    * Not exposed on the client portal.
    */
   staff_follow_up: DocumentRequestFollowUp
+  /**
+   * Active vs cancelled lifecycle overlay (orthogonal to open/fulfilled).
+   * Cancelled requests are inactive for client upload and pre-upload staff edits.
+   */
+  lifecycle?: ClientDocumentRequestLifecycle
 }
 
 /** Internal-only review of a saved Condo Diligence summary snapshot (not shared to portal). */

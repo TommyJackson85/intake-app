@@ -10,6 +10,7 @@ import {
   type FulfillDemoDocumentRequestInput,
 } from '@/lib/demo/demoDocumentRequest'
 import type { BuildDemoDocumentOptions } from '@/lib/demo/demoDocument'
+import { isActiveClientDocumentRequest } from '@/lib/demo/staffCancelClientDocumentRequest'
 import type { DemoDocument, DemoDocumentRequest, DemoMatter } from '@/lib/demo/types'
 
 export type ClientDocumentRequestUploadError =
@@ -67,7 +68,11 @@ export function canClientUploadDocumentRequest(
   if (!request) return false
   const id = matterId.trim()
   if (!id) return false
-  return request.matter_id === id && request.status === 'open'
+  return (
+    request.matter_id === id &&
+    request.status === 'open' &&
+    isActiveClientDocumentRequest(request)
+  )
 }
 
 /**
@@ -102,7 +107,7 @@ export function attemptClientDocumentRequestUpload(
   if (request.matter_id !== matter.id) {
     return { ok: false, error: 'matter_mismatch', message: MESSAGES.matter_mismatch }
   }
-  if (request.status !== 'open') {
+  if (request.status !== 'open' || !isActiveClientDocumentRequest(request)) {
     return { ok: false, error: 'request_not_open', message: MESSAGES.request_not_open }
   }
 

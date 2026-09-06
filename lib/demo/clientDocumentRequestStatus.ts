@@ -5,6 +5,7 @@
  * what is still needed vs what has already been received. Does not change request lifecycle,
  * lawyer tools, or AML / Condo Diligence workspaces.
  */
+import { isActiveClientDocumentRequest } from '@/lib/demo/staffCancelClientDocumentRequest'
 import type { DemoDocument, DemoDocumentRequest, DemoDocumentRequestStatus } from '@/lib/demo/types'
 import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
 
@@ -69,7 +70,7 @@ export function buildClientDocumentRequestStatusView(input: {
 }): ClientDocumentRequestStatusView {
   const matterId = input.matterId.trim()
   const rows = input.documentRequests
-    .filter((r) => r.matter_id === matterId)
+    .filter((r) => r.matter_id === matterId && isActiveClientDocumentRequest(r))
     .slice()
     .sort((a, b) => {
       // Open first, then newest requested_at

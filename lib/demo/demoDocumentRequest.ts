@@ -4,6 +4,10 @@
 import { appendDemoDocumentIfValid, type BuildDemoDocumentOptions } from '@/lib/demo/demoDocument'
 import type { DemoDocument, DemoMatter, DemoDocumentRequest, DemoDocumentRequestStatus } from '@/lib/demo/types'
 import { normalizeDocumentRequestFollowUp } from '@/lib/demo/staffDocumentRequestFollowUp'
+import {
+  isActiveClientDocumentRequest,
+  normalizeClientDocumentRequestLifecycle,
+} from '@/lib/demo/staffCancelClientDocumentRequest'
 
 export type AddDemoDocumentRequestInput = {
   matter_id: string
@@ -55,6 +59,7 @@ export function buildDemoDocumentRequest(
     staff_receipt_reviewed_by_staff_id: null,
     staff_receipt_reviewed_document_id: null,
     staff_follow_up: { status: 'none' as const, note: '', markedById: null, markedByName: null, markedAt: null },
+    lifecycle: normalizeClientDocumentRequestLifecycle({ status: 'active' }),
   }
 }
 
@@ -72,6 +77,7 @@ export function withCoercedDocumentRequestStatus(
     staff_receipt_reviewed_by_staff_id?: unknown
     staff_receipt_reviewed_document_id?: unknown
     staff_follow_up?: unknown
+    lifecycle?: unknown
   }
 ): DemoDocumentRequest {
   const fulfilled =
@@ -100,6 +106,7 @@ export function withCoercedDocumentRequestStatus(
     staff_receipt_reviewed_by_staff_id,
     staff_receipt_reviewed_document_id,
     staff_follow_up: normalizeDocumentRequestFollowUp(r.staff_follow_up),
+    lifecycle: normalizeClientDocumentRequestLifecycle(r.lifecycle),
   }
 }
 
@@ -132,7 +139,14 @@ export function tryFulfillDemoDocumentRequest(
   if (!matter) return null
 
   const request = documentRequests.find((r) => r.id === input.request_id)
-  if (!request || request.matter_id !== matter.id || request.status !== 'open') return null
+  if (
+    !request ||
+    request.matter_id !== matter.id ||
+    request.status !== 'open' ||
+    !isActiveClientDocumentRequest(request)
+  ) {
+    return null
+  }
 
   const docInput = {
     matter_id: matter.id,
