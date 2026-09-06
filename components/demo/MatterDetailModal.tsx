@@ -1840,7 +1840,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                               }}
                             >
                               <div style={{ minWidth: 0, flex: '1 1 180px' }}>
-                                <div style={{ fontWeight: 800, color: '#134252', fontSize: 12 }}>{doc.name}</div>
+                                <div style={{ fontWeight: 800, color: '#134252', fontSize: 12 }}>{item?.name || doc.name}</div>
                                 <div style={{ color: '#627c71', fontSize: 11, fontWeight: 700 }}>
                                   Saved: {new Date(savedAt).toLocaleString()} · Internal only{item?.status ? ` · ${item.status}` : ''}
                                 </div>
@@ -3119,14 +3119,14 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                   textOverflow: 'ellipsis',
                                 }}
                               >
-                                {doc.name}
+                                {item?.name || doc.name}
                               </div>
                               <div style={{ color: '#627c71', fontSize: 12, fontWeight: 700 }}>
                                 Saved: {new Date(savedAt).toLocaleString()}
                                 {' · '}
                                 Internal only
                                 {' · '}
-                                {doc.status}
+                                {item?.status || doc.status}
                               </div>
                             </div>
                             <button
