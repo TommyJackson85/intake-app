@@ -4,9 +4,16 @@ import {
   canCompleteConflictCheckReview,
   createConflictCheckGatePatch,
   createConflictCheckReviewMemoDocumentInput,
+  generateConflictCheckReviewMemoSnapshot,
   createConflictCheckReviewPatch,
   findIntakeLeadForMatter,
+  formatConflictCheckMemoHistoryCount,
+  getConflictCheckMemoGeneratedAt,
+  getConflictCheckMemoHistoryItem,
+  getIntakeConflictCheckMemoHistory,
+  getMatterConflictCheckMemoHistory,
   isConflictCheckReviewMemoDocument,
+  isGeneratedInternalConflictCheckMemo,
   listConflictCheckReviewMemoDocuments,
   normalizeConflictCheckReview,
   runConflictCheckScreening,
@@ -168,6 +175,10 @@ describe('conflictCheckReview', () => {
     })
     expect(content.toUpperCase()).toContain('CONFLICT CHECK REVIEW MEMO')
     expect(content.toLowerCase()).toContain('not a legal opinion')
+    expect(content).toContain('recorded conflict screening')
+    expect(content).toContain('RECORDED SCREENING SUMMARY')
+    expect(content).toContain('Clear')
+    expect(content).toContain('No conflict.')
 
     const input = createConflictCheckReviewMemoDocumentInput({
       matter,
@@ -179,6 +190,8 @@ describe('conflictCheckReview', () => {
       id: 'doc-conflict-1',
     })
     expect(input?.generatedInternalSummary?.generatedType).toBe('conflict_check_review_memo')
+    expect(input?.generatedInternalSummary?.visibility).toBe('internal')
+    expect(input?.generatedInternalSummary?.content).toBe(content)
     expect(input?.category).toBe('Compliance')
 
     const doc = {
@@ -212,4 +225,230 @@ describe('conflictCheckReview', () => {
     expect(reviewPatch.linkedMemoDocumentId).toBe('doc-conflict-1')
     expect(reviewPatch.reviewerName).toBe('Katherine Ruiz, Esq.')
   })
+
+  it('prefers recorded screening summary over live screening when building memo', () => {
+    const lead = makeLead({
+      linkedMatterFileId: 'FL-2026-001',
+      conflict_check_status: 'flagged',
+      conflict_check_note: 'Gate note from screening run',
+      conflictCheckReview: normalizeConflictCheckReview({
+        status: 'needs_more_info',
+        informationGaps: 'Need opposing counsel identity',
+        internalNote: 'Possible name overlap — escalate before engagement.',
+        reviewerId: 'staff-1',
+        reviewerName: 'Katherine Ruiz, Esq.',
+        reviewedAt: '2026-02-01T12:00:00.000Z',
+        linkedMemoDocumentId: null,
+        screeningSummary: 'Recorded: person match on prior matter FL-2025-044',
+      }),
+    })
+    const liveScreening = runConflictCheckScreening({
+      lead,
+      matters: [
+        makeMatter({
+          id: 'matter-other',
+          file_id: 'FL-2025-044',
+          buyer: { id: 'b2', name: 'Noah Carter', email: '', phone: '' },
+        }),
+      ],
+      clients: [],
+      nowIso: '2026-02-02T09:00:00.000Z',
+    })
+    const content = buildConflictCheckReviewMemoContent({
+      lead,
+      matter: makeMatter(),
+      review: lead.conflictCheckReview,
+      screening: liveScreening,
+      generatedAt: '2026-02-02T09:00:00.000Z',
+    })
+    expect(content).toContain('Recorded: person match on prior matter FL-2025-044')
+    expect(content).toContain('Possible name overlap — escalate before engagement.')
+    expect(content).toContain('Need opposing counsel identity')
+    expect(content).toContain('Needs more info')
+    expect(content).toContain('SCREENING HITS')
+  })
+
+  it('lists saved memo snapshots newest first for history', () => {
+    const matter = makeMatter()
+    const lead = makeLead({
+      linkedMatterFileId: matter.file_id,
+      conflict_check_status: 'clear',
+      conflictCheckReview: normalizeConflictCheckReview({
+        status: 'completed',
+        informationGaps: '',
+        internalNote: 'Cleared for engagement.',
+        reviewerId: 'staff-1',
+        reviewerName: 'Katherine Ruiz, Esq.',
+        reviewedAt: '2026-02-01T12:00:00.000Z',
+        linkedMemoDocumentId: null,
+        screeningSummary: 'No overlaps recorded.',
+      }),
+    })
+    const older = createConflictCheckReviewMemoDocumentInput({
+      matter,
+      lead,
+      uploadedByStaffId: 'staff-1',
+      review: lead.conflictCheckReview,
+      generatedAt: '2026-02-01T10:00:00.000Z',
+      id: 'doc-conflict-old',
+    })
+    const newer = createConflictCheckReviewMemoDocumentInput({
+      matter,
+      lead,
+      uploadedByStaffId: 'staff-1',
+      review: lead.conflictCheckReview,
+      generatedAt: '2026-02-01T15:00:00.000Z',
+      id: 'doc-conflict-new',
+    })
+    expect(older).toBeTruthy()
+    expect(newer).toBeTruthy()
+
+    const docs = [
+      {
+        id: 'doc-conflict-old',
+        matter_id: matter.id,
+        name: older!.name,
+        category: 'Compliance',
+        document_subtype: older!.document_subtype ?? null,
+        uploaded_at: '2026-02-01T10:00:00.000Z',
+        uploaded_by_staff_id: 'staff-1',
+        status: 'draft',
+        deletedAt: null,
+        generatedInternalSummary: older!.generatedInternalSummary,
+      },
+      {
+        id: 'doc-conflict-new',
+        matter_id: matter.id,
+        name: newer!.name,
+        category: 'Compliance',
+        document_subtype: newer!.document_subtype ?? null,
+        uploaded_at: '2026-02-01T15:00:00.000Z',
+        uploaded_by_staff_id: 'staff-1',
+        status: 'draft',
+        deletedAt: null,
+        generatedInternalSummary: newer!.generatedInternalSummary,
+      },
+      {
+        id: 'doc-other',
+        matter_id: matter.id,
+        name: 'Other Doc',
+        category: 'Correspondence',
+        document_subtype: null,
+        uploaded_at: '2026-02-01T16:00:00.000Z',
+        uploaded_by_staff_id: 'staff-1',
+        status: 'draft',
+        deletedAt: null,
+      },
+    ] as DemoDocument[]
+
+    const history = listConflictCheckReviewMemoDocuments(docs, matter.id)
+    expect(history.map((d) => d.id)).toEqual(['doc-conflict-new', 'doc-conflict-old'])
+    expect(history[0]?.generatedInternalSummary?.content).toContain('No overlaps recorded.')
+    expect(history[0]?.generatedInternalSummary?.content).toContain('Cleared for engagement.')
+  })
+
+  it('exposes Internal only history helpers for matter and intake scopes', () => {
+    const matter = makeMatter()
+    const lead = makeLead({
+      linkedMatterFileId: matter.file_id,
+      conflict_check_status: 'clear',
+      conflictCheckReview: normalizeConflictCheckReview({
+        status: 'completed',
+        informationGaps: '',
+        internalNote: 'Cleared for engagement.',
+        reviewerId: 'staff-1',
+        reviewerName: 'Katherine Ruiz, Esq.',
+        reviewedAt: '2026-02-01T12:00:00.000Z',
+        linkedMemoDocumentId: null,
+        screeningSummary: 'No overlaps recorded.',
+      }),
+    })
+    const input = createConflictCheckReviewMemoDocumentInput({
+      matter,
+      lead,
+      uploadedByStaffId: 'staff-1',
+      review: lead.conflictCheckReview,
+      generatedAt: '2026-02-01T15:00:00.000Z',
+      id: 'doc-conflict-helpers',
+    })
+    expect(input?.generatedInternalSummary?.visibility).toBe('internal')
+    expect(input?.generatedInternalSummary?.sourceIntakeLeadId).toBe(lead.id)
+
+    const doc = {
+      id: 'doc-conflict-helpers',
+      matter_id: matter.id,
+      name: input!.name,
+      category: 'Compliance',
+      document_subtype: input!.document_subtype ?? null,
+      uploaded_at: '2026-02-01T15:00:00.000Z',
+      uploaded_by_staff_id: 'staff-1',
+      status: 'draft',
+      deletedAt: null,
+      generatedInternalSummary: input!.generatedInternalSummary,
+    } as DemoDocument
+
+    expect(isGeneratedInternalConflictCheckMemo(doc)).toBe(true)
+    expect(getConflictCheckMemoGeneratedAt(doc)).toBe('2026-02-01T15:00:00.000Z')
+    expect(getConflictCheckMemoHistoryItem(doc)?.visibility).toBe('internal')
+    expect(getConflictCheckMemoHistoryItem(doc)?.intakeLeadId).toBe(lead.id)
+    expect(getMatterConflictCheckMemoHistory([doc], matter.id).map((d) => d.id)).toEqual([
+      'doc-conflict-helpers',
+    ])
+    expect(getIntakeConflictCheckMemoHistory([doc], lead.id).map((d) => d.id)).toEqual([
+      'doc-conflict-helpers',
+    ])
+    expect(formatConflictCheckMemoHistoryCount(0)).toBe('No saved internal memos')
+    expect(formatConflictCheckMemoHistoryCount(1)).toBe('1 saved internal memo')
+    expect(formatConflictCheckMemoHistoryCount(2)).toBe('2 saved internal memos')
+  })
+
+
+  it('generateConflictCheckReviewMemoSnapshot freezes a dated recorded screening/review memo', () => {
+    const matter = makeMatter()
+    const lead = makeLead({
+      linkedMatterFileId: matter.file_id,
+      conflict_check_status: 'clear',
+      conflict_check_note: 'Gate note',
+      conflictCheckReview: normalizeConflictCheckReview({
+        status: 'completed',
+        informationGaps: 'None',
+        internalNote: 'Cleared after review of recorded screening.',
+        reviewerId: 'staff-1',
+        reviewerName: 'Katherine Ruiz, Esq.',
+        reviewedAt: '2026-02-01T12:00:00.000Z',
+        linkedMemoDocumentId: null,
+        screeningSummary: 'Recorded screening: no person/property overlaps.',
+      }),
+    })
+    const snapshot = generateConflictCheckReviewMemoSnapshot({
+      matter,
+      lead,
+      uploadedByStaffId: 'staff-1',
+      review: lead.conflictCheckReview,
+      generatedAt: '2026-02-03T16:30:00.000Z',
+      id: 'doc-conflict-snapshot',
+    })
+    expect(snapshot).toBeTruthy()
+    expect(snapshot!.generatedAt).toBe('2026-02-03T16:30:00.000Z')
+    expect(snapshot!.content).toContain('2026-02-03T16:30:00.000Z')
+    expect(snapshot!.content).toContain('Recorded screening: no person/property overlaps.')
+    expect(snapshot!.content).toContain('Cleared after review of recorded screening.')
+    expect(snapshot!.documentInput.generatedInternalSummary?.visibility).toBe('internal')
+    expect(snapshot!.documentInput.generatedInternalSummary?.content).toBe(snapshot!.content)
+    expect(snapshot!.documentInput.generatedInternalSummary?.generatedAt).toBe('2026-02-03T16:30:00.000Z')
+    expect(snapshot!.documentInput.uploaded_at).toBe('2026-02-03T16:30:00.000Z')
+    expect(isGeneratedInternalConflictCheckMemo({
+      id: 'doc-conflict-snapshot',
+      matter_id: matter.id,
+      name: snapshot!.documentInput.name,
+      category: 'Compliance',
+      document_subtype: snapshot!.documentInput.document_subtype ?? null,
+      uploaded_at: '2026-02-03T16:30:00.000Z',
+      uploaded_by_staff_id: 'staff-1',
+      status: 'draft',
+      deletedAt: null,
+      generatedInternalSummary: snapshot!.documentInput.generatedInternalSummary,
+    } as DemoDocument)).toBe(true)
+  })
+
 })

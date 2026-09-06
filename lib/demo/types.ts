@@ -760,7 +760,10 @@ export type DemoGeneratedInternalSummaryMetadata = {
     | 'conflict_check_review_memo'
   generatedAt: string
   sourceMatterId: string
+  /** Intake lead id when the snapshot was generated from Conflict Check Review. */
+  sourceIntakeLeadId?: string | null
   content: string
+  /** Conflict check and condo diligence generated snapshots are staff-internal only. */
   visibility: 'internal'
 }
 

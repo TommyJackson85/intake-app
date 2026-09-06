@@ -431,10 +431,11 @@ export function buildConflictCheckReviewMemoContent(input: {
   const property = intakePropertyAddress(input.lead)
   const matterRef = input.matter?.file_id || input.lead.fileReference || '—'
   const snapshot = effectiveIntakeSnapshot(input.lead)
+  // Prefer recorded screening on the Conflict Check Review, then gate note, then live screening.
   const screeningSummary =
-    input.screening?.summary ||
     review.screeningSummary ||
     input.lead.conflict_check_note ||
+    input.screening?.summary ||
     'No screening summary recorded.'
   const hits = input.screening?.hits || []
 
@@ -443,6 +444,7 @@ export function buildConflictCheckReviewMemoContent(input: {
     '===================================',
     '',
     'Operational internal record only. This is not a legal opinion, ethical clearance, or conflict waiver.',
+    'Snapshot based on recorded conflict screening and Conflict Check Review information.',
     '',
     `Generated: ${generatedAt}`,
     `Matter: ${matterRef}`,
@@ -465,8 +467,8 @@ export function buildConflictCheckReviewMemoContent(input: {
     `Information gaps: ${review.informationGaps || 'None recorded.'}`,
     `Internal note: ${review.internalNote || 'None recorded.'}`,
     '',
-    'SCREENING SUMMARY',
-    '-----------------',
+    'RECORDED SCREENING SUMMARY',
+    '--------------------------',
     screeningSummary,
   ]
 
@@ -506,15 +508,102 @@ export function isConflictCheckReviewMemoDocument(
   )
 }
 
+/**
+ * Canonical Conflict Check Memo History API:
+ * - isGeneratedInternalConflictCheckMemo(document)
+ * - getMatterConflictCheckMemoHistory(documents, matterId)
+ * - getIntakeConflictCheckMemoHistory(documents, intakeId)
+ * - getConflictCheckMemoGeneratedAt(document)
+ * - formatConflictCheckMemoHistoryCount(count)
+ * - getConflictCheckMemoHistoryItem(document)
+ */
+/** True for generated Internal Conflict Check Review Memo documents (staff-internal only). */
+export function isGeneratedInternalConflictCheckMemo(
+  document: Pick<DemoDocument, 'document_subtype' | 'generatedInternalSummary' | 'name' | 'deletedAt'>
+): boolean {
+  if (!isConflictCheckReviewMemoDocument(document)) return false
+  const visibility = document.generatedInternalSummary?.visibility
+  return visibility === undefined || visibility === 'internal'
+}
+
 export function conflictCheckReviewMemoSortTime(
   document: Pick<DemoDocument, 'uploaded_at' | 'generatedInternalSummary'>
 ): number {
-  const iso = document.generatedInternalSummary?.generatedAt?.trim() || document.uploaded_at
+  const iso = getConflictCheckMemoGeneratedAt(document) || document.uploaded_at
   const t = new Date(iso).getTime()
   return Number.isFinite(t) ? t : 0
 }
 
+export function getConflictCheckMemoGeneratedAt(
+  document: Pick<DemoDocument, 'uploaded_at' | 'generatedInternalSummary'>
+): string | null {
+  const generatedAt = document.generatedInternalSummary?.generatedAt?.trim()
+  if (generatedAt) return generatedAt
+  const uploaded = document.uploaded_at?.trim()
+  return uploaded || null
+}
+
+export type ConflictCheckMemoHistoryItem = {
+  id: string
+  name: string
+  matterId: string
+  generatedAt: string
+  status: DemoDocument['status']
+  visibility: 'internal'
+  content: string
+  intakeLeadId: string | null
+}
+
+export function getConflictCheckMemoHistoryItem(
+  document: Pick<
+    DemoDocument,
+    | 'id'
+    | 'name'
+    | 'matter_id'
+    | 'status'
+    | 'deletedAt'
+    | 'uploaded_at'
+    | 'document_subtype'
+    | 'generatedInternalSummary'
+  >
+): ConflictCheckMemoHistoryItem | null {
+  if (!isGeneratedInternalConflictCheckMemo(document)) return null
+  const generatedAt = getConflictCheckMemoGeneratedAt(document)
+  if (!generatedAt) return null
+  return {
+    id: document.id,
+    name: document.name,
+    matterId: document.matter_id,
+    generatedAt,
+    status: document.status,
+    visibility: 'internal',
+    content: document.generatedInternalSummary?.content?.trim() || '',
+    intakeLeadId: document.generatedInternalSummary?.sourceIntakeLeadId ?? null,
+  }
+}
+
+export function formatConflictCheckMemoHistoryCount(count: number): string {
+  if (count <= 0) return 'No saved internal memos'
+  if (count === 1) return '1 saved internal memo'
+  return `${count} saved internal memos`
+}
+
 export function listConflictCheckReviewMemoDocuments<
+  T extends Pick<
+    DemoDocument,
+    | 'id'
+    | 'name'
+    | 'deletedAt'
+    | 'uploaded_at'
+    | 'document_subtype'
+    | 'generatedInternalSummary'
+    | 'matter_id'
+  >,
+>(documents: readonly T[], matterId?: string): T[] {
+  return getMatterConflictCheckMemoHistory(documents, matterId)
+}
+
+export function getMatterConflictCheckMemoHistory<
   T extends Pick<
     DemoDocument,
     | 'id'
@@ -530,8 +619,33 @@ export function listConflictCheckReviewMemoDocuments<
     .filter(
       (doc) =>
         !doc.deletedAt &&
-        isConflictCheckReviewMemoDocument(doc) &&
+        isGeneratedInternalConflictCheckMemo(doc) &&
         (!matterId || doc.matter_id === matterId)
+    )
+    .slice()
+    .sort((a, b) => conflictCheckReviewMemoSortTime(b) - conflictCheckReviewMemoSortTime(a))
+}
+
+export function getIntakeConflictCheckMemoHistory<
+  T extends Pick<
+    DemoDocument,
+    | 'id'
+    | 'name'
+    | 'deletedAt'
+    | 'uploaded_at'
+    | 'document_subtype'
+    | 'generatedInternalSummary'
+    | 'matter_id'
+  >,
+>(documents: readonly T[], intakeId: string): T[] {
+  const id = intakeId.trim()
+  if (!id) return []
+  return documents
+    .filter(
+      (doc) =>
+        !doc.deletedAt &&
+        isGeneratedInternalConflictCheckMemo(doc) &&
+        doc.generatedInternalSummary?.sourceIntakeLeadId === id
     )
     .slice()
     .sort((a, b) => conflictCheckReviewMemoSortTime(b) - conflictCheckReviewMemoSortTime(a))
@@ -570,6 +684,7 @@ export function createConflictCheckReviewMemoDocumentInput(input: {
     generatedType: 'conflict_check_review_memo',
     generatedAt,
     sourceMatterId: matter_id,
+    sourceIntakeLeadId: input.lead.id,
     content,
     visibility: 'internal',
   }
@@ -580,7 +695,7 @@ export function createConflictCheckReviewMemoDocumentInput(input: {
     category: 'Compliance',
     document_subtype: CONFLICT_CHECK_REVIEW_MEMO_SUBTYPE,
     description:
-      'Internal conflict check review memo snapshot — not shared to the client portal. Operational work product only. Not a legal opinion, ethical clearance, or conflict waiver.',
+      'Internal only — dated Conflict Check Review memo snapshot from recorded screening and review. Not shared to the client portal. Operational work product only. Not a legal opinion, ethical clearance, or conflict waiver.',
     document_date: generatedAt.slice(0, 10),
     source: 'Conflict Check Review (demo) — internal memo',
     status: 'draft',
@@ -589,6 +704,48 @@ export function createConflictCheckReviewMemoDocumentInput(input: {
     ...(input.id ? { id: input.id } : {}),
     generatedInternalSummary: metadata,
   }
+}
+
+
+/**
+ * Generate a dated Internal Conflict Check Review Memo snapshot from recorded
+ * conflict screening and Conflict Check Review information, ready to save.
+ */
+export function generateConflictCheckReviewMemoSnapshot(input: {
+  matter: DemoMatter
+  lead: DemoIntakeLead
+  uploadedByStaffId: string
+  client?: DemoClient | null
+  review?: DemoConflictCheckReview | null
+  screening?: ConflictScreeningResult | null
+  generatedAt?: string
+  id?: string
+}): { generatedAt: string; content: string; documentInput: AddDemoDocumentInput } | null {
+  const generatedAt = input.generatedAt || new Date().toISOString()
+  const review = input.review ?? input.lead.conflictCheckReview
+  const content = buildConflictCheckReviewMemoContent({
+    lead: input.lead,
+    matter: input.matter,
+    client: input.client,
+    review,
+    screening: input.screening,
+    generatedAt,
+  }).trim()
+  if (!content) return null
+
+  const documentInput = createConflictCheckReviewMemoDocumentInput({
+    matter: input.matter,
+    lead: input.lead,
+    uploadedByStaffId: input.uploadedByStaffId,
+    client: input.client,
+    review,
+    screening: input.screening,
+    content,
+    generatedAt,
+    id: input.id,
+  })
+  if (!documentInput) return null
+  return { generatedAt, content, documentInput }
 }
 
 export function conflictCheckReviewMemoRequiresLinkedMatter(lead: DemoIntakeLead): boolean {
