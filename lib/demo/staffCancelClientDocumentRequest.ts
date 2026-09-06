@@ -1,10 +1,9 @@
 /**
  * Staff **Cancel client document request** — retire an ordinary request before upload/workflow starts.
  *
- * Sets lifecycle to cancelled so the request is no longer active for client upload or pre-upload
- * staff edits. Does not change matter, client, open/fulfilled status, upload links, receipt review,
- * follow-up state, or any internal review workflow fields. Deny-by-default.
- * Does not touch Condo Diligence / AML / FinCEN workflows.
+ * This will cancel the active client document request. It will no longer appear as an active request
+ * in the client portal. This does not delete the request or make a legal, compliance, or
+ * document-sufficiency determination. Deny-by-default. Does not touch Condo Diligence / AML / FinCEN.
  */
 import {
   getClientDocumentRequestStatusLabel,
@@ -143,7 +142,7 @@ export function getClientDocumentRequestCancelContext(input: {
     canCancel,
     actionLabel: 'Cancel client document request',
     detailLabel: canCancel
-      ? 'This cancels the client document request before upload. It does not change the matter, client, upload links, receipt review, follow-up state, or any internal review workflow.'
+      ? 'This will cancel the active client document request. It will no longer appear as an active request in the client portal. This does not delete the request or make a legal, compliance, or document-sufficiency determination.'
       : 'Cancel client document request is unavailable after upload, after cancel, or for inactive matters.',
     requestId: request?.id ?? null,
     matterId: matterActive ? matter!.id : null,

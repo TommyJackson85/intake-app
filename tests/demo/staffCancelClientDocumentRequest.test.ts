@@ -61,6 +61,8 @@ describe('staffCancelClientDocumentRequest helpers', () => {
     })
     expect(ok.canCancel).toBe(true)
     expect(ok.actionLabel).toBe('Cancel client document request')
+    expect(ok.detailLabel).toContain('no longer appear as an active request in the client portal')
+    expect(ok.detailLabel).toContain('does not delete the request')
     expect(ok.matterLabel).toBe(matter.file_id)
     expect(ok.clientLabel).toBe(matter.buyer.name.trim())
     expect(ok.requestTitle).toBe(openRequest.title)
