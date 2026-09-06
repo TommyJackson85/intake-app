@@ -862,3 +862,58 @@ export type DemoCondoDiligenceActivity = {
   visibility: 'internal'
   created_at: string
 }
+
+/**
+ * Internal Post-Closing Undertakings workspace status.
+ * Operational tracking only — not a closing-completeness or obligation-satisfaction determination.
+ */
+export type DemoPostClosingUndertakingsStatus =
+  | 'not_started'
+  | 'in_progress'
+  | 'monitoring'
+  | 'internally_noted'
+
+/**
+ * Status for a single recorded post-closing undertaking item.
+ * "Closed internally" means staff closed the tracking row — not that the obligation is satisfied.
+ */
+export type DemoPostClosingUndertakingItemStatus =
+  | 'open'
+  | 'in_progress'
+  | 'noted'
+  | 'closed_internally'
+
+/** One internal post-closing undertaking / follow-up item tracked for a matter. */
+export type DemoPostClosingUndertakingItem = {
+  id: string
+  /** Short description of the internal undertaking or follow-up item. */
+  description: string
+  status: DemoPostClosingUndertakingItemStatus
+  /** Staff follow-up context for this item (internal only). */
+  followUpContext: string
+  /** Optional target / reminder date (YYYY-MM-DD). Not a legal deadline determination. */
+  targetDate: string
+  /** Additional internal notes for this item. */
+  notes: string
+}
+
+/**
+ * Matter-scoped Post-Closing Undertakings record.
+ * Records internal post-closing items and follow-up context only.
+ * Does not determine whether an obligation is satisfied, whether closing is complete,
+ * or whether any legal, title, escrow, recording, payoff, or trust-account requirement has been met.
+ */
+export type DemoPostClosingUndertakings = {
+  status: DemoPostClosingUndertakingsStatus
+  items: DemoPostClosingUndertakingItem[]
+  /** Matter-level internal follow-up context. */
+  followUpContext: string
+  /** Staff-only internal note for the undertakings workspace. */
+  internalNote: string
+  recordedByStaffId: string | null
+  recordedByStaffName: string | null
+  /** ISO timestamp when the record was first saved. */
+  recordedAt: string | null
+  /** ISO timestamp when the record was last updated. */
+  updatedAt: string | null
+}

@@ -34,6 +34,7 @@ import type {
   DemoMatterReviewTask,
   DemoMatterReviewTaskStatus,
   DemoCondoDiligenceActivity,
+  DemoPostClosingUndertakings,
 } from '@/lib/demo/types'
 import { deriveMatterStatus } from '@/lib/demo-utils'
 import { findExistingDemoClient } from '@/lib/demo/demoIntakeFlow'
@@ -94,6 +95,10 @@ import {
   parseDemoCondoLawyerReviewCheckpoint,
   normalizeCondoLawyerReviewCheckpoint,
 } from '@/lib/demo/condoDiligence'
+import {
+  buildDefaultPostClosingUndertakings,
+  normalizePostClosingUndertakings,
+} from '@/lib/demo/postClosingUndertakings'
 import {
   appendDemoMatterReviewTaskIfValid,
   listCondoDiligenceSummaryReviewTasks,
@@ -169,6 +174,9 @@ type DemoContextType = {
   getCondoDiligence: (matterId: string) => DemoCondoDiligence | undefined
   ensureCondoDiligence: (matterId: string) => void
   patchCondoDiligence: (matterId: string, patch: Partial<DemoCondoDiligence>) => void
+  getPostClosingUndertakings: (matterId: string) => DemoPostClosingUndertakings | undefined
+  ensurePostClosingUndertakings: (matterId: string) => void
+  patchPostClosingUndertakings: (matterId: string, patch: DemoPostClosingUndertakings) => void
   registerIntakeLead: (input: {
     token: string
     fileReference: string
@@ -252,6 +260,9 @@ const DEMO_DOCUMENT_REQUESTS_STORAGE_KEY = 'lawintake-demo-document-requests-v1'
 /** Matter-scoped condo diligence checklist (demo-only; keyed by matter id). */
 const DEMO_CONDO_DILIGENCE_STORAGE_KEY = 'lawintake-demo-condo-diligence-v1'
 
+/** Matter-scoped Post-Closing Undertakings records (demo-only; keyed by matter id). */
+const DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY = 'lawintake-demo-post-closing-undertakings-v1'
+
 /** Internal matter review tasks linked to saved summary documents (demo-only; not portal-visible). */
 const DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY = 'lawintake-demo-matter-review-tasks-v1'
 
@@ -282,6 +293,17 @@ function persistDemoDocumentRequests(rows: DemoDocumentRequest[]) {
   try {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(DEMO_DOCUMENT_REQUESTS_STORAGE_KEY, JSON.stringify(rows))
+    }
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+
+function persistDemoPostClosingUndertakings(map: Record<string, DemoPostClosingUndertakings>) {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY, JSON.stringify(map))
     }
   } catch {
     /* ignore quota / private mode */
@@ -614,6 +636,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       recentlyDeletedMatters: DemoMatter[]
       recentlyDeletedClients: DemoClient[]
       condoDiligenceByMatterId: Record<string, DemoCondoDiligence>
+      postClosingUndertakingsByMatterId: Record<string, DemoPostClosingUndertakings>
       matterReviewTasks: DemoMatterReviewTask[]
       condoDiligenceActivities: DemoCondoDiligenceActivity[]
     }
@@ -622,6 +645,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     recentlyDeletedMatters: [],
     recentlyDeletedClients: [],
     condoDiligenceByMatterId: {},
+    postClosingUndertakingsByMatterId: {},
     matterReviewTasks: [],
     condoDiligenceActivities: [],
   }))
@@ -668,6 +692,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_DOCUMENT_REQUESTS_STORAGE_KEY) : null
       const rawCondoDiligence =
         typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_CONDO_DILIGENCE_STORAGE_KEY) : null
+      const rawPostClosingUndertakings =
+        typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY) : null
       const rawMatterReviewTasks =
         typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY) : null
       const rawCondoDiligenceActivities =
@@ -678,6 +704,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         !rawDocuments &&
         !rawDocumentRequests &&
         !rawCondoDiligence &&
+        !rawPostClosingUndertakings &&
         !rawMatterReviewTasks &&
         !rawCondoDiligenceActivities
       )
@@ -724,6 +751,26 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             condoDiligenceByMatterId = { ...prev.condoDiligenceByMatterId, ...storedMap }
           }
         }
+        let postClosingUndertakingsByMatterId = prev.postClosingUndertakingsByMatterId
+        if (rawPostClosingUndertakings) {
+          try {
+            const parsed = JSON.parse(rawPostClosingUndertakings) as unknown
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              const next: Record<string, import('@/lib/demo/types').DemoPostClosingUndertakings> = {
+                ...prev.postClosingUndertakingsByMatterId,
+              }
+              for (const [matterId, row] of Object.entries(parsed as Record<string, unknown>)) {
+                if (!matterId.trim()) continue
+                next[matterId] = normalizePostClosingUndertakings(
+                  row as import('@/lib/demo/types').DemoPostClosingUndertakings
+                )
+              }
+              postClosingUndertakingsByMatterId = next
+            }
+          } catch {
+            /* keep prev */
+          }
+        }
         let matterReviewTasks = prev.matterReviewTasks
         if (rawMatterReviewTasks) {
           try {
@@ -749,6 +796,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           documents,
           documentRequests,
           condoDiligenceByMatterId,
+          postClosingUndertakingsByMatterId,
           matterReviewTasks,
           condoDiligenceActivities,
         }
@@ -801,6 +849,18 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     }, 250)
     return () => window.clearTimeout(t)
   }, [state.condoDiligenceByMatterId])
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        persistDemoPostClosingUndertakings(state.postClosingUndertakingsByMatterId)
+      } catch {
+        /* ignore */
+      }
+    }, 250)
+    return () => window.clearTimeout(t)
+  }, [state.postClosingUndertakingsByMatterId])
+
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -938,6 +998,29 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         const parsed = JSON.parse(e.newValue) as unknown
         const matterReviewTasks = parseStoredDemoMatterReviewTasks(parsed)
         setState((prev) => ({ ...prev, matterReviewTasks }))
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY || !e.newValue) return
+      try {
+        const parsed = JSON.parse(e.newValue) as unknown
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return
+        const next: Record<string, DemoPostClosingUndertakings> = {}
+        for (const [matterId, row] of Object.entries(parsed as Record<string, unknown>)) {
+          if (!matterId.trim()) continue
+          next[matterId] = normalizePostClosingUndertakings(row as DemoPostClosingUndertakings)
+        }
+        setState((prev) => ({
+          ...prev,
+          postClosingUndertakingsByMatterId: { ...prev.postClosingUndertakingsByMatterId, ...next },
+        }))
       } catch {
         /* ignore */
       }
@@ -1118,12 +1201,16 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             const condoDiligenceByMatterId = Object.fromEntries(
               Object.entries(prev.condoDiligenceByMatterId).filter(([k]) => k !== matterId),
             ) as Record<string, DemoCondoDiligence>
+            const postClosingUndertakingsByMatterId = Object.fromEntries(
+              Object.entries(prev.postClosingUndertakingsByMatterId).filter(([k]) => k !== matterId),
+            ) as Record<string, DemoPostClosingUndertakings>
             return {
               ...prev,
               matters: prev.matters.filter((m) => m.id !== matterId),
               calendarEvents: prev.calendarEvents.filter((evt) => evt.matter_id !== matterId),
               documents: prev.documents.filter((doc) => doc.matter_id !== matterId),
               condoDiligenceByMatterId,
+              postClosingUndertakingsByMatterId,
               recentlyDeletedMatters: [
                 { ...target, deletedAt: removedAt },
                 ...prev.recentlyDeletedMatters.filter((m) => m.id !== matterId),
@@ -2119,6 +2206,47 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           return {
             ...prev,
             condoDiligenceByMatterId: { ...prev.condoDiligenceByMatterId, [id]: next },
+          }
+        })
+      },
+      getPostClosingUndertakings: (matterId) => {
+        const id = matterId.trim()
+        if (!id) return undefined
+        return state.postClosingUndertakingsByMatterId[id]
+      },
+      ensurePostClosingUndertakings: (matterId) => {
+        const id = matterId.trim()
+        if (!id) return
+        setState((prev) => {
+          if (prev.postClosingUndertakingsByMatterId[id]) return prev
+          const matter = prev.matters.find((m) => m.id === id && !m.deletedAt)
+          if (!matter) return prev
+          return {
+            ...prev,
+            postClosingUndertakingsByMatterId: {
+              ...prev.postClosingUndertakingsByMatterId,
+              [id]: buildDefaultPostClosingUndertakings(),
+            },
+          }
+        })
+      },
+      patchPostClosingUndertakings: (matterId, patch) => {
+        const id = matterId.trim()
+        if (!id) return
+        setState((prev) => {
+          const existing = prev.postClosingUndertakingsByMatterId[id]
+          if (!existing) return prev
+          const next = normalizePostClosingUndertakings({
+            ...existing,
+            ...patch,
+            items: Array.isArray(patch.items) ? patch.items : existing.items,
+          })
+          return {
+            ...prev,
+            postClosingUndertakingsByMatterId: {
+              ...prev.postClosingUndertakingsByMatterId,
+              [id]: next,
+            },
           }
         })
       },
