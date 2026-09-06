@@ -10,6 +10,7 @@ import MarkDocumentRequestNeedsFollowUpModal from '@/app/demo/_components/MarkDo
 import ClearDocumentRequestNeedsFollowUpModal from '@/app/demo/_components/ClearDocumentRequestNeedsFollowUpModal'
 import EditClientDocumentRequestModal from '@/app/demo/_components/EditClientDocumentRequestModal'
 import CancelClientDocumentRequestModal from '@/app/demo/_components/CancelClientDocumentRequestModal'
+import ReactivateClientDocumentRequestModal from '@/app/demo/_components/ReactivateClientDocumentRequestModal'
 import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
 import { buildStaffClientUploadReceiptQueue } from '@/lib/demo/staffClientUploadReceiptQueue'
 import { canStaffLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
@@ -24,6 +25,7 @@ import {
   canCancelClientDocumentRequest,
   getClientDocumentRequestLifecyclePresentation,
 } from '@/lib/demo/staffCancelClientDocumentRequest'
+import { canReactivateClientDocumentRequest } from '@/lib/demo/staffReactivateClientDocumentRequest'
 
 function formatDemoDateTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -55,6 +57,7 @@ export default function DemoDocumentsPage() {
   const [clearFollowUpRequestId, setClearFollowUpRequestId] = useState<string | null>(null)
   const [editRequestId, setEditRequestId] = useState<string | null>(null)
   const [cancelRequestId, setCancelRequestId] = useState<string | null>(null)
+  const [reactivateRequestId, setReactivateRequestId] = useState<string | null>(null)
 
   const sorted = useMemo(
     () => [...documents].sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()),
@@ -125,6 +128,11 @@ export default function DemoDocumentsPage() {
   const cancelRequest = useMemo(
     () => documentRequests.find((r) => r.id === cancelRequestId) ?? null,
     [documentRequests, cancelRequestId],
+  )
+
+  const reactivateRequest = useMemo(
+    () => documentRequests.find((r) => r.id === reactivateRequestId) ?? null,
+    [documentRequests, reactivateRequestId],
   )
 
   return (
@@ -212,6 +220,12 @@ export default function DemoDocumentsPage() {
         isOpen={Boolean(cancelRequest)}
         request={cancelRequest}
         onClose={() => setCancelRequestId(null)}
+      />
+
+      <ReactivateClientDocumentRequestModal
+        isOpen={Boolean(reactivateRequest)}
+        request={reactivateRequest}
+        onClose={() => setReactivateRequestId(null)}
       />
 
       <h2 style={{ fontSize: '18px', marginBottom: '8px', marginTop: '8px', color: '#134252', fontWeight: 800 }}>
@@ -590,6 +604,24 @@ export default function DemoDocumentsPage() {
                             }}
                           >
                             Cancel client document request
+                          </button>
+                        ) : null}
+                        {canReactivateClientDocumentRequest(req, matters) ? (
+                          <button
+                            type="button"
+                            onClick={() => setReactivateRequestId(req.id)}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              border: '1px solid rgba(19,66,82,0.35)',
+                              background: '#fff',
+                              color: '#134252',
+                              fontWeight: 800,
+                              fontSize: 13,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Reactivate client document request
                           </button>
                         ) : null}
                         {followUp.status === 'needs_follow_up' ? (

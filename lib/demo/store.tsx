@@ -61,6 +61,10 @@ import {
   applyCancelClientDocumentRequest,
   type ClientDocumentRequestCancelDraft,
 } from '@/lib/demo/staffCancelClientDocumentRequest'
+import {
+  applyReactivateClientDocumentRequest,
+  type ClientDocumentRequestReactivationDraft,
+} from '@/lib/demo/staffReactivateClientDocumentRequest'
 import { tryLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
 import { recordDocumentRequestReceiptReview } from '@/lib/demo/staffDocumentRequestReceiptReview'
 import {
@@ -142,6 +146,8 @@ type DemoContextType = {
   editClientDocumentRequest: (input: ClientDocumentRequestEditDraft) => boolean
   /** Staff: cancel an open request before upload/workflow activity. */
   cancelClientDocumentRequest: (input: ClientDocumentRequestCancelDraft) => boolean
+  /** Staff: reactivate a cancelled open request before upload/workflow activity. */
+  reactivateClientDocumentRequest: (input: ClientDocumentRequestReactivationDraft) => boolean
   /** Appends one `DemoDocument` (same helper as `addDemoDocument`) and marks the request fulfilled — one `setState`. */
   /** Client portal upload: appends one `DemoDocument` and marks the request fulfilled — one `setState`. Returns whether fulfillment succeeded. */
   fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => boolean
@@ -1811,6 +1817,22 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         let succeeded = false
         setState((prev) => {
           const documentRequests = applyCancelClientDocumentRequest(
+            prev.documentRequests,
+            prev.matters,
+            prev.staff,
+            input,
+          )
+          if (documentRequests === prev.documentRequests) return prev
+          succeeded = true
+          return { ...prev, documentRequests }
+        })
+        return succeeded
+      },
+
+      reactivateClientDocumentRequest: (input) => {
+        let succeeded = false
+        setState((prev) => {
+          const documentRequests = applyReactivateClientDocumentRequest(
             prev.documentRequests,
             prev.matters,
             prev.staff,

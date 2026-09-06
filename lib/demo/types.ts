@@ -739,6 +739,7 @@ export type DocumentRequestFollowUp = {
 /**
  * Staff/client request lifecycle overlay (orthogonal to open/fulfilled upload status).
  * Cancelled requests are no longer active for client upload or pre-upload staff edits.
+ * Staff may reactivate a cancelled open request to restore active portal/upload eligibility.
  */
 export type ClientDocumentRequestLifecycle = {
   status?: 'active' | 'cancelled'
