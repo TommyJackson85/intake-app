@@ -4,8 +4,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DemoDocument } from '@/lib/demo/types'
 import { useDemoStore } from '@/lib/demo/store'
 import {
+  getClientDocumentRequestCreationContext,
   getEligibleMattersForStaffCreateClientDocumentRequest,
-  getStaffCreateClientDocumentRequestPresentation,
+  validateClientDocumentRequestDraft,
 } from '@/lib/demo/staffCreateClientDocumentRequest'
 
 const CATEGORIES: DemoDocument['category'][] = [
@@ -63,14 +64,15 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
     () => eligibleMatters.find((m) => m.id === matterId) ?? null,
     [eligibleMatters, matterId],
   )
-  const presentation = useMemo(
+  const creationContext = useMemo(
     () =>
-      getStaffCreateClientDocumentRequestPresentation({
+      getClientDocumentRequestCreationContext({
         matter: selectedMatter,
-        staffId,
+        matters,
       }),
-    [selectedMatter, staffId],
+    [selectedMatter, matters],
   )
+  const canSubmit = creationContext.canCreate && Boolean(staffId.trim())
 
   useEffect(() => {
     if (!isOpen) {
@@ -107,29 +109,23 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setSaveError(null)
-    if (!matterId.trim()) {
-      setSaveError('Select a matter.')
-      return
-    }
-    if (!title.trim()) {
-      setSaveError('Enter a request title.')
-      return
-    }
-    if (!staffId.trim()) {
-      setSaveError('Select who is requesting.')
-      return
-    }
-    if (!presentation.canCreate) {
-      setSaveError('Create client document request is unavailable for this matter.')
-      return
-    }
-    const ok = createClientDocumentRequest({
+    const draft = {
       matterId,
-      title: title.trim(),
+      title,
       description: description.trim() || null,
       category,
       staffId,
+    }
+    const validation = validateClientDocumentRequestDraft({
+      draft,
+      matters,
+      staff,
     })
+    if (!validation.ok) {
+      setSaveError(validation.error)
+      return
+    }
+    const ok = createClientDocumentRequest(validation.draft)
     if (!ok) {
       setSaveError('Could not create the client document request.')
       return
@@ -177,9 +173,9 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
         >
           <div>
             <div style={{ fontSize: '20px', fontWeight: 900, color: '#134252', marginBottom: '2px' }}>
-              {presentation.actionLabel}
+              {creationContext.actionLabel}
             </div>
-            <div style={{ color: '#627c71', fontSize: '13px' }}>{presentation.detailLabel}</div>
+            <div style={{ color: '#627c71', fontSize: '13px' }}>{creationContext.detailLabel}</div>
           </div>
           <div style={{ marginLeft: 'auto' }}>
             <button
@@ -318,16 +314,16 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
             </button>
             <button
               type="submit"
-              disabled={!presentation.canCreate}
+              disabled={!canSubmit}
               style={{
                 padding: '10px 14px',
                 borderRadius: 8,
                 border: '1px solid rgba(19,66,82,0.35)',
-                background: presentation.canCreate ? '#134252' : '#9aa8a3',
+                background: canSubmit ? '#134252' : '#9aa8a3',
                 color: '#fff',
                 fontWeight: 800,
                 fontSize: 13,
-                cursor: presentation.canCreate ? 'pointer' : 'not-allowed',
+                cursor: canSubmit ? 'pointer' : 'not-allowed',
               }}
             >
               Create client document request

@@ -51,7 +51,7 @@ import {
 } from '@/lib/demo/demoDocumentRequest'
 import {
   createStaffClientDocumentRequest,
-  type StaffCreateClientDocumentRequestInput,
+  type ClientDocumentRequestDraft,
 } from '@/lib/demo/staffCreateClientDocumentRequest'
 import { tryLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
 import { recordDocumentRequestReceiptReview } from '@/lib/demo/staffDocumentRequestReceiptReview'
@@ -129,7 +129,7 @@ type DemoContextType = {
   addDemoDocument: (input: AddDemoDocumentInput) => void
   addDemoDocumentRequest: (input: AddDemoDocumentRequestInput) => void
   /** Staff: create a client-visible ordinary document request (portal Awaiting upload). */
-  createClientDocumentRequest: (input: StaffCreateClientDocumentRequestInput) => boolean
+  createClientDocumentRequest: (input: ClientDocumentRequestDraft) => boolean
   /** Appends one `DemoDocument` (same helper as `addDemoDocument`) and marks the request fulfilled — one `setState`. */
   /** Client portal upload: appends one `DemoDocument` and marks the request fulfilled — one `setState`. Returns whether fulfillment succeeded. */
   fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => boolean
