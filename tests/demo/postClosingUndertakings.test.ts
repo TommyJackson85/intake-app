@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  POST_CLOSING_RECORDED_ITEM_LABEL,
   POST_CLOSING_UNDERTAKINGS_DISCLAIMER,
   buildDefaultPostClosingUndertaking,
   buildDefaultPostClosingUndertakingsReview,
@@ -133,15 +134,16 @@ describe('postClosingUndertakings', () => {
     expect(postClosingUndertakingsInternalReviewStatusLabel('review_recorded')).toBe(
       'Review recorded'
     )
-    expect(postClosingUndertakingStatusLabel('recorded_complete')).toBe('Recorded complete')
+    expect(POST_CLOSING_RECORDED_ITEM_LABEL).toBe('Recorded item')
+    expect(postClosingUndertakingStatusLabel('recorded_complete')).toBe('Internally recorded')
     expect(postClosingUndertakingResponsiblePartyLabel('title_or_settlement_party')).toBe(
       'Title / settlement party'
     )
     expect(postClosingUndertakingsInternalReviewStatusPresentation('in_review').label).toBe(
       'In review'
     )
-    expect(formatPostClosingUndertakingsCount(0)).toBe('No recorded undertakings')
-    expect(formatPostClosingUndertakingsCount(2)).toBe('2 recorded undertakings')
+    expect(formatPostClosingUndertakingsCount(0)).toBe('No recorded items')
+    expect(formatPostClosingUndertakingsCount(2)).toBe('2 recorded items')
   })
 
   it('includes the internal-only non-determination disclaimer copy', () => {

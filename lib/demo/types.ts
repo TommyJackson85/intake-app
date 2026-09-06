@@ -898,9 +898,10 @@ export type DemoPostClosingUndertakingResponsibleParty =
   | 'other'
 
 /**
- * Tracking status for a single post-closing undertaking.
- * "Recorded complete" means staff recorded completion in this workspace —
- * not that any legal, title, escrow, recording, payoff, or trust-account obligation is satisfied.
+ * Tracking status for a single recorded post-closing item.
+ * "recorded_complete" / "Internally recorded" means staff recorded the item in this
+ * workspace — not that any legal, title, escrow, recording, payoff, or trust-account
+ * obligation is complete or satisfied.
  */
 export type DemoPostClosingUndertakingStatus =
   | 'not_recorded'
@@ -909,7 +910,7 @@ export type DemoPostClosingUndertakingStatus =
   | 'follow_up_needed'
   | 'recorded_complete'
 
-/** One internal post-closing undertaking tracked for a matter. */
+/** One internal recorded post-closing item tracked for a matter. */
 export type DemoPostClosingUndertaking = {
   id: string
   title: string

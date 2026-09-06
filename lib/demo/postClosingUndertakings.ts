@@ -17,9 +17,12 @@ import type {
 export const POST_CLOSING_UNDERTAKINGS_DISCLAIMER =
   'Internal only. Record post-closing review context without stating that an obligation, closing requirement, title matter, escrow item, recording, payoff, or trust-account requirement is complete or satisfied.'
 
+/** Neutral internal label for one recorded post-closing item (not a legal undertaking determination). */
+export const POST_CLOSING_RECORDED_ITEM_LABEL = 'Recorded item'
+
 /** Canonical product alias for the review record. */
 export type PostClosingUndertakingsReview = DemoPostClosingUndertakingsReview
-/** Canonical product alias for a single undertaking. */
+/** Canonical product alias for a single recorded post-closing item. */
 export type PostClosingUndertaking = DemoPostClosingUndertaking
 
 export type PostClosingUndertakingsStatusPresentation = {
@@ -327,7 +330,7 @@ export function postClosingUndertakingStatusLabel(value: DemoPostClosingUndertak
     case 'follow_up_needed':
       return 'Follow-up needed'
     case 'recorded_complete':
-      return 'Recorded complete'
+      return 'Internally recorded'
     default:
       return value
   }
@@ -496,9 +499,9 @@ export function countOpenPostClosingUndertakingItems(
 }
 
 export function formatPostClosingUndertakingsCount(count: number): string {
-  if (count <= 0) return 'No recorded undertakings'
-  if (count === 1) return '1 recorded undertaking'
-  return `${count} recorded undertakings`
+  if (count <= 0) return `No ${POST_CLOSING_RECORDED_ITEM_LABEL.toLowerCase()}s`
+  if (count === 1) return `1 ${POST_CLOSING_RECORDED_ITEM_LABEL.toLowerCase()}`
+  return `${count} ${POST_CLOSING_RECORDED_ITEM_LABEL.toLowerCase()}s`
 }
 
 /** @deprecated Prefer formatPostClosingUndertakingsCount. */

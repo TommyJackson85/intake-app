@@ -160,6 +160,7 @@ import {
   type ConflictCheckReviewDraft,
 } from '@/lib/demo/conflictCheckReview'
 import {
+  POST_CLOSING_RECORDED_ITEM_LABEL,
   POST_CLOSING_UNDERTAKINGS_DISCLAIMER,
   buildDefaultPostClosingUndertaking,
   countActivePostClosingUndertakings,
@@ -2086,7 +2087,9 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#134252' }}>Undertakings</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#134252' }}>
+                        {POST_CLOSING_RECORDED_ITEM_LABEL}s
+                      </div>
                       <button
                         type="button"
                         onClick={() =>
@@ -2106,12 +2109,12 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           cursor: 'pointer',
                         }}
                       >
-                        Add undertaking
+                        Add {POST_CLOSING_RECORDED_ITEM_LABEL.toLowerCase()}
                       </button>
                     </div>
                     {postClosingDraft.undertakings.length === 0 ? (
                       <div style={{ fontSize: 12, color: '#627c71' }}>
-                        No post-closing undertakings recorded yet.
+                        No {POST_CLOSING_RECORDED_ITEM_LABEL.toLowerCase()}s recorded yet.
                       </div>
                     ) : (
                       postClosingDraft.undertakings.map((item, index) => (
@@ -2129,7 +2132,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                             <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>
-                              Undertaking {index + 1} ·{' '}
+                              {POST_CLOSING_RECORDED_ITEM_LABEL} {index + 1} ·{' '}
                               {postClosingUndertakingStatusLabel(item.status || 'not_recorded')} ·{' '}
                               {postClosingUndertakingResponsiblePartyLabel(
                                 item.responsibleParty || 'unknown'
@@ -2238,7 +2241,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                 <option value="outstanding">Outstanding</option>
                                 <option value="received_for_review">Received for review</option>
                                 <option value="follow_up_needed">Follow-up needed</option>
-                                <option value="recorded_complete">Recorded complete</option>
+                                <option value="recorded_complete">Internally recorded</option>
                               </select>
                             </label>
                           </div>
@@ -2304,7 +2307,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                 }))
                               }}
                               rows={2}
-                              placeholder="Internal details for this undertaking"
+                              placeholder="Internal details for this recorded item"
                               style={{
                                 padding: 8,
                                 borderRadius: 6,
@@ -2378,7 +2381,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           }, 2000)
                         } catch {
                           setPostClosingSaveStatus('failed')
-                          setPostClosingError('Could not save post-closing undertakings record.')
+                          setPostClosingError('Could not save post-closing recorded items.')
                           postClosingSaveLockRef.current = false
                           window.setTimeout(() => setPostClosingSaveStatus('idle'), 2500)
                         }
@@ -2400,7 +2403,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           ? 'Saved'
                           : postClosingSaveStatus === 'failed'
                             ? 'Save failed'
-                            : 'Save undertakings record'}
+                            : 'Save recorded items'}
                     </button>
                     {postClosingUndertakings?.reviewedAt ? (
                       <span style={{ fontSize: 11, color: '#627c71', fontWeight: 700 }}>
