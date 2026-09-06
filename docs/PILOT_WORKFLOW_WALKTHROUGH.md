@@ -250,6 +250,10 @@ Complete one **Feedback capture** form (above) for this walkthrough.
 3. Separate **pilot blockers** from **nice-to-haves**.
 4. Do not invent new workflow engines or portal features from this document alone — feed validated gaps into normal product prioritization.
 
+### Prioritizing next work
+
+Do not build the next feature based on a single request. Identify patterns across at least three walkthroughs or participants. Prefer features that reduce repeated manual work, protect internal/client boundaries, or prevent operational items from being missed.
+
 ## Related docs
 
 - [dev-setup.md](./dev-setup.md) — local environment
