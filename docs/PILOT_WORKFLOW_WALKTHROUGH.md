@@ -145,6 +145,8 @@ A Florida condo purchase includes association documents, SIRS/Milestone material
 
 **Goal:** Review AML / FinCEN reportability and beneficial ownership capture for an entity buyer, including cert/request flows if seeded, without treating the UI as a filing decision.
 
+A residential transaction includes a non-individual purchaser or trust-related purchaser context, requiring internal issue-spotting around reportability and ownership/control information.
+
 ### Entry points
 
 - `/demo/matters` → `FL-2026-002` (entity buyer with FinCEN seed)
@@ -156,7 +158,7 @@ A Florida condo purchase includes association documents, SIRS/Milestone material
 
 1. Open `FL-2026-002`.
 2. From Overview, note AML / FinCEN readiness cues; open **FinCEN / AML**.
-3. Review reportability sections and beneficial ownership / reporting party fields.
+3. Issue-spot reportability and ownership/control information for the non-individual (or trust-related) purchaser context as shown.
 4. If a beneficial-ownership certification request is available, open the cert link in a separate browser profile/window and submit sample (fake) owner data.
 5. Return to staff matter view; confirm staff can see receipt of cert data.
 6. Compare with an individual cash matter (e.g. `FL-2026-003`) where FinCEN may be out of scope — note how eligibility is communicated.
