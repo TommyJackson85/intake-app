@@ -34,7 +34,7 @@ export default function ReactivateClientDocumentRequestModal({
   const { matters, staff, reactivateClientDocumentRequest } = useDemoStore()
   const [error, setError] = useState<string | null>(null)
 
-  const reactivatePreview = useMemo(
+  const preview = useMemo(
     () =>
       getClientDocumentRequestReactivationPreview({
         request,
@@ -70,7 +70,7 @@ export default function ReactivateClientDocumentRequestModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!reactivatePreview.canReactivate) {
+    if (!preview.canReactivate) {
       setError('This request cannot be reactivated.')
       return
     }
@@ -130,9 +130,9 @@ export default function ReactivateClientDocumentRequestModal({
         >
           <div>
             <div style={{ fontSize: '20px', fontWeight: 900, color: '#134252', marginBottom: '2px' }}>
-              {reactivatePreview.actionLabel}
+              {preview.actionLabel}
             </div>
-            <div style={{ color: '#627c71', fontSize: '13px' }}>{reactivatePreview.detailLabel}</div>
+            <div style={{ color: '#627c71', fontSize: '13px' }}>{preview.detailLabel}</div>
           </div>
           <div style={{ marginLeft: 'auto' }}>
             <button
@@ -187,19 +187,15 @@ export default function ReactivateClientDocumentRequestModal({
           >
             <div>
               <div style={labelStyle}>Matter</div>
-              <div style={valueStyle}>{reactivatePreview.matterLabel ?? '—'}</div>
+              <div style={valueStyle}>{preview.matterLabel ?? '—'}</div>
             </div>
             <div>
               <div style={labelStyle}>Client</div>
-              <div style={valueStyle}>{reactivatePreview.clientLabel ?? '—'}</div>
+              <div style={valueStyle}>{preview.clientLabel ?? '—'}</div>
             </div>
             <div>
               <div style={labelStyle}>Document request</div>
-              <div style={valueStyle}>{reactivatePreview.requestTitle ?? '—'}</div>
-            </div>
-            <div>
-              <div style={labelStyle}>Current state</div>
-              <div style={valueStyle}>{reactivatePreview.currentStateLabel ?? '—'}</div>
+              <div style={valueStyle}>{preview.requestTitle ?? '—'}</div>
             </div>
           </div>
 
@@ -222,19 +218,19 @@ export default function ReactivateClientDocumentRequestModal({
             </button>
             <button
               type="submit"
-              disabled={!reactivatePreview.canReactivate}
+              disabled={!preview.canReactivate}
               style={{
                 padding: '10px 14px',
                 borderRadius: 8,
                 border: '1px solid rgba(19,66,82,0.35)',
-                background: reactivatePreview.canReactivate ? '#134252' : '#9aa8a3',
+                background: preview.canReactivate ? '#134252' : '#9aa8a3',
                 color: '#fff',
                 fontWeight: 800,
                 fontSize: 13,
-                cursor: reactivatePreview.canReactivate ? 'pointer' : 'not-allowed',
+                cursor: preview.canReactivate ? 'pointer' : 'not-allowed',
               }}
             >
-              Reactivate request
+              Reactivate client document request
             </button>
           </div>
         </form>

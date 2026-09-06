@@ -1,39 +1,47 @@
 /**
  * Staff **Reactivate client document request** — restore a cancelled ordinary request before upload/workflow.
  *
- * This will restore the client document request as active for the selected matter. It may appear again
- * in the client portal through existing access rules. This does not notify the client, create a task,
- * or make a legal, compliance, or document-sufficiency determination. Deny-by-default. Does not touch
- * Condo Diligence / AML / FinCEN.
+ * This will reactivate the cancelled client document request. It will appear again as an active request
+ * in the client portal. This does not change the matter, client, upload links, request status, receipt
+ * review, follow-up state, or any internal review workflow. Deny-by-default. Does not touch Condo
+ * Diligence / AML / FinCEN.
  */
+import {
+  getClientDocumentRequestStatusLabel,
+  type ClientDocumentRequestStatusLabel,
+} from '@/lib/demo/clientDocumentRequestStatus'
 import {
   getClientDocumentRequestLifecyclePresentation,
   isActiveClientDocumentRequest,
   normalizeClientDocumentRequestLifecycle,
   type NormalizedClientDocumentRequestLifecycle,
 } from '@/lib/demo/staffCancelClientDocumentRequest'
-import type {
-  DemoDocumentRequest,
-  DemoMatter,
-  DemoStaffProfile,
-} from '@/lib/demo/types'
+import type { DemoDocumentRequest, DemoMatter, DemoStaffProfile } from '@/lib/demo/types'
+
+const ACTIVE_LIFECYCLE: NormalizedClientDocumentRequestLifecycle = {
+  status: 'active',
+  cancelledAt: null,
+  cancelledById: null,
+  cancelledByName: null,
+}
 
 /** Staff reactivate draft — request id + acting staff. */
-export type ClientDocumentRequestReactivateDraft = {
+export type ClientDocumentRequestReactivationDraft = {
   requestId: string
   staffId: string
 }
 
-export type NormalizedClientDocumentRequestReactivateDraft = {
+export type NormalizedClientDocumentRequestReactivationDraft = {
   requestId: string
   staffId: string
   staffName: string
 }
 
-export type ClientDocumentRequestReactivateDraftValidation =
-  | { ok: true; draft: NormalizedClientDocumentRequestReactivateDraft }
+export type ClientDocumentRequestReactivationDraftValidation =
+  | { ok: true; draft: NormalizedClientDocumentRequestReactivationDraft }
   | { ok: false; error: string }
 
+/** Read-only confirmation preview for staff reactivation. */
 export type ClientDocumentRequestReactivationPreview = {
   canReactivate: boolean
   actionLabel: string
@@ -45,15 +53,16 @@ export type ClientDocumentRequestReactivationPreview = {
   matterFileId: string | null
   /** Existing safe client label for the matter (buyer name). */
   clientLabel: string | null
+  requestStatusLabel: ClientDocumentRequestStatusLabel | null
   /** Existing safe document request name (title). */
   requestTitle: string | null
-  /** Existing safe current lifecycle state display. */
-  currentStateLabel: 'Cancelled' | null
   lifecycleStatus: 'active' | 'cancelled' | null
+  cancelledAt: string | null
+  cancelledByName: string | null
 }
 
 /**
- * Deny-by-default: active matter, open + unfulfilled, lifecycle currently cancelled.
+ * Deny-by-default: active matter, open + unfulfilled, lifecycle currently cancelled (before upload/workflow).
  */
 export function isEligibleClientDocumentRequestForReactivation(
   request: DemoDocumentRequest | null | undefined,
@@ -63,8 +72,6 @@ export function isEligibleClientDocumentRequestForReactivation(
   if (request.status !== 'open') return false
   if (request.fulfilled_document_id) return false
   if (isActiveClientDocumentRequest(request)) return false
-  const lifecycle = getClientDocumentRequestLifecyclePresentation(request)
-  if (lifecycle.status !== 'cancelled') return false
   const matter = matters.find((m) => m.id === request.matter_id)
   return Boolean(matter && !matter.deletedAt)
 }
@@ -78,7 +85,7 @@ export function canReactivateClientDocumentRequest(
 }
 
 /**
- * Staff reactivate confirmation preview. Reuses canReactivateClientDocumentRequest; deny-by-default.
+ * Staff reactivation confirmation preview. Reuses canReactivateClientDocumentRequest; deny-by-default.
  */
 export function getClientDocumentRequestReactivationPreview(input: {
   request: DemoDocumentRequest | null | undefined
@@ -96,28 +103,30 @@ export function getClientDocumentRequestReactivationPreview(input: {
     canReactivate,
     actionLabel: 'Reactivate client document request',
     detailLabel: canReactivate
-      ? 'This will restore the client document request as active for the selected matter. It may appear again in the client portal through existing access rules. This does not notify the client, create a task, or make a legal, compliance, or document-sufficiency determination.'
-      : 'Reactivate client document request is unavailable unless the request is cancelled, open, unfulfilled, and on an active matter.',
+      ? 'This will reactivate the cancelled client document request. It will appear again as an active request in the client portal. This does not change the matter, client, upload links, request status, receipt review, follow-up state, or any internal review workflow.'
+      : 'Reactivate client document request is unavailable unless the request is cancelled, still open, and on an active matter before upload.',
     requestId: request?.id ?? null,
     matterId: matterActive ? matter!.id : null,
     matterLabel: matterActive ? matter!.file_id : null,
     matterFileId: matterActive ? matter!.file_id : null,
     clientLabel,
+    requestStatusLabel: request ? getClientDocumentRequestStatusLabel(request.status) : null,
     requestTitle: request?.title ?? null,
-    currentStateLabel: lifecycle.status === 'cancelled' ? 'Cancelled' : null,
     lifecycleStatus: request ? lifecycle.status : null,
+    cancelledAt: request ? lifecycle.cancelledAt : null,
+    cancelledByName: request ? lifecycle.cancelledByName : null,
   }
 }
 
 /**
  * Validate reactivate draft (request + acting staff). Deny-by-default.
  */
-export function validateClientDocumentRequestReactivateDraft(input: {
-  draft: ClientDocumentRequestReactivateDraft
+export function validateClientDocumentRequestReactivationDraft(input: {
+  draft: ClientDocumentRequestReactivationDraft
   documentRequests: DemoDocumentRequest[]
   matters: DemoMatter[]
   staff: DemoStaffProfile[]
-}): ClientDocumentRequestReactivateDraftValidation {
+}): ClientDocumentRequestReactivationDraftValidation {
   const requestId = input.draft.requestId.trim()
   const staffId = input.draft.staffId.trim()
   if (!requestId) return { ok: false, error: 'Select a document request.' }
@@ -128,7 +137,7 @@ export function validateClientDocumentRequestReactivateDraft(input: {
     return {
       ok: false,
       error:
-        'Reactivate client document request is unavailable unless the request is cancelled, open, unfulfilled, and on an active matter.',
+        'Reactivate client document request is unavailable unless the request is cancelled, still open, and on an active matter before upload.',
     }
   }
 
@@ -145,16 +154,11 @@ export function validateClientDocumentRequestReactivateDraft(input: {
   }
 }
 
-/** Build active lifecycle patch for a validated reactivate. */
+/** Build active lifecycle patch for a validated reactivation. */
 export function createClientDocumentRequestReactivationPatch(
-  _draft?: NormalizedClientDocumentRequestReactivateDraft,
+  _draft?: NormalizedClientDocumentRequestReactivationDraft,
 ): NormalizedClientDocumentRequestLifecycle {
-  return {
-    status: 'active',
-    cancelledAt: null,
-    cancelledById: null,
-    cancelledByName: null,
-  }
+  return { ...ACTIVE_LIFECYCLE }
 }
 
 /**
@@ -165,9 +169,9 @@ export function applyReactivateClientDocumentRequest(
   documentRequests: DemoDocumentRequest[],
   matters: DemoMatter[],
   staff: DemoStaffProfile[],
-  draft: ClientDocumentRequestReactivateDraft,
+  draft: ClientDocumentRequestReactivationDraft,
 ): DemoDocumentRequest[] {
-  const validation = validateClientDocumentRequestReactivateDraft({
+  const validation = validateClientDocumentRequestReactivationDraft({
     draft,
     documentRequests,
     matters,
@@ -179,10 +183,10 @@ export function applyReactivateClientDocumentRequest(
   if (index < 0) return documentRequests
 
   const current = documentRequests[index]!
-  const lifecycle = createClientDocumentRequestReactivationPatch(validation.draft)
   const existing = normalizeClientDocumentRequestLifecycle(current.lifecycle)
   if (existing.status === 'active') return documentRequests
 
+  const lifecycle = createClientDocumentRequestReactivationPatch(validation.draft)
   const next = documentRequests.slice()
   next[index] = {
     ...current,
@@ -190,3 +194,5 @@ export function applyReactivateClientDocumentRequest(
   }
   return next
 }
+
+export { isActiveClientDocumentRequest }
