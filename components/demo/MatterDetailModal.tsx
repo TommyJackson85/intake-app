@@ -163,16 +163,16 @@ import {
   POST_CLOSING_RECORDED_ITEM_LABEL,
   POST_CLOSING_REMOVE_RECORDED_ITEM_NOTICE,
   POST_CLOSING_UNDERTAKINGS_DISCLAIMER,
-  buildDefaultPostClosingUndertaking,
-  countActivePostClosingUndertakings,
+  createPostClosingUndertaking,
   createPostClosingUndertakingsReviewPatch,
-  formatPostClosingUndertakingsCount,
+  getPostClosingReviewStatusPresentation,
+  getPostClosingUndertakingStatusPresentation,
+  getPostClosingUndertakingsSummary,
   normalizePostClosingUndertakingsReview,
   postClosingUndertakingResponsiblePartyLabel,
-  postClosingUndertakingStatusLabel,
   postClosingUndertakingsApplicabilityLabel,
-  postClosingUndertakingsInternalReviewStatusPresentation,
   removePostClosingUndertaking,
+  updatePostClosingUndertaking,
   type PostClosingUndertakingsReviewDraft,
 } from '@/lib/demo/postClosingUndertakings'
 import {
@@ -1963,14 +1963,14 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           borderRadius: 999,
                           fontSize: 11,
                           fontWeight: 900,
-                          background: postClosingUndertakingsInternalReviewStatusPresentation(
+                          background: getPostClosingReviewStatusPresentation(
                             postClosingDraft.internalReviewStatus
                           ).bg,
-                          color: postClosingUndertakingsInternalReviewStatusPresentation(
+                          color: getPostClosingReviewStatusPresentation(
                             postClosingDraft.internalReviewStatus
                           ).color,
                           border: `1px solid ${
-                            postClosingUndertakingsInternalReviewStatusPresentation(
+                            getPostClosingReviewStatusPresentation(
                               postClosingDraft.internalReviewStatus
                             ).border
                           }`,
@@ -1978,7 +1978,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         }}
                       >
                         {
-                          postClosingUndertakingsInternalReviewStatusPresentation(
+                          getPostClosingReviewStatusPresentation(
                             postClosingDraft.internalReviewStatus
                           ).label
                         }
@@ -1996,21 +1996,16 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {formatPostClosingUndertakingsCount(postClosingDraft.undertakings.length)}
+                        {getPostClosingUndertakingsSummary(postClosingDraft).countLabel}
                       </span>
                     </div>
                   </div>
 
                   <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.45 }}>
                     Applicability:{' '}
-                    {postClosingUndertakingsApplicabilityLabel(postClosingDraft.applicability)}. Active
+                    {getPostClosingUndertakingsSummary(postClosingDraft).applicabilityLabel}. Active
                     tracking rows:{' '}
-                    {countActivePostClosingUndertakings({
-                      applicability: postClosingDraft.applicability,
-                      internalReviewStatus: postClosingDraft.internalReviewStatus,
-                      reviewNote: postClosingDraft.reviewNote,
-                      undertakings: postClosingDraft.undertakings,
-                    })}
+                    {getPostClosingUndertakingsSummary(postClosingDraft).activeCount}
                     . Statuses are internal tracking labels only.
                   </div>
 
@@ -2097,7 +2092,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         onClick={() =>
                           setPostClosingDraft((prev) => ({
                             ...prev,
-                            undertakings: [...prev.undertakings, buildDefaultPostClosingUndertaking()],
+                            undertakings: [...prev.undertakings, createPostClosingUndertaking()],
                           }))
                         }
                         style={{
@@ -2135,7 +2130,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                             <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>
                               {POST_CLOSING_RECORDED_ITEM_LABEL} {index + 1} ·{' '}
-                              {postClosingUndertakingStatusLabel(item.status || 'not_recorded')} ·{' '}
+                              {getPostClosingUndertakingStatusPresentation(item.status || 'not_recorded').label} ·{' '}
                               {postClosingUndertakingResponsiblePartyLabel(
                                 item.responsibleParty || 'unknown'
                               )}
@@ -2172,9 +2167,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                 const title = e.target.value
                                 setPostClosingDraft((prev) => ({
                                   ...prev,
-                                  undertakings: prev.undertakings.map((row) =>
-                                    row.id === item.id ? { ...row, title } : row
-                                  ),
+                                  undertakings: updatePostClosingUndertaking(prev, item.id, { title }).undertakings || [],
                                 }))
                               }}
                               placeholder="e.g. Confirm recorded deed package received"
@@ -2197,9 +2190,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                     e.target.value as DemoPostClosingUndertakingResponsibleParty
                                   setPostClosingDraft((prev) => ({
                                     ...prev,
-                                    undertakings: prev.undertakings.map((row) =>
-                                      row.id === item.id ? { ...row, responsibleParty } : row
-                                    ),
+                                    undertakings: updatePostClosingUndertaking(prev, item.id, { responsibleParty }).undertakings || [],
                                   }))
                                 }}
                                 style={{
@@ -2228,9 +2219,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                   const status = e.target.value as DemoPostClosingUndertakingStatus
                                   setPostClosingDraft((prev) => ({
                                     ...prev,
-                                    undertakings: prev.undertakings.map((row) =>
-                                      row.id === item.id ? { ...row, status } : row
-                                    ),
+                                    undertakings: updatePostClosingUndertaking(prev, item.id, { status }).undertakings || [],
                                   }))
                                 }}
                                 style={{
@@ -2259,9 +2248,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                   const targetDate = e.target.value || null
                                   setPostClosingDraft((prev) => ({
                                     ...prev,
-                                    undertakings: prev.undertakings.map((row) =>
-                                      row.id === item.id ? { ...row, targetDate } : row
-                                    ),
+                                    undertakings: updatePostClosingUndertaking(prev, item.id, { targetDate }).undertakings || [],
                                   }))
                                 }}
                                 style={{
@@ -2282,9 +2269,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                   const recordedCompletionDate = e.target.value || null
                                   setPostClosingDraft((prev) => ({
                                     ...prev,
-                                    undertakings: prev.undertakings.map((row) =>
-                                      row.id === item.id ? { ...row, recordedCompletionDate } : row
-                                    ),
+                                    undertakings: updatePostClosingUndertaking(prev, item.id, { recordedCompletionDate }).undertakings || [],
                                   }))
                                 }}
                                 style={{
@@ -2305,9 +2290,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                 const details = e.target.value
                                 setPostClosingDraft((prev) => ({
                                   ...prev,
-                                  undertakings: prev.undertakings.map((row) =>
-                                    row.id === item.id ? { ...row, details } : row
-                                  ),
+                                  undertakings: updatePostClosingUndertaking(prev, item.id, { details }).undertakings || [],
                                 }))
                               }}
                               rows={2}
@@ -2330,9 +2313,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                 const followUpNote = e.target.value
                                 setPostClosingDraft((prev) => ({
                                   ...prev,
-                                  undertakings: prev.undertakings.map((row) =>
-                                    row.id === item.id ? { ...row, followUpNote } : row
-                                  ),
+                                  undertakings: updatePostClosingUndertaking(prev, item.id, { followUpNote }).undertakings || [],
                                 }))
                               }}
                               rows={2}

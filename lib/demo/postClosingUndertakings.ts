@@ -83,7 +83,7 @@ export function buildDefaultPostClosingUndertakings(): DemoPostClosingUndertakin
   return buildDefaultPostClosingUndertakingsReview()
 }
 
-export function buildDefaultPostClosingUndertaking(input?: {
+export function createPostClosingUndertaking(input?: {
   id?: string
   title?: string
   nowIso?: string
@@ -103,16 +103,53 @@ export function buildDefaultPostClosingUndertaking(input?: {
   }
 }
 
-/** @deprecated Prefer buildDefaultPostClosingUndertaking. */
+/** @deprecated Prefer createPostClosingUndertaking. */
+export function buildDefaultPostClosingUndertaking(input?: {
+  id?: string
+  title?: string
+  nowIso?: string
+}): DemoPostClosingUndertaking {
+  return createPostClosingUndertaking(input)
+}
+
+/** @deprecated Prefer createPostClosingUndertaking. */
 export function buildDefaultPostClosingUndertakingItem(input?: {
   id?: string
   title?: string
   description?: string
 }): DemoPostClosingUndertaking {
-  return buildDefaultPostClosingUndertaking({
+  return createPostClosingUndertaking({
     id: input?.id,
     title: input?.title || input?.description,
   })
+}
+
+export function updatePostClosingUndertaking(
+  record: DemoPostClosingUndertakingsReview | null | undefined,
+  undertakingId: string,
+  patch: Partial<DemoPostClosingUndertaking>,
+  nowIso?: string
+): DemoPostClosingUndertakingsReview {
+  const normalized = normalizePostClosingUndertakingsReview(record)
+  const id = undertakingId.trim()
+  if (!id) return normalized
+  const stamp = nowIso || new Date().toISOString()
+  return {
+    ...normalized,
+    undertakings: (normalized.undertakings || []).map((row, index) => {
+      if (row.id !== id) return row
+      return normalizePostClosingUndertaking(
+        {
+          ...row,
+          ...patch,
+          id: row.id,
+          updatedAt: stamp,
+          createdAt: row.createdAt || stamp,
+        },
+        index
+      )
+    }),
+  }
 }
 
 export function normalizePostClosingUndertaking(
@@ -361,6 +398,43 @@ export function postClosingUndertakingStatusLabel(value: DemoPostClosingUndertak
   }
 }
 
+export function getPostClosingUndertakingStatusPresentation(
+  status: DemoPostClosingUndertakingStatus
+): PostClosingUndertakingsStatusPresentation {
+  switch (status) {
+    case 'recorded_complete':
+      return {
+        label: postClosingUndertakingStatusLabel(status),
+        bg: '#e8f5f0',
+        color: '#2f855a',
+        border: 'rgba(47,133,90,0.35)',
+      }
+    case 'follow_up_needed':
+    case 'outstanding':
+      return {
+        label: postClosingUndertakingStatusLabel(status),
+        bg: '#fff8e6',
+        color: '#b45309',
+        border: 'rgba(180,83,9,0.35)',
+      }
+    case 'received_for_review':
+      return {
+        label: postClosingUndertakingStatusLabel(status),
+        bg: '#e8f4f8',
+        color: '#208096',
+        border: 'rgba(32,128,150,0.35)',
+      }
+    case 'not_recorded':
+    default:
+      return {
+        label: postClosingUndertakingStatusLabel(status),
+        bg: '#f5f5f5',
+        color: '#627c71',
+        border: 'rgba(94,82,64,0.2)',
+      }
+  }
+}
+
 /** @deprecated Prefer postClosingUndertakingsInternalReviewStatusLabel. */
 export function postClosingUndertakingsStatusLabel(
   value: DemoPostClosingUndertakingsInternalReviewStatus
@@ -375,7 +449,7 @@ export function postClosingUndertakingItemStatusLabel(
   return postClosingUndertakingStatusLabel(value)
 }
 
-export function postClosingUndertakingsInternalReviewStatusPresentation(
+export function getPostClosingReviewStatusPresentation(
   status: DemoPostClosingUndertakingsInternalReviewStatus
 ): PostClosingUndertakingsStatusPresentation {
   switch (status) {
@@ -412,11 +486,18 @@ export function postClosingUndertakingsInternalReviewStatusPresentation(
   }
 }
 
-/** @deprecated Prefer postClosingUndertakingsInternalReviewStatusPresentation. */
+/** @deprecated Prefer getPostClosingReviewStatusPresentation. */
+export function postClosingUndertakingsInternalReviewStatusPresentation(
+  status: DemoPostClosingUndertakingsInternalReviewStatus
+): PostClosingUndertakingsStatusPresentation {
+  return getPostClosingReviewStatusPresentation(status)
+}
+
+/** @deprecated Prefer getPostClosingReviewStatusPresentation. */
 export function postClosingUndertakingsStatusPresentation(
   status: DemoPostClosingUndertakingsInternalReviewStatus
 ): PostClosingUndertakingsStatusPresentation {
-  return postClosingUndertakingsInternalReviewStatusPresentation(status)
+  return getPostClosingReviewStatusPresentation(status)
 }
 
 export function createPostClosingUndertakingsReviewPatch(input: {
@@ -532,4 +613,34 @@ export function formatPostClosingUndertakingsCount(count: number): string {
 /** @deprecated Prefer formatPostClosingUndertakingsCount. */
 export function formatPostClosingUndertakingsItemCount(count: number): string {
   return formatPostClosingUndertakingsCount(count)
+}
+
+export type PostClosingUndertakingsSummary = {
+  totalCount: number
+  activeCount: number
+  countLabel: string
+  applicabilityLabel: string
+  reviewStatus: DemoPostClosingUndertakingsInternalReviewStatus
+  reviewStatusPresentation: PostClosingUndertakingsStatusPresentation
+  isUntouched: boolean
+}
+
+export function getPostClosingUndertakingsSummary(
+  record: DemoPostClosingUndertakingsReview | null | undefined
+): PostClosingUndertakingsSummary {
+  const normalized = normalizePostClosingUndertakingsReview(record)
+  const totalCount = normalized.undertakings?.length || 0
+  const activeCount = countActivePostClosingUndertakings(normalized)
+  const reviewStatus = normalized.internalReviewStatus || 'not_started'
+  return {
+    totalCount,
+    activeCount,
+    countLabel: formatPostClosingUndertakingsCount(totalCount),
+    applicabilityLabel: postClosingUndertakingsApplicabilityLabel(
+      normalized.applicability || 'unknown'
+    ),
+    reviewStatus,
+    reviewStatusPresentation: getPostClosingReviewStatusPresentation(reviewStatus),
+    isUntouched: isPostClosingUndertakingsReviewUntouched(normalized),
+  }
 }

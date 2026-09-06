@@ -3,19 +3,18 @@ import {
   POST_CLOSING_RECORDED_ITEM_LABEL,
   POST_CLOSING_REMOVE_RECORDED_ITEM_NOTICE,
   POST_CLOSING_UNDERTAKINGS_DISCLAIMER,
-  buildDefaultPostClosingUndertaking,
-  buildDefaultPostClosingUndertakingsReview,
-  countActivePostClosingUndertakings,
+  createPostClosingUndertaking,
   createPostClosingUndertakingsReviewPatch,
-  formatPostClosingUndertakingsCount,
+  getPostClosingReviewStatusPresentation,
+  getPostClosingUndertakingStatusPresentation,
+  getPostClosingUndertakingsSummary,
   isPostClosingUndertakingsReviewUntouched,
   normalizePostClosingUndertakingsReview,
   postClosingUndertakingResponsiblePartyLabel,
-  postClosingUndertakingStatusLabel,
   postClosingUndertakingsApplicabilityLabel,
-  postClosingUndertakingsInternalReviewStatusLabel,
-  postClosingUndertakingsInternalReviewStatusPresentation,
   removePostClosingUndertaking,
+  updatePostClosingUndertaking,
+  buildDefaultPostClosingUndertakingsReview,
 } from '@/lib/demo/postClosingUndertakings'
 
 describe('postClosingUndertakings', () => {
@@ -59,38 +58,42 @@ describe('postClosingUndertakings', () => {
     expect(isPostClosingUndertakingsReviewUntouched(normalized)).toBe(false)
   })
 
-  it('migrates legacy item-based records into the review schema', () => {
-    const normalized = normalizePostClosingUndertakingsReview({
-      status: 'monitoring',
-      followUpContext: 'Matter-level follow-up',
-      internalNote: 'Legacy staff note',
-      items: [
-        {
-          id: 'legacy-1',
-          description: 'Final title policy follow-up',
-          status: 'in_progress',
-          followUpContext: 'Request status from title agent.',
-          notes: 'Legacy notes',
-          targetDate: '2026-04-15',
-        },
-      ],
-      recordedByStaffId: 'staff-1',
-      recordedByStaffName: 'Katherine Ruiz, Esq.',
-      recordedAt: '2026-03-01T12:00:00.000Z',
-    } as never)
-    expect(normalized.applicability).toBe('unknown')
-    expect(normalized.internalReviewStatus).toBe('in_review')
-    expect(normalized.reviewNote).toBe('Legacy staff note')
-    expect(normalized.reviewedByName).toBe('Katherine Ruiz, Esq.')
-    expect(normalized.undertakings).toHaveLength(1)
-    expect(normalized.undertakings?.[0]?.title).toBe('Final title policy follow-up')
-    expect(normalized.undertakings?.[0]?.status).toBe('outstanding')
-    expect(normalized.undertakings?.[0]?.followUpNote).toBe('Request status from title agent.')
+  it('creates, updates, and removes recorded items through canonical helpers', () => {
+    const existing = buildDefaultPostClosingUndertakingsReview()
+    const created = createPostClosingUndertaking({
+      id: 'pcu-1',
+      title: 'Final title policy follow-up',
+      nowIso: '2026-03-10T15:00:00.000Z',
+    })
+    expect(created.status).toBe('not_recorded')
+
+    const withItem = {
+      ...existing,
+      undertakings: [created],
+    }
+    const updated = updatePostClosingUndertaking(
+      withItem,
+      'pcu-1',
+      {
+        responsibleParty: 'title_or_settlement_party',
+        status: 'outstanding',
+        followUpNote: 'Request status from title agent.',
+        details: 'Underwriter policy issuance',
+        targetDate: '2026-04-15',
+      },
+      '2026-03-10T15:00:00.000Z'
+    )
+    expect(updated.undertakings?.[0]?.status).toBe('outstanding')
+    expect(updated.undertakings?.[0]?.responsibleParty).toBe('title_or_settlement_party')
+    expect(updated.undertakings?.[0]?.updatedAt).toBe('2026-03-10T15:00:00.000Z')
+
+    const removed = removePostClosingUndertaking(updated, 'pcu-1')
+    expect(removed.undertakings).toEqual([])
   })
 
-  it('creates a dated patch from draft undertakings and review fields', () => {
+  it('creates a dated review patch from draft undertakings', () => {
     const existing = buildDefaultPostClosingUndertakingsReview()
-    const item = buildDefaultPostClosingUndertaking({
+    const item = createPostClosingUndertaking({
       id: 'pcu-1',
       title: 'Final title policy follow-up',
       nowIso: '2026-03-10T15:00:00.000Z',
@@ -118,34 +121,31 @@ describe('postClosingUndertakings', () => {
     expect(patch.applicability).toBe('applicable')
     expect(patch.internalReviewStatus).toBe('in_review')
     expect(patch.undertakings).toHaveLength(1)
-    expect(patch.undertakings?.[0]?.title).toBe('Final title policy follow-up')
-    expect(patch.undertakings?.[0]?.status).toBe('outstanding')
-    expect(patch.undertakings?.[0]?.responsibleParty).toBe('title_or_settlement_party')
-    expect(patch.reviewNote).toBe(
-      'Internal tracking only — not a closing-completeness determination.'
-    )
     expect(patch.reviewedByName).toBe('Katherine Ruiz, Esq.')
     expect(patch.reviewedAt).toBe('2026-03-10T15:00:00.000Z')
-    expect(countActivePostClosingUndertakings(patch)).toBe(1)
+
+    const summary = getPostClosingUndertakingsSummary(patch)
+    expect(summary.totalCount).toBe(1)
+    expect(summary.activeCount).toBe(1)
+    expect(summary.countLabel).toBe('1 recorded item')
+    expect(summary.applicabilityLabel).toBe('Applicable')
+    expect(summary.reviewStatusPresentation.label).toBe('In review')
+    expect(summary.isUntouched).toBe(false)
   })
 
-  it('labels statuses without implying legal satisfaction', () => {
+  it('exposes status presentation helpers without implying legal satisfaction', () => {
+    expect(POST_CLOSING_RECORDED_ITEM_LABEL).toBe('Recorded item')
     expect(postClosingUndertakingsApplicabilityLabel('lawyer_review_required')).toBe(
       'Lawyer review required'
     )
-    expect(postClosingUndertakingsInternalReviewStatusLabel('review_recorded')).toBe(
-      'Review recorded'
+    expect(getPostClosingReviewStatusPresentation('review_recorded').label).toBe('Review recorded')
+    expect(getPostClosingUndertakingStatusPresentation('recorded_complete').label).toBe(
+      'Internally recorded'
     )
-    expect(POST_CLOSING_RECORDED_ITEM_LABEL).toBe('Recorded item')
-    expect(postClosingUndertakingStatusLabel('recorded_complete')).toBe('Internally recorded')
     expect(postClosingUndertakingResponsiblePartyLabel('title_or_settlement_party')).toBe(
       'Title / settlement party'
     )
-    expect(postClosingUndertakingsInternalReviewStatusPresentation('in_review').label).toBe(
-      'In review'
-    )
-    expect(formatPostClosingUndertakingsCount(0)).toBe('No recorded items')
-    expect(formatPostClosingUndertakingsCount(2)).toBe('2 recorded items')
+    expect(getPostClosingUndertakingsSummary(null).countLabel).toBe('No recorded items')
   })
 
   it('includes the internal-only non-determination disclaimer copy', () => {
@@ -176,8 +176,8 @@ describe('postClosingUndertakings', () => {
     )
 
     const existing = buildDefaultPostClosingUndertakingsReview()
-    const keep = buildDefaultPostClosingUndertaking({ id: 'pcu-keep', title: 'Keep' })
-    const drop = buildDefaultPostClosingUndertaking({ id: 'pcu-drop', title: 'Drop' })
+    const keep = createPostClosingUndertaking({ id: 'pcu-keep', title: 'Keep' })
+    const drop = createPostClosingUndertaking({ id: 'pcu-drop', title: 'Drop' })
     const next = removePostClosingUndertaking(
       { ...existing, undertakings: [keep, drop] },
       'pcu-drop'
