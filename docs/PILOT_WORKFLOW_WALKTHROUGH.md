@@ -110,6 +110,8 @@ Keep notes operational. Do not treat UI status labels as legal, conflict, AML/Fi
 
 **Goal:** Exercise the condo diligence workspace on a condo matter (checklist through summary / review task / lawyer checkpoint), as operational tracking only.
 
+A Florida condo purchase includes association documents, SIRS/Milestone materials, reserve/financial information, disclosure package review, lender questionnaire, and unit/closing dependency review.
+
 ### Entry points
 
 - `/demo/matters` → `FL-2026-002` (Palm Harbor Ventures LLC, condo) or `FL-2026-004`
@@ -120,7 +122,7 @@ Keep notes operational. Do not treat UI status labels as legal, conflict, AML/Fi
 
 1. Open `FL-2026-002` from `/demo/matters`.
 2. Open **Condo Diligence**.
-3. Walk core pack / SIRS–Milestone / association financial / governance / disclosure / lender questionnaire / unit–closing dependency areas as shown.
+3. Walk each area as shown: association documents, SIRS/Milestone materials, reserve/financial information, disclosure package review, lender questionnaire, and unit/closing dependency review.
 4. Add or edit a finding if the UI allows; create a condo diligence summary review task if offered.
 5. Open lawyer checkpoint / dashboard / internal summary or memo history if present.
 6. Confirm portal copy (if any) does not expose internal findings as client advice.
