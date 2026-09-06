@@ -130,7 +130,7 @@ export default function DemoDocumentsPage() {
             fontSize: '14px',
           }}
         >
-          Request document
+          Create client document request
         </button>
         <button
           type="button"
