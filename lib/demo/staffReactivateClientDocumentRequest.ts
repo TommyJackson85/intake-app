@@ -1,9 +1,10 @@
 /**
  * Staff **Reactivate client document request** — restore a cancelled ordinary request before upload/workflow.
  *
- * This will reactivate the cancelled client document request. It will appear again as an active
- * request in the client portal. This does not delete the request or make a legal, compliance, or
- * document-sufficiency determination. Deny-by-default. Does not touch Condo Diligence / AML / FinCEN.
+ * This will restore the client document request as active for the selected matter. It may appear again
+ * in the client portal through existing access rules. This does not notify the client, create a task,
+ * or make a legal, compliance, or document-sufficiency determination. Deny-by-default. Does not touch
+ * Condo Diligence / AML / FinCEN.
  */
 import {
   getClientDocumentRequestLifecyclePresentation,
@@ -33,7 +34,7 @@ export type ClientDocumentRequestReactivateDraftValidation =
   | { ok: true; draft: NormalizedClientDocumentRequestReactivateDraft }
   | { ok: false; error: string }
 
-export type ClientDocumentRequestReactivateContext = {
+export type ClientDocumentRequestReactivationPreview = {
   canReactivate: boolean
   actionLabel: string
   detailLabel: string
@@ -77,12 +78,12 @@ export function canReactivateClientDocumentRequest(
 }
 
 /**
- * Staff reactivate context for a request. Reuses canReactivateClientDocumentRequest; deny-by-default.
+ * Staff reactivate confirmation preview. Reuses canReactivateClientDocumentRequest; deny-by-default.
  */
-export function getClientDocumentRequestReactivateContext(input: {
+export function getClientDocumentRequestReactivationPreview(input: {
   request: DemoDocumentRequest | null | undefined
   matters: DemoMatter[]
-}): ClientDocumentRequestReactivateContext {
+}): ClientDocumentRequestReactivationPreview {
   const { request, matters } = input
   const canReactivate = canReactivateClientDocumentRequest(request, matters)
   const matter = request ? matters.find((m) => m.id === request.matter_id) : undefined
@@ -95,7 +96,7 @@ export function getClientDocumentRequestReactivateContext(input: {
     canReactivate,
     actionLabel: 'Reactivate client document request',
     detailLabel: canReactivate
-      ? 'This will reactivate the cancelled client document request. It will appear again as an active request in the client portal. This does not delete the request or make a legal, compliance, or document-sufficiency determination.'
+      ? 'This will restore the client document request as active for the selected matter. It may appear again in the client portal through existing access rules. This does not notify the client, create a task, or make a legal, compliance, or document-sufficiency determination.'
       : 'Reactivate client document request is unavailable unless the request is cancelled, open, unfulfilled, and on an active matter.',
     requestId: request?.id ?? null,
     matterId: matterActive ? matter!.id : null,

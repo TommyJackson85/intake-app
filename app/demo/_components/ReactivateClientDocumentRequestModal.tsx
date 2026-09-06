@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
-import { getClientDocumentRequestReactivateContext } from '@/lib/demo/staffReactivateClientDocumentRequest'
+import { getClientDocumentRequestReactivationPreview } from '@/lib/demo/staffReactivateClientDocumentRequest'
 import type { DemoDocumentRequest } from '@/lib/demo/types'
 
 type ReactivateClientDocumentRequestModalProps = {
@@ -34,9 +34,9 @@ export default function ReactivateClientDocumentRequestModal({
   const { matters, staff, reactivateClientDocumentRequest } = useDemoStore()
   const [error, setError] = useState<string | null>(null)
 
-  const reactivateContext = useMemo(
+  const reactivatePreview = useMemo(
     () =>
-      getClientDocumentRequestReactivateContext({
+      getClientDocumentRequestReactivationPreview({
         request,
         matters,
       }),
@@ -70,7 +70,7 @@ export default function ReactivateClientDocumentRequestModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!reactivateContext.canReactivate) {
+    if (!reactivatePreview.canReactivate) {
       setError('This request cannot be reactivated.')
       return
     }
@@ -130,9 +130,9 @@ export default function ReactivateClientDocumentRequestModal({
         >
           <div>
             <div style={{ fontSize: '20px', fontWeight: 900, color: '#134252', marginBottom: '2px' }}>
-              {reactivateContext.actionLabel}
+              {reactivatePreview.actionLabel}
             </div>
-            <div style={{ color: '#627c71', fontSize: '13px' }}>{reactivateContext.detailLabel}</div>
+            <div style={{ color: '#627c71', fontSize: '13px' }}>{reactivatePreview.detailLabel}</div>
           </div>
           <div style={{ marginLeft: 'auto' }}>
             <button
@@ -187,19 +187,19 @@ export default function ReactivateClientDocumentRequestModal({
           >
             <div>
               <div style={labelStyle}>Matter</div>
-              <div style={valueStyle}>{reactivateContext.matterLabel ?? '—'}</div>
+              <div style={valueStyle}>{reactivatePreview.matterLabel ?? '—'}</div>
             </div>
             <div>
               <div style={labelStyle}>Client</div>
-              <div style={valueStyle}>{reactivateContext.clientLabel ?? '—'}</div>
+              <div style={valueStyle}>{reactivatePreview.clientLabel ?? '—'}</div>
             </div>
             <div>
               <div style={labelStyle}>Document request</div>
-              <div style={valueStyle}>{reactivateContext.requestTitle ?? '—'}</div>
+              <div style={valueStyle}>{reactivatePreview.requestTitle ?? '—'}</div>
             </div>
             <div>
               <div style={labelStyle}>Current state</div>
-              <div style={valueStyle}>{reactivateContext.currentStateLabel ?? '—'}</div>
+              <div style={valueStyle}>{reactivatePreview.currentStateLabel ?? '—'}</div>
             </div>
           </div>
 
@@ -222,19 +222,19 @@ export default function ReactivateClientDocumentRequestModal({
             </button>
             <button
               type="submit"
-              disabled={!reactivateContext.canReactivate}
+              disabled={!reactivatePreview.canReactivate}
               style={{
                 padding: '10px 14px',
                 borderRadius: 8,
                 border: '1px solid rgba(19,66,82,0.35)',
-                background: reactivateContext.canReactivate ? '#134252' : '#9aa8a3',
+                background: reactivatePreview.canReactivate ? '#134252' : '#9aa8a3',
                 color: '#fff',
                 fontWeight: 800,
                 fontSize: 13,
-                cursor: reactivateContext.canReactivate ? 'pointer' : 'not-allowed',
+                cursor: reactivatePreview.canReactivate ? 'pointer' : 'not-allowed',
               }}
             >
-              Reactivate client document request
+              Reactivate request
             </button>
           </div>
         </form>

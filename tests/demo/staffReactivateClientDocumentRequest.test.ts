@@ -11,7 +11,7 @@ import {
   applyReactivateClientDocumentRequest,
   canReactivateClientDocumentRequest,
   createClientDocumentRequestReactivationPatch,
-  getClientDocumentRequestReactivateContext,
+  getClientDocumentRequestReactivationPreview,
   isEligibleClientDocumentRequestForReactivation,
   validateClientDocumentRequestReactivateDraft,
 } from '@/lib/demo/staffReactivateClientDocumentRequest'
@@ -49,9 +49,9 @@ describe('staffReactivateClientDocumentRequest helpers', () => {
     expect(canCancelClientDocumentRequest(cancelled, demoSeedData.matters)).toBe(false)
   })
 
-  it('getClientDocumentRequestReactivateContext exposes Matter/Client/Document request/Cancelled', () => {
+  it('getClientDocumentRequestReactivationPreview exposes Matter/Client/Document request/Cancelled', () => {
     const cancelled = cancelledRequest()
-    const ok = getClientDocumentRequestReactivateContext({
+    const ok = getClientDocumentRequestReactivationPreview({
       request: cancelled,
       matters: demoSeedData.matters,
     })
@@ -61,8 +61,9 @@ describe('staffReactivateClientDocumentRequest helpers', () => {
     expect(ok.clientLabel).toBe(matter.buyer.name.trim())
     expect(ok.requestTitle).toBe(openRequest.title)
     expect(ok.currentStateLabel).toBe('Cancelled')
-    expect(ok.detailLabel).toContain('appear again as an active request in the client portal')
-    expect(ok.detailLabel).toContain('does not delete the request')
+    expect(ok.detailLabel).toContain('restore the client document request as active')
+    expect(ok.detailLabel).toContain('may appear again in the client portal')
+    expect(ok.detailLabel).toContain('does not notify the client')
   })
 
   it('validate + reactivation patch restores active lifecycle and portal/upload eligibility', () => {
