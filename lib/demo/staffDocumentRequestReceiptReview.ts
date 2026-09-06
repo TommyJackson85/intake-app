@@ -10,6 +10,7 @@ import {
   isCondoDiligenceInternalSummaryDocument,
   isCondoDiligenceReviewMemoDocument,
 } from '@/lib/demo/condoDiligence'
+import { isActiveClientDocumentRequest } from '@/lib/demo/staffCancelClientDocumentRequest'
 import type { DemoDocument, DemoDocumentRequest, DemoMatter } from '@/lib/demo/types'
 
 export type DocumentRequestReceiptReviewStatus =
@@ -110,12 +111,13 @@ export function normalizeDocumentRequestReceiptReview(
   }
 }
 
-/** True when a fulfilled ordinary request has an eligible client-provided upload awaiting/eligible for staff receipt review. */
+/** True when a fulfilled ordinary active request has an eligible client-provided upload awaiting/eligible for staff receipt review. */
 export function isEligibleDocumentRequestForReceiptReview(
   request: DemoDocumentRequest,
   documents: DemoDocument[],
   matters: DemoMatter[],
 ): boolean {
+  if (!isActiveClientDocumentRequest(request)) return false
   const matter = matters.find((m) => m.id === request.matter_id && !m.deletedAt)
   if (!matter) return false
   const review = normalizeDocumentRequestReceiptReview(request, documents)

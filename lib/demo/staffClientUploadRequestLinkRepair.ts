@@ -10,6 +10,7 @@ import {
   isCondoDiligenceInternalSummaryDocument,
   isCondoDiligenceReviewMemoDocument,
 } from '@/lib/demo/condoDiligence'
+import { isActiveClientDocumentRequest } from '@/lib/demo/staffCancelClientDocumentRequest'
 import type { DemoDocument, DemoDocumentRequest, DemoMatter } from '@/lib/demo/types'
 
 export type StaffClientUploadRequestLinkRepairError =
@@ -46,7 +47,7 @@ export function canStaffLinkClientUploadToDocumentRequest(
   return Boolean(matter)
 }
 
-/** Open ordinary document requests on the same matter as the upload (manual picker options). */
+/** Open ordinary active document requests on the same matter as the upload (manual picker options). */
 export function listOpenDocumentRequestsForClientUploadLinkRepair(input: {
   document: DemoDocument
   documentRequests: DemoDocumentRequest[]
@@ -56,7 +57,8 @@ export function listOpenDocumentRequestsForClientUploadLinkRepair(input: {
       (r) =>
         r.matter_id === input.document.matter_id &&
         r.status === 'open' &&
-        !r.fulfilled_document_id,
+        !r.fulfilled_document_id &&
+        isActiveClientDocumentRequest(r),
     )
     .slice()
     .sort(
@@ -107,6 +109,9 @@ export function tryLinkClientUploadToDocumentRequest(
       return { ok: false, error: 'request_not_open' }
     }
     return { ok: false, error: 'request_already_fulfilled_elsewhere' }
+  }
+  if (!isActiveClientDocumentRequest(request)) {
+    return { ok: false, error: 'request_not_open' }
   }
 
   let changed = false

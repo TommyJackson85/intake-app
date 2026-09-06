@@ -12,6 +12,7 @@ import type {
   DocumentRequestFollowUp,
 } from '@/lib/demo/types'
 import { getFulfilledRequestDocumentName } from '@/lib/demo/demoDocumentRequest'
+import { isActiveClientDocumentRequest } from '@/lib/demo/staffCancelClientDocumentRequest'
 import {
   getDocumentRequestReceiptReviewPresentation,
   normalizeDocumentRequestReceiptReview,
@@ -85,12 +86,13 @@ export function normalizeDocumentRequestFollowUp(raw: unknown): NormalizedDocume
   }
 }
 
-/** Ordinary document requests on an active matter may carry the staff follow-up signal. */
+/** Ordinary active document requests on an active matter may carry the staff follow-up signal. */
 export function isEligibleDocumentRequestForFollowUp(
   request: DemoDocumentRequest | null | undefined,
   matters: DemoMatter[],
 ): boolean {
   if (!request) return false
+  if (!isActiveClientDocumentRequest(request)) return false
   const matter = matters.find((m) => m.id === request.matter_id && !m.deletedAt)
   return Boolean(matter)
 }

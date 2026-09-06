@@ -16,6 +16,8 @@ import { buildStaffClientUploadReceiptQueue } from '@/lib/demo/staffClientUpload
 import { canStaffLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
 import { buildStaffDocumentRequestFollowUpList } from '@/lib/demo/staffDocumentRequestFollowUpList'
 import {
+  canClearDocumentRequestNeedsFollowUp,
+  canMarkDocumentRequestNeedsFollowUp,
   getDocumentRequestFollowUpDetailPresentation,
   getDocumentRequestFollowUpPresentation,
   normalizeDocumentRequestFollowUp,
@@ -624,7 +626,8 @@ export default function DemoDocumentsPage() {
                             Reactivate client document request
                           </button>
                         ) : null}
-                        {followUp.status === 'needs_follow_up' ? (
+                        {followUp.status === 'needs_follow_up' &&
+                        canClearDocumentRequestNeedsFollowUp({ request: req, matters }) ? (
                           <button
                             type="button"
                             onClick={() => setClearFollowUpRequestId(req.id)}
@@ -641,7 +644,13 @@ export default function DemoDocumentsPage() {
                           >
                             Clear follow-up
                           </button>
-                        ) : (
+                        ) : null}
+                        {followUp.status !== 'needs_follow_up' &&
+                        canMarkDocumentRequestNeedsFollowUp({
+                          request: req,
+                          matters,
+                          staffId: staff[0]?.id ?? '',
+                        }) ? (
                           <button
                             type="button"
                             onClick={() => setFollowUpRequestId(req.id)}
@@ -658,7 +667,7 @@ export default function DemoDocumentsPage() {
                           >
                             Needs follow-up
                           </button>
-                        )}
+                        ) : null}
                       </div>
                     </td>
                   </tr>
