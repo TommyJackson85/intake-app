@@ -181,6 +181,8 @@ A residential transaction includes a non-individual purchaser or trust-related p
 
 **Goal:** Run the staff ↔ client document-request loop: create/edit/cancel/reactivate, client upload, staff receipt queue, receipt review, Needs follow-up list/clear.
 
+The firm needs a routine client document for an active matter and wants to request, receive, review receipt, and track follow-up without exposing internal workflow information.
+
 ### Entry points
 
 - Staff queues: `/demo/documents`
@@ -196,13 +198,13 @@ A residential transaction includes a non-individual purchaser or trust-related p
 5. Return to `/demo/documents`; process the receipt queue and complete receipt review.
 6. Mark **Needs follow-up** with an internal note; confirm it appears on the follow-up list.
 7. Clear follow-up and confirm list/empty states update.
-8. Spot-check that internal follow-up notes are not shown on the portal.
+8. Spot-check that internal follow-up notes and other staff workflow details are not shown on the portal.
 
 ### What “good” looks like
 
-- Staff can complete create → portal upload → receipt → follow-up without leaving demo.
+- Staff can complete request → receive → review receipt → track follow-up without leaving demo.
 - Cancelled requests are not uploadable; reactivate restores client visibility appropriately.
-- Portal vs staff language stays distinct.
+- Portal vs staff language stays distinct; internal workflow information stays staff-only.
 
 ### Feedback prompts
 
