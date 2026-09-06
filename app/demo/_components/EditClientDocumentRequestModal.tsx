@@ -217,8 +217,35 @@ export default function EditClientDocumentRequestModal({
                 fontWeight: 600,
               }}
             >
-              {editContext.matterFileId ?? request.matter_id}
-              {editContext.matterLabel ? ` — ${editContext.matterLabel}` : ''}
+              {editContext.matterLabel ?? '—'}
+            </div>
+          </div>
+
+          <div style={{ ...labelStyle, marginBottom: 12 }}>
+            Client
+            <div
+              style={{
+                ...controlStyle,
+                background: '#f5f5f0',
+                color: '#627c71',
+                fontWeight: 600,
+              }}
+            >
+              {editContext.clientLabel ?? '—'}
+            </div>
+          </div>
+
+          <div style={{ ...labelStyle, marginBottom: 12 }}>
+            Request status
+            <div
+              style={{
+                ...controlStyle,
+                background: '#f5f5f0',
+                color: '#627c71',
+                fontWeight: 600,
+              }}
+            >
+              {editContext.requestStatusLabel ?? '—'}
             </div>
           </div>
 

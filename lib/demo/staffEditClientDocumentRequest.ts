@@ -5,6 +5,10 @@
  * Does not change matter, client, request status, fulfillment, receipt review, or follow-up state.
  * Deny-by-default. Does not touch Condo Diligence / AML / FinCEN workflows.
  */
+import {
+  getClientDocumentRequestStatusLabel,
+  type ClientDocumentRequestStatusLabel,
+} from '@/lib/demo/clientDocumentRequestStatus'
 import type { DemoDocument, DemoDocumentRequest, DemoMatter } from '@/lib/demo/types'
 
 const CLIENT_SAFE_CATEGORIES: ReadonlySet<DemoDocument['category']> = new Set([
@@ -40,8 +44,13 @@ export type ClientDocumentRequestEditContext = {
   detailLabel: string
   requestId: string | null
   matterId: string | null
-  matterFileId: string | null
+  /** Existing safe internal matter label (file id). */
   matterLabel: string | null
+  matterFileId: string | null
+  /** Existing safe client label for the matter (buyer name). */
+  clientLabel: string | null
+  /** Existing safe client-facing request status display. */
+  requestStatusLabel: ClientDocumentRequestStatusLabel | null
   requestTitle: string | null
 }
 
@@ -71,18 +80,21 @@ export function getClientDocumentRequestEditContext(input: {
   const matter = request ? matters.find((m) => m.id === request.matter_id) : undefined
   const matterActive = Boolean(matter && !matter.deletedAt)
 
+  const clientLabel =
+    matterActive && matter!.buyer.name.trim().length > 0 ? matter!.buyer.name.trim() : null
+
   return {
     canEdit,
     actionLabel: 'Edit client document request',
     detailLabel: canEdit
-      ? 'Updates client-facing request details before upload. Does not change the matter, status, or internal workflow state.'
+      ? 'Updates client-facing request details before upload. Does not change the matter, client, status, or internal workflow state.'
       : 'Edit client document request is unavailable after upload or for inactive matters.',
     requestId: request?.id ?? null,
     matterId: matterActive ? matter!.id : null,
+    matterLabel: matterActive ? matter!.file_id : null,
     matterFileId: matterActive ? matter!.file_id : null,
-    matterLabel: matterActive
-      ? matter!.property.address.trim() || matter!.file_id
-      : null,
+    clientLabel,
+    requestStatusLabel: request ? getClientDocumentRequestStatusLabel(request.status) : null,
     requestTitle: request?.title ?? null,
   }
 }

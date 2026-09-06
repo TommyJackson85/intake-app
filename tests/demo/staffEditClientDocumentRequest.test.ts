@@ -40,7 +40,7 @@ describe('staffEditClientDocumentRequest helpers', () => {
     expect(canEditClientDocumentRequest(openRequest, [deletedMatter])).toBe(false)
   })
 
-  it('getClientDocumentRequestEditContext exposes edit labels and eligibility', () => {
+  it('getClientDocumentRequestEditContext exposes edit labels and read-only matter/client/status', () => {
     const ok = getClientDocumentRequestEditContext({
       request: openRequest,
       matters: demoSeedData.matters,
@@ -49,6 +49,9 @@ describe('staffEditClientDocumentRequest helpers', () => {
     expect(ok.actionLabel).toBe('Edit client document request')
     expect(ok.requestId).toBe(openRequest.id)
     expect(ok.matterId).toBe(matter.id)
+    expect(ok.matterLabel).toBe(matter.file_id)
+    expect(ok.clientLabel).toBe(matter.buyer.name.trim())
+    expect(ok.requestStatusLabel).toBe('Awaiting upload')
 
     const denied = getClientDocumentRequestEditContext({
       request: null,
@@ -56,6 +59,9 @@ describe('staffEditClientDocumentRequest helpers', () => {
     })
     expect(denied.canEdit).toBe(false)
     expect(denied.requestId).toBeNull()
+    expect(denied.matterLabel).toBeNull()
+    expect(denied.clientLabel).toBeNull()
+    expect(denied.requestStatusLabel).toBeNull()
   })
 
   it('isClientSafeDocumentRequestEditDraft accepts only client-facing edit fields', () => {
