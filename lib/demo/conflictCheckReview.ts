@@ -431,10 +431,11 @@ export function buildConflictCheckReviewMemoContent(input: {
   const property = intakePropertyAddress(input.lead)
   const matterRef = input.matter?.file_id || input.lead.fileReference || '—'
   const snapshot = effectiveIntakeSnapshot(input.lead)
+  // Prefer recorded screening on the Conflict Check Review, then gate note, then live screening.
   const screeningSummary =
-    input.screening?.summary ||
     review.screeningSummary ||
     input.lead.conflict_check_note ||
+    input.screening?.summary ||
     'No screening summary recorded.'
   const hits = input.screening?.hits || []
 
@@ -443,6 +444,7 @@ export function buildConflictCheckReviewMemoContent(input: {
     '===================================',
     '',
     'Operational internal record only. This is not a legal opinion, ethical clearance, or conflict waiver.',
+    'Snapshot based on recorded conflict screening and Conflict Check Review information.',
     '',
     `Generated: ${generatedAt}`,
     `Matter: ${matterRef}`,
@@ -465,8 +467,8 @@ export function buildConflictCheckReviewMemoContent(input: {
     `Information gaps: ${review.informationGaps || 'None recorded.'}`,
     `Internal note: ${review.internalNote || 'None recorded.'}`,
     '',
-    'SCREENING SUMMARY',
-    '-----------------',
+    'RECORDED SCREENING SUMMARY',
+    '--------------------------',
     screeningSummary,
   ]
 

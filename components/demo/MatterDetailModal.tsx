@@ -145,6 +145,7 @@ import {
   createConflictCheckReviewMemoDocumentInput,
   createConflictCheckReviewPatch,
   findIntakeLeadForMatter,
+  isConflictCheckReviewMemoDocument,
   listConflictCheckReviewMemoDocuments,
   normalizeConflictCheckReview,
   runConflictCheckScreening,
@@ -1671,7 +1672,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         Internal Conflict Check Review Memo
                       </div>
                       <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.45 }}>
-                        Immutable internal snapshot when saved. Not shared to the client portal.
+                        Built from recorded conflict screening and Conflict Check Review. Saving creates an immutable
+                        internal snapshot (not shared to the client portal).
                       </div>
                       <pre
                         style={{
@@ -1703,6 +1705,14 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             const staffId = staff[0]?.id ?? ''
                             const client =
                               clients.find((c) => c.id === linkedConflictIntakeLead.linkedClientId) || null
+                            // Freeze a new immutable snapshot from recorded screening + Conflict Check Review.
+                            const snapshotContent = buildConflictCheckReviewMemoContent({
+                              lead: linkedConflictIntakeLead,
+                              matter: effectiveMatter,
+                              client,
+                              review: linkedConflictIntakeLead.conflictCheckReview,
+                              screening: conflictScreening,
+                            })
                             const draftInput = createConflictCheckReviewMemoDocumentInput({
                               matter: effectiveMatter,
                               lead: linkedConflictIntakeLead,
@@ -1710,7 +1720,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                               client,
                               review: linkedConflictIntakeLead.conflictCheckReview,
                               screening: conflictScreening,
-                              content: conflictReviewMemoContent,
+                              content: snapshotContent,
                             })
                             if (!draftInput) {
                               setConflictMemoSaveStatus('failed')
@@ -1735,7 +1745,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                               existing: linkedConflictIntakeLead.conflictCheckReview,
                               linkedMemoDocumentId: draftId,
                               screeningSummary:
-                                conflictScreening?.summary || linkedConflictIntakeLead.conflict_check_note || null,
+                                normalizeConflictCheckReview(linkedConflictIntakeLead.conflictCheckReview)
+                                  .screeningSummary ||
+                                linkedConflictIntakeLead.conflict_check_note ||
+                                conflictScreening?.summary ||
+                                null,
                             })
                             patchIntakeLead(linkedConflictIntakeLead.id, { conflictCheckReview: review })
                             setConflictMemoSaveStatus('saved')
@@ -1799,6 +1813,10 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginBottom: 6 }}>
                       Conflict Check Memo History
+                    </div>
+                    <div style={{ fontSize: 11, color: '#627c71', marginBottom: 6, lineHeight: 1.45 }}>
+                      Saved immutable internal memo snapshots based on recorded conflict screening and Conflict Check
+                      Review information. Open any prior snapshot below.
                     </div>
                     {conflictMemoHistory.length === 0 ? (
                       <div style={{ fontSize: 12, color: '#627c71' }}>No saved internal conflict check memos yet.</div>
@@ -3241,6 +3259,96 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                 </div>
               )}
 
+              {(linkedConflictIntakeLead || conflictMemoHistory.length > 0) && (
+                <div
+                  style={{
+                    border: '1px solid rgba(94,82,64,0.12)',
+                    borderRadius: 8,
+                    padding: 14,
+                    background: 'white',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#134252', marginBottom: 4 }}>
+                      Conflict Check Memo History
+                    </div>
+                    <div style={{ fontSize: 12, color: '#627c71', lineHeight: 1.45 }}>
+                      Saved immutable internal memo snapshots based on recorded conflict screening and Conflict Check
+                      Review information. Lawyer work product only — not shared to the client portal.
+                    </div>
+                  </div>
+                  {conflictMemoHistory.length === 0 ? (
+                    <div style={{ color: '#627c71', fontSize: 13 }}>
+                      No saved internal conflict check memos yet. Generate and save one from Overview → Conflict Check
+                      Review.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {conflictMemoHistory.map((doc) => {
+                        const savedAt =
+                          doc.generatedInternalSummary?.generatedAt?.trim() || doc.uploaded_at
+                        return (
+                          <div
+                            key={doc.id}
+                            style={{
+                              display: 'flex',
+                              gap: 12,
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              borderTop: '1px solid rgba(94,82,64,0.1)',
+                              paddingTop: 10,
+                            }}
+                          >
+                            <div style={{ minWidth: 0, flex: '1 1 180px' }}>
+                              <div
+                                style={{
+                                  fontWeight: 800,
+                                  color: '#134252',
+                                  fontSize: 13,
+                                  marginBottom: 2,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                              >
+                                {doc.name}
+                              </div>
+                              <div style={{ color: '#627c71', fontSize: 12, fontWeight: 700 }}>
+                                Saved: {new Date(savedAt).toLocaleString()}
+                                {' · '}
+                                Internal only
+                                {' · '}
+                                {doc.status}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewDocumentId(doc.id)}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(94,82,64,0.25)',
+                                background: '#fff',
+                                fontWeight: 800,
+                                fontSize: 11,
+                                color: '#134252',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              View memo
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {matterDocuments.length === 0 ? (
                 <div style={{ color: '#627c71' }}>No documents on file for this matter.</div>
               ) : (
@@ -3258,6 +3366,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                     const uploadedBy = staff.find((s) => s.id === doc.uploaded_by_staff_id)?.full_name ?? 'Staff'
                     const isInternalSummary = isCondoDiligenceInternalSummaryDocument(doc)
                     const isInternalMemo = isCondoDiligenceReviewMemoDocument(doc)
+                    const isConflictCheckMemo = isConflictCheckReviewMemoDocument(doc)
                     return (
                       <div
                         key={doc.id}
@@ -3273,7 +3382,13 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             <div style={{ fontWeight: 900, color: '#134252', marginBottom: '4px' }}>{doc.name}</div>
                             <div style={{ color: '#627c71', fontWeight: 800, fontSize: '12px', marginBottom: '8px' }}>
                               {doc.category}
-                              {isInternalSummary ? ' · Internal summary' : isInternalMemo ? ' · Internal memo' : ''}
+                              {isInternalSummary
+                                ? ' · Internal summary'
+                                : isInternalMemo
+                                  ? ' · Internal memo'
+                                  : isConflictCheckMemo
+                                    ? ' · Internal conflict memo'
+                                    : ''}
                             </div>
                           </div>
                           <span
@@ -3318,7 +3433,9 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                               ? 'View internal summary'
                               : isInternalMemo
                                 ? 'View internal memo'
-                                : 'View'}
+                                : isConflictCheckMemo
+                                  ? 'View memo'
+                                  : 'View'}
                           </button>
                         </div>
                       </div>
