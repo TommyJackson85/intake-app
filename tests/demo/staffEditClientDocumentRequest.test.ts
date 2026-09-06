@@ -83,7 +83,7 @@ describe('staffEditClientDocumentRequest helpers', () => {
     ).toBe(false)
   })
 
-  it('validate + apply update client-facing fields without changing workflow state', () => {
+  it('validate + apply update client-facing fields only (matter/client/upload links/status/receipt/follow-up unchanged)', () => {
     const validation = validateClientDocumentRequestEditDraft({
       draft: {
         requestId: ` ${openRequest.id} `,
@@ -111,6 +111,7 @@ describe('staffEditClientDocumentRequest helpers', () => {
     )
     expect(next).not.toBe(demoSeedData.documentRequests)
     const edited = next.find((r) => r.id === openRequest.id)!
+    // Client-facing fields only — matter, client, upload links, status, receipt, follow-up unchanged.
     expect(edited).toMatchObject({
       id: openRequest.id,
       matter_id: openRequest.matter_id,

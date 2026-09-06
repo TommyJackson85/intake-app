@@ -1,8 +1,9 @@
 /**
  * Staff **Edit client document request** — correct client-facing request details before upload.
  *
- * Updates title / description / category on an open, unfulfilled ordinary document request.
- * Does not change matter, client, request status, fulfillment, receipt review, or follow-up state.
+ * This updates client-facing request details (title / description / category) on an open,
+ * unfulfilled ordinary document request. It does not change the matter, client, upload links,
+ * request status, receipt review, follow-up state, or any internal review workflow.
  * Deny-by-default. Does not touch Condo Diligence / AML / FinCEN workflows.
  */
 import {
@@ -87,7 +88,7 @@ export function getClientDocumentRequestEditContext(input: {
     canEdit,
     actionLabel: 'Edit client document request',
     detailLabel: canEdit
-      ? 'Updates client-facing request details before upload. Does not change the matter, client, status, or internal workflow state.'
+      ? 'This updates client-facing request details. It does not change the matter, client, upload links, request status, receipt review, follow-up state, or any internal review workflow.'
       : 'Edit client document request is unavailable after upload or for inactive matters.',
     requestId: request?.id ?? null,
     matterId: matterActive ? matter!.id : null,
