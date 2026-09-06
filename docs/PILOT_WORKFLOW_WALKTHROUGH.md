@@ -254,6 +254,18 @@ Complete one **Feedback capture** form (above) for this walkthrough.
 
 Do not build the next feature based on a single request. Identify patterns across at least three walkthroughs or participants. Prefer features that reduce repeated manual work, protect internal/client boundaries, or prevent operational items from being missed.
 
+## What comes after this
+
+After the walkthroughs, choose **one** evidence-backed path:
+
+- **Templates** if repeated document requests are the pain point.
+- **Manual reminder draft** if client follow-up is the pain point.
+- **Undertakings assignment/reminders** if post-closing ownership is the pain point.
+- **Portfolio/pipeline view** if firm-level visibility is the pain point.
+- **FinCEN evidence-request workflow** if entity/trust data collection is the pain point.
+
+Do not build all of them.
+
 ## Related docs
 
 - [dev-setup.md](./dev-setup.md) — local environment
