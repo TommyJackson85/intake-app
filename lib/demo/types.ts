@@ -927,9 +927,9 @@ export type DemoPostClosingUndertaking = {
 
 /**
  * Matter-scoped Post-Closing Undertakings review record.
- * Records internal post-closing items and follow-up context only.
- * Does not determine whether an obligation is satisfied, whether closing is complete,
- * or whether any legal, title, escrow, recording, payoff, or trust-account requirement has been met.
+ * Internal only. Record post-closing review context without stating that an
+ * obligation, closing requirement, title matter, escrow item, recording,
+ * payoff, or trust-account requirement is complete or satisfied.
  */
 export type DemoPostClosingUndertakingsReview = {
   applicability?: DemoPostClosingUndertakingsApplicability

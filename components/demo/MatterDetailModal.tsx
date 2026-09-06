@@ -2072,7 +2072,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         setPostClosingDraft((prev) => ({ ...prev, reviewNote: e.target.value }))
                       }
                       rows={2}
-                      placeholder="Staff-only review note — not a determination that closing or any obligation is complete"
+                      placeholder="Internal review note — do not state that any obligation or closing requirement is complete or satisfied"
                       style={{
                         padding: 8,
                         borderRadius: 6,
@@ -2329,7 +2329,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                 }))
                               }}
                               rows={2}
-                              placeholder="Internal follow-up note — not confirmation that an obligation is satisfied"
+                              placeholder="Internal follow-up note — do not state that any obligation or requirement is complete or satisfied"
                               style={{
                                 padding: 8,
                                 borderRadius: 6,

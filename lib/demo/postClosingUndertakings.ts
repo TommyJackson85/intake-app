@@ -1,10 +1,9 @@
 /**
  * Post-Closing Undertakings — internal operational record helpers.
  *
- * Records internal post-closing items and follow-up context for a matter.
- * Does not determine whether an obligation is satisfied, whether closing is
- * complete, or whether any legal, title, escrow, recording, payoff, or
- * trust-account requirement has been met.
+ * Internal only. Record post-closing review context without stating that an
+ * obligation, closing requirement, title matter, escrow item, recording,
+ * payoff, or trust-account requirement is complete or satisfied.
  */
 import type {
   DemoPostClosingUndertaking,
@@ -16,7 +15,7 @@ import type {
 } from '@/lib/demo/types'
 
 export const POST_CLOSING_UNDERTAKINGS_DISCLAIMER =
-  'Record internal post-closing items and follow-up context for this matter. This workspace does not determine whether an obligation is satisfied, whether closing is complete, or whether any legal, title, escrow, recording, payoff, or trust-account requirement has been met.'
+  'Internal only. Record post-closing review context without stating that an obligation, closing requirement, title matter, escrow item, recording, payoff, or trust-account requirement is complete or satisfied.'
 
 /** Canonical product alias for the review record. */
 export type PostClosingUndertakingsReview = DemoPostClosingUndertakingsReview

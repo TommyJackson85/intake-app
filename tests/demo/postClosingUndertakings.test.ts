@@ -144,10 +144,19 @@ describe('postClosingUndertakings', () => {
     expect(formatPostClosingUndertakingsCount(2)).toBe('2 recorded undertakings')
   })
 
-  it('includes the non-determination disclaimer copy', () => {
-    expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain('does not determine')
-    expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain('obligation is satisfied')
-    expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain('closing is complete')
+  it('includes the internal-only non-determination disclaimer copy', () => {
+    expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain('internal only')
+    expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain(
+      'without stating that an obligation'
+    )
+    expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain('closing requirement')
+    expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain('title matter')
+    expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain('escrow item')
+    expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain('recording')
+    expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain('payoff')
     expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain('trust-account')
+    expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain(
+      'complete or satisfied'
+    )
   })
 })
