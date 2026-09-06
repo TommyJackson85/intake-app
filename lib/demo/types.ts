@@ -862,3 +862,87 @@ export type DemoCondoDiligenceActivity = {
   visibility: 'internal'
   created_at: string
 }
+
+/**
+ * Whether post-closing undertakings appear applicable for internal tracking.
+ * Operational only — not a legal applicability determination.
+ */
+export type DemoPostClosingUndertakingsApplicability =
+  | 'unknown'
+  | 'not_applicable'
+  | 'applicable'
+  | 'lawyer_review_required'
+
+/**
+ * Internal review status for the Post-Closing Undertakings workspace.
+ * Operational tracking only — not a closing-completeness or obligation-satisfaction determination.
+ */
+export type DemoPostClosingUndertakingsInternalReviewStatus =
+  | 'not_started'
+  | 'information_needed'
+  | 'in_review'
+  | 'lawyer_review_required'
+  | 'review_recorded'
+
+/**
+ * Responsible party for a recorded post-closing undertaking (internal tracking label).
+ */
+export type DemoPostClosingUndertakingResponsibleParty =
+  | 'unknown'
+  | 'client'
+  | 'buyer'
+  | 'seller'
+  | 'lender'
+  | 'title_or_settlement_party'
+  | 'attorney'
+  | 'other'
+
+/**
+ * Tracking status for a single recorded post-closing item.
+ * "recorded_complete" / "Internally recorded" means staff recorded the item in this
+ * workspace — not that any legal, title, escrow, recording, payoff, or trust-account
+ * obligation is complete or satisfied.
+ */
+export type DemoPostClosingUndertakingStatus =
+  | 'not_recorded'
+  | 'outstanding'
+  | 'received_for_review'
+  | 'follow_up_needed'
+  | 'recorded_complete'
+
+/** One internal recorded post-closing item tracked for a matter. */
+export type DemoPostClosingUndertaking = {
+  id: string
+  title: string
+  responsibleParty?: DemoPostClosingUndertakingResponsibleParty
+  status?: DemoPostClosingUndertakingStatus
+  /** Optional target / reminder date (YYYY-MM-DD). Not a legal deadline determination. */
+  targetDate?: string | null
+  details?: string
+  followUpNote?: string
+  /** Date staff recorded completion in this workspace — not legal/title/escrow completion. */
+  recordedCompletionDate?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
+/**
+ * Matter-scoped Post-Closing Undertakings review record.
+ * Internal only. Record post-closing review context without stating that an
+ * obligation, closing requirement, title matter, escrow item, recording,
+ * payoff, or trust-account requirement is complete or satisfied.
+ */
+export type DemoPostClosingUndertakingsReview = {
+  applicability?: DemoPostClosingUndertakingsApplicability
+  internalReviewStatus?: DemoPostClosingUndertakingsInternalReviewStatus
+  reviewNote?: string
+  reviewedById?: string | null
+  reviewedByName?: string | null
+  reviewedAt?: string | null
+  undertakings?: DemoPostClosingUndertaking[]
+}
+
+/** @deprecated Prefer DemoPostClosingUndertakingsReview. */
+export type DemoPostClosingUndertakings = DemoPostClosingUndertakingsReview
+/** @deprecated Prefer DemoPostClosingUndertaking. */
+export type DemoPostClosingUndertakingItem = DemoPostClosingUndertaking
