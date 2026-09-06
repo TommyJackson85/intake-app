@@ -686,7 +686,7 @@ export function createConflictCheckReviewMemoDocumentInput(input: {
     category: 'Compliance',
     document_subtype: CONFLICT_CHECK_REVIEW_MEMO_SUBTYPE,
     description:
-      'Internal only — conflict check review memo snapshot. Not shared to the client portal. Operational work product only. Not a legal opinion, ethical clearance, or conflict waiver.',
+      'Internal only — dated Conflict Check Review memo snapshot from recorded screening and review. Not shared to the client portal. Operational work product only. Not a legal opinion, ethical clearance, or conflict waiver.',
     document_date: generatedAt.slice(0, 10),
     source: 'Conflict Check Review (demo) — internal memo',
     status: 'draft',
@@ -695,6 +695,48 @@ export function createConflictCheckReviewMemoDocumentInput(input: {
     ...(input.id ? { id: input.id } : {}),
     generatedInternalSummary: metadata,
   }
+}
+
+
+/**
+ * Generate a dated Internal Conflict Check Review Memo snapshot from recorded
+ * conflict screening and Conflict Check Review information, ready to save.
+ */
+export function generateConflictCheckReviewMemoSnapshot(input: {
+  matter: DemoMatter
+  lead: DemoIntakeLead
+  uploadedByStaffId: string
+  client?: DemoClient | null
+  review?: DemoConflictCheckReview | null
+  screening?: ConflictScreeningResult | null
+  generatedAt?: string
+  id?: string
+}): { generatedAt: string; content: string; documentInput: AddDemoDocumentInput } | null {
+  const generatedAt = input.generatedAt || new Date().toISOString()
+  const review = input.review ?? input.lead.conflictCheckReview
+  const content = buildConflictCheckReviewMemoContent({
+    lead: input.lead,
+    matter: input.matter,
+    client: input.client,
+    review,
+    screening: input.screening,
+    generatedAt,
+  }).trim()
+  if (!content) return null
+
+  const documentInput = createConflictCheckReviewMemoDocumentInput({
+    matter: input.matter,
+    lead: input.lead,
+    uploadedByStaffId: input.uploadedByStaffId,
+    client: input.client,
+    review,
+    screening: input.screening,
+    content,
+    generatedAt,
+    id: input.id,
+  })
+  if (!documentInput) return null
+  return { generatedAt, content, documentInput }
 }
 
 export function conflictCheckReviewMemoRequiresLinkedMatter(lead: DemoIntakeLead): boolean {

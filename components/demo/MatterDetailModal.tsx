@@ -143,6 +143,7 @@ import {
   conflictCheckGateStatusLabel,
   conflictCheckReviewStatusPresentation,
   createConflictCheckReviewMemoDocumentInput,
+  generateConflictCheckReviewMemoSnapshot,
   createConflictCheckReviewPatch,
   findIntakeLeadForMatter,
   formatConflictCheckMemoHistoryCount,
@@ -1676,8 +1677,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         Draft internal memo
                       </div>
                       <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.45 }}>
-                        Internal Conflict Check Review Memo draft from recorded screening and Conflict Check Review.
-                        Saving creates an immutable Internal only snapshot (not shared to the client portal).
+                        Generate and save a dated Internal only snapshot from recorded conflict screening and Conflict Check Review.
+                        Not shared to the client portal.
                       </div>
                       <pre
                         style={{
@@ -1709,31 +1710,26 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             const staffId = staff[0]?.id ?? ''
                             const client =
                               clients.find((c) => c.id === linkedConflictIntakeLead.linkedClientId) || null
-                            // Freeze a new immutable snapshot from recorded screening + Conflict Check Review.
-                            const snapshotContent = buildConflictCheckReviewMemoContent({
-                              lead: linkedConflictIntakeLead,
-                              matter: effectiveMatter,
-                              client,
-                              review: linkedConflictIntakeLead.conflictCheckReview,
-                              screening: conflictScreening,
-                            })
-                            const draftInput = createConflictCheckReviewMemoDocumentInput({
+                            // Generate and save a dated Internal only snapshot from recorded screening + review.
+                            const generatedAt = new Date().toISOString()
+                            const draftId = `doc-conflict-memo-${Date.now()}`
+                            const snapshot = generateConflictCheckReviewMemoSnapshot({
                               matter: effectiveMatter,
                               lead: linkedConflictIntakeLead,
                               uploadedByStaffId: staffId,
                               client,
                               review: linkedConflictIntakeLead.conflictCheckReview,
                               screening: conflictScreening,
-                              content: snapshotContent,
+                              generatedAt,
+                              id: draftId,
                             })
-                            if (!draftInput) {
+                            if (!snapshot) {
                               setConflictMemoSaveStatus('failed')
                               conflictMemoSaveLockRef.current = false
                               window.setTimeout(() => setConflictMemoSaveStatus('idle'), 2500)
                               return
                             }
-                            const draftId = `doc-conflict-memo-${Date.now()}`
-                            addDemoDocument({ ...draftInput, id: draftId })
+                            addDemoDocument(snapshot.documentInput)
                             const review = createConflictCheckReviewPatch({
                               draft: {
                                 status: normalizeConflictCheckReview(linkedConflictIntakeLead.conflictCheckReview).status,
@@ -1779,7 +1775,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                               ? 'Saved'
                               : conflictMemoSaveStatus === 'failed'
                                 ? 'Save failed'
-                                : 'Save internal memo'}
+                                : 'Generate & save snapshot'}
                         </button>
                         <button
                           type="button"

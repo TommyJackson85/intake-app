@@ -4,6 +4,7 @@ import {
   canCompleteConflictCheckReview,
   createConflictCheckGatePatch,
   createConflictCheckReviewMemoDocumentInput,
+  generateConflictCheckReviewMemoSnapshot,
   createConflictCheckReviewPatch,
   findIntakeLeadForMatter,
   formatConflictCheckMemoHistoryCount,
@@ -399,6 +400,55 @@ describe('conflictCheckReview', () => {
     expect(formatConflictCheckMemoHistoryCount(0)).toBe('No saved internal memos')
     expect(formatConflictCheckMemoHistoryCount(1)).toBe('1 saved internal memo')
     expect(formatConflictCheckMemoHistoryCount(2)).toBe('2 saved internal memos')
+  })
+
+
+  it('generateConflictCheckReviewMemoSnapshot freezes a dated recorded screening/review memo', () => {
+    const matter = makeMatter()
+    const lead = makeLead({
+      linkedMatterFileId: matter.file_id,
+      conflict_check_status: 'clear',
+      conflict_check_note: 'Gate note',
+      conflictCheckReview: normalizeConflictCheckReview({
+        status: 'completed',
+        informationGaps: 'None',
+        internalNote: 'Cleared after review of recorded screening.',
+        reviewerId: 'staff-1',
+        reviewerName: 'Katherine Ruiz, Esq.',
+        reviewedAt: '2026-02-01T12:00:00.000Z',
+        linkedMemoDocumentId: null,
+        screeningSummary: 'Recorded screening: no person/property overlaps.',
+      }),
+    })
+    const snapshot = generateConflictCheckReviewMemoSnapshot({
+      matter,
+      lead,
+      uploadedByStaffId: 'staff-1',
+      review: lead.conflictCheckReview,
+      generatedAt: '2026-02-03T16:30:00.000Z',
+      id: 'doc-conflict-snapshot',
+    })
+    expect(snapshot).toBeTruthy()
+    expect(snapshot!.generatedAt).toBe('2026-02-03T16:30:00.000Z')
+    expect(snapshot!.content).toContain('2026-02-03T16:30:00.000Z')
+    expect(snapshot!.content).toContain('Recorded screening: no person/property overlaps.')
+    expect(snapshot!.content).toContain('Cleared after review of recorded screening.')
+    expect(snapshot!.documentInput.generatedInternalSummary?.visibility).toBe('internal')
+    expect(snapshot!.documentInput.generatedInternalSummary?.content).toBe(snapshot!.content)
+    expect(snapshot!.documentInput.generatedInternalSummary?.generatedAt).toBe('2026-02-03T16:30:00.000Z')
+    expect(snapshot!.documentInput.uploaded_at).toBe('2026-02-03T16:30:00.000Z')
+    expect(isGeneratedInternalConflictCheckMemo({
+      id: 'doc-conflict-snapshot',
+      matter_id: matter.id,
+      name: snapshot!.documentInput.name,
+      category: 'Compliance',
+      document_subtype: snapshot!.documentInput.document_subtype ?? null,
+      uploaded_at: '2026-02-03T16:30:00.000Z',
+      uploaded_by_staff_id: 'staff-1',
+      status: 'draft',
+      deletedAt: null,
+      generatedInternalSummary: snapshot!.documentInput.generatedInternalSummary,
+    } as DemoDocument)).toBe(true)
   })
 
 })
