@@ -49,6 +49,10 @@ import {
   acknowledgeClientUploadReceipt,
   type AddDemoDocumentRequestInput,
 } from '@/lib/demo/demoDocumentRequest'
+import {
+  createStaffClientDocumentRequest,
+  type StaffCreateClientDocumentRequestInput,
+} from '@/lib/demo/staffCreateClientDocumentRequest'
 import { tryLinkClientUploadToDocumentRequest } from '@/lib/demo/staffClientUploadRequestLinkRepair'
 import { recordDocumentRequestReceiptReview } from '@/lib/demo/staffDocumentRequestReceiptReview'
 import {
@@ -124,6 +128,8 @@ type DemoContextType = {
   createDemoMatter: (input: CreateDemoMatterInput) => void
   addDemoDocument: (input: AddDemoDocumentInput) => void
   addDemoDocumentRequest: (input: AddDemoDocumentRequestInput) => void
+  /** Staff: create a client-visible ordinary document request (portal Awaiting upload). */
+  createClientDocumentRequest: (input: StaffCreateClientDocumentRequestInput) => boolean
   /** Appends one `DemoDocument` (same helper as `addDemoDocument`) and marks the request fulfilled — one `setState`. */
   /** Client portal upload: appends one `DemoDocument` and marks the request fulfilled — one `setState`. Returns whether fulfillment succeeded. */
   fulfillDemoDocumentRequest: (input: { portal_token: string; request_id: string; file_name: string }) => boolean
@@ -1757,6 +1763,21 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           if (documentRequests === prev.documentRequests) return prev
           return { ...prev, documentRequests }
         })
+      },
+      createClientDocumentRequest: (input) => {
+        let succeeded = false
+        setState((prev) => {
+          const documentRequests = createStaffClientDocumentRequest(
+            prev.matters,
+            prev.documentRequests,
+            prev.staff,
+            input,
+          )
+          if (documentRequests === prev.documentRequests) return prev
+          succeeded = true
+          return { ...prev, documentRequests }
+        })
+        return succeeded
       },
       fulfillDemoDocumentRequest: (input) => {
         let succeeded = false

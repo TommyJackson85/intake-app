@@ -1,8 +1,12 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DemoDocument } from '@/lib/demo/types'
 import { useDemoStore } from '@/lib/demo/store'
+import {
+  getEligibleMattersForStaffCreateClientDocumentRequest,
+  getStaffCreateClientDocumentRequestPresentation,
+} from '@/lib/demo/staffCreateClientDocumentRequest'
 
 const CATEGORIES: DemoDocument['category'][] = [
   'Contract',
@@ -40,8 +44,13 @@ const controlStyle: React.CSSProperties = {
   background: '#fff',
 }
 
+/** Staff modal to create a client-visible ordinary document request. */
 export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDemoDocumentModalProps) {
-  const { matters, staff, addDemoDocumentRequest } = useDemoStore()
+  const { matters, staff, createClientDocumentRequest } = useDemoStore()
+  const eligibleMatters = useMemo(
+    () => getEligibleMattersForStaffCreateClientDocumentRequest(matters),
+    [matters],
+  )
   const [matterId, setMatterId] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -49,6 +58,19 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
   const [staffId, setStaffId] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
   const wasOpenRef = useRef(false)
+
+  const selectedMatter = useMemo(
+    () => eligibleMatters.find((m) => m.id === matterId) ?? null,
+    [eligibleMatters, matterId],
+  )
+  const presentation = useMemo(
+    () =>
+      getStaffCreateClientDocumentRequestPresentation({
+        matter: selectedMatter,
+        staffId,
+      }),
+    [selectedMatter, staffId],
+  )
 
   useEffect(() => {
     if (!isOpen) {
@@ -62,21 +84,18 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
     setTitle('')
     setDescription('')
     setCategory('Contract')
-    setMatterId(matters[0]?.id ?? '')
+    setMatterId(eligibleMatters[0]?.id ?? '')
     setStaffId(staff[0]?.id ?? '')
-  }, [isOpen, matters, staff])
+  }, [isOpen, eligibleMatters, staff])
 
   useEffect(() => {
     if (!isOpen) return
-
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
-
     window.addEventListener('keydown', onKeyDown)
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       document.body.style.overflow = prevOverflow
@@ -100,14 +119,21 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
       setSaveError('Select who is requesting.')
       return
     }
-    addDemoDocumentRequest({
-      matter_id: matterId,
+    if (!presentation.canCreate) {
+      setSaveError('Create client document request is unavailable for this matter.')
+      return
+    }
+    const ok = createClientDocumentRequest({
+      matterId,
       title: title.trim(),
       description: description.trim() || null,
       category,
-      requested_by_staff_id: staffId,
-      requested_at: new Date().toISOString(),
+      staffId,
     })
+    if (!ok) {
+      setSaveError('Could not create the client document request.')
+      return
+    }
     onClose()
   }
 
@@ -115,7 +141,7 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Request document (demo)"
+      aria-label="Create client document request"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -151,11 +177,9 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
         >
           <div>
             <div style={{ fontSize: '20px', fontWeight: 900, color: '#134252', marginBottom: '2px' }}>
-              Request document
+              {presentation.actionLabel}
             </div>
-            <div style={{ color: '#627c71', fontSize: '13px' }}>
-              Demo only — records metadata for requested documents; no real file is stored or downloaded.
-            </div>
+            <div style={{ color: '#627c71', fontSize: '13px' }}>{presentation.detailLabel}</div>
           </div>
           <div style={{ marginLeft: 'auto' }}>
             <button
@@ -179,7 +203,7 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: '18px 20px' }}>
-          {saveError && (
+          {saveError ? (
             <div
               role="alert"
               style={{
@@ -195,7 +219,7 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
             >
               {saveError}
             </div>
-          )}
+          ) : null}
 
           <label style={{ ...labelStyle, marginBottom: 12 }}>
             Matter
@@ -205,13 +229,13 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
               required
               style={controlStyle}
             >
-              {matters.length === 0 ? (
-                <option value="">No matters</option>
+              {eligibleMatters.length === 0 ? (
+                <option value="">No active matters</option>
               ) : (
-                matters.map((m) => (
+                eligibleMatters.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.file_id} — {m.property.address.slice(0, 48)}
-                    {m.property.address.length > 48 ? '…' : ''}
+                    {m.file_id}
+                    {m.property.address ? ` — ${m.property.address}` : ''}
                   </option>
                 ))
               )}
@@ -219,23 +243,24 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
           </label>
 
           <label style={{ ...labelStyle, marginBottom: 12 }}>
-            Request title
+            Title
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Final settlement statement"
+              required
+              placeholder="e.g. Buyer government ID"
               style={controlStyle}
             />
           </label>
 
           <label style={{ ...labelStyle, marginBottom: 12 }}>
-            Description / notes <span style={optionalLabelStyle}>(optional)</span>
+            Description <span style={optionalLabelStyle}>(optional)</span>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Instructions or context for the client or team"
               rows={3}
-              style={{ ...controlStyle, resize: 'vertical', fontFamily: 'inherit' }}
+              placeholder="Client-facing guidance for what to upload"
+              style={{ ...controlStyle, resize: 'vertical' }}
             />
           </label>
 
@@ -259,45 +284,53 @@ export default function RequestDemoDocumentModal({ isOpen, onClose }: RequestDem
             <select
               value={staffId}
               onChange={(e) => setStaffId(e.target.value)}
+              required
               style={controlStyle}
             >
-              {staff.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.full_name} ({s.role})
-                </option>
-              ))}
+              {staff.length === 0 ? (
+                <option value="">No staff</option>
+              ) : (
+                staff.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.full_name}
+                  </option>
+                ))
+              )}
             </select>
           </label>
 
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
             <button
               type="button"
               onClick={onClose}
               style={{
-                padding: '10px 16px',
+                padding: '10px 14px',
                 borderRadius: 8,
-                border: '1px solid rgba(94,82,64,0.35)',
+                border: '1px solid rgba(94,82,64,0.25)',
                 background: '#fff',
-                cursor: 'pointer',
-                fontWeight: 700,
                 color: '#134252',
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
               }}
             >
               Cancel
             </button>
             <button
               type="submit"
+              disabled={!presentation.canCreate}
               style={{
-                padding: '10px 16px',
+                padding: '10px 14px',
                 borderRadius: 8,
-                border: 'none',
-                background: '#134252',
+                border: '1px solid rgba(19,66,82,0.35)',
+                background: presentation.canCreate ? '#134252' : '#9aa8a3',
                 color: '#fff',
-                cursor: 'pointer',
                 fontWeight: 800,
+                fontSize: 13,
+                cursor: presentation.canCreate ? 'pointer' : 'not-allowed',
               }}
             >
-              Save request
+              Create client document request
             </button>
           </div>
         </form>
