@@ -5,7 +5,7 @@ import { appendDemoDocumentIfValid, type BuildDemoDocumentOptions } from '@/lib/
 import type { DemoDocument, DemoMatter, DemoDocumentRequest, DemoDocumentRequestStatus } from '@/lib/demo/types'
 import { normalizeDocumentRequestFollowUp } from '@/lib/demo/staffDocumentRequestFollowUp'
 import {
-  isClientDocumentRequestLifecycleActive,
+  isActiveClientDocumentRequest,
   normalizeClientDocumentRequestLifecycle,
 } from '@/lib/demo/staffCancelClientDocumentRequest'
 
@@ -143,7 +143,7 @@ export function tryFulfillDemoDocumentRequest(
     !request ||
     request.matter_id !== matter.id ||
     request.status !== 'open' ||
-    !isClientDocumentRequestLifecycleActive(request)
+    !isActiveClientDocumentRequest(request)
   ) {
     return null
   }

@@ -10,7 +10,7 @@ import {
   getClientDocumentRequestStatusLabel,
   type ClientDocumentRequestStatusLabel,
 } from '@/lib/demo/clientDocumentRequestStatus'
-import { isClientDocumentRequestLifecycleActive } from '@/lib/demo/staffCancelClientDocumentRequest'
+import { isActiveClientDocumentRequest } from '@/lib/demo/staffCancelClientDocumentRequest'
 import type { DemoDocument, DemoDocumentRequest, DemoMatter } from '@/lib/demo/types'
 
 const CLIENT_SAFE_CATEGORIES: ReadonlySet<DemoDocument['category']> = new Set([
@@ -73,7 +73,7 @@ export function isEligibleClientDocumentRequestForEdit(
   if (!request) return false
   if (request.status !== 'open') return false
   if (request.fulfilled_document_id) return false
-  if (!isClientDocumentRequestLifecycleActive(request)) return false
+  if (!isActiveClientDocumentRequest(request)) return false
   const matter = matters.find((m) => m.id === request.matter_id)
   return Boolean(matter && !matter.deletedAt)
 }

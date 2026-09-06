@@ -23,6 +23,15 @@ export type NormalizedClientDocumentRequestLifecycle = {
   cancelledByName: string | null
 }
 
+export type ClientDocumentRequestLifecyclePresentation = {
+  status: 'active' | 'cancelled'
+  statusLabel: 'Active' | 'Cancelled'
+  isActive: boolean
+  cancelledAt: string | null
+  cancelledById: string | null
+  cancelledByName: string | null
+}
+
 const ACTIVE_LIFECYCLE: NormalizedClientDocumentRequestLifecycle = {
   status: 'active',
   cancelledAt: null,
@@ -93,24 +102,53 @@ export function normalizeClientDocumentRequestLifecycle(
   }
 }
 
-export function isClientDocumentRequestLifecycleActive(
+/**
+ * Staff/UI lifecycle presentation for an ordinary document request.
+ * Reuses normalizeClientDocumentRequestLifecycle.
+ */
+export function getClientDocumentRequestLifecyclePresentation(
+  requestOrLifecycle:
+    | DemoDocumentRequest
+    | ClientDocumentRequestLifecycle
+    | NormalizedClientDocumentRequestLifecycle
+    | null
+    | undefined,
+): ClientDocumentRequestLifecyclePresentation {
+  const raw =
+    requestOrLifecycle && typeof requestOrLifecycle === 'object' && 'lifecycle' in requestOrLifecycle
+      ? (requestOrLifecycle as DemoDocumentRequest).lifecycle
+      : requestOrLifecycle
+  const normalized = normalizeClientDocumentRequestLifecycle(raw)
+  const isActive = normalized.status === 'active'
+  return {
+    status: normalized.status,
+    statusLabel: isActive ? 'Active' : 'Cancelled',
+    isActive,
+    cancelledAt: normalized.cancelledAt,
+    cancelledById: normalized.cancelledById,
+    cancelledByName: normalized.cancelledByName,
+  }
+}
+
+/** True when the request lifecycle is still active (not cancelled). */
+export function isActiveClientDocumentRequest(
   request: DemoDocumentRequest | null | undefined,
 ): boolean {
   if (!request) return false
-  return normalizeClientDocumentRequestLifecycle(request.lifecycle).status === 'active'
+  return getClientDocumentRequestLifecyclePresentation(request).isActive
 }
 
 /**
  * Deny-by-default: active matter, open + unfulfilled, lifecycle still active (before upload/workflow).
  */
-export function isEligibleClientDocumentRequestForCancel(
+export function isEligibleClientDocumentRequestForCancellation(
   request: DemoDocumentRequest | null | undefined,
   matters: DemoMatter[],
 ): boolean {
   if (!request) return false
   if (request.status !== 'open') return false
   if (request.fulfilled_document_id) return false
-  if (!isClientDocumentRequestLifecycleActive(request)) return false
+  if (!isActiveClientDocumentRequest(request)) return false
   const matter = matters.find((m) => m.id === request.matter_id)
   return Boolean(matter && !matter.deletedAt)
 }
@@ -120,7 +158,7 @@ export function canCancelClientDocumentRequest(
   request: DemoDocumentRequest | null | undefined,
   matters: DemoMatter[],
 ): boolean {
-  return isEligibleClientDocumentRequestForCancel(request, matters)
+  return isEligibleClientDocumentRequestForCancellation(request, matters)
 }
 
 /**
@@ -134,7 +172,7 @@ export function getClientDocumentRequestCancelContext(input: {
   const canCancel = canCancelClientDocumentRequest(request, matters)
   const matter = request ? matters.find((m) => m.id === request.matter_id) : undefined
   const matterActive = Boolean(matter && !matter.deletedAt)
-  const lifecycle = normalizeClientDocumentRequestLifecycle(request?.lifecycle)
+  const lifecycle = getClientDocumentRequestLifecyclePresentation(request)
   const clientLabel =
     matterActive && matter!.buyer.name.trim().length > 0 ? matter!.buyer.name.trim() : null
 
@@ -170,7 +208,7 @@ export function validateClientDocumentRequestCancelDraft(input: {
   if (!staffId) return { ok: false, error: 'Select who is cancelling.' }
 
   const request = input.documentRequests.find((r) => r.id === requestId)
-  if (!isEligibleClientDocumentRequestForCancel(request, input.matters)) {
+  if (!isEligibleClientDocumentRequestForCancellation(request, input.matters)) {
     return {
       ok: false,
       error: 'Cancel client document request is unavailable after upload, after cancel, or for inactive matters.',
@@ -191,7 +229,7 @@ export function validateClientDocumentRequestCancelDraft(input: {
 }
 
 /** Build cancelled lifecycle patch for a validated cancel. */
-export function createClientDocumentRequestCancelLifecyclePatch(
+export function createClientDocumentRequestCancellationPatch(
   draft: NormalizedClientDocumentRequestCancelDraft,
   nowIso = new Date().toISOString(),
 ): NormalizedClientDocumentRequestLifecycle {
@@ -227,7 +265,7 @@ export function applyCancelClientDocumentRequest(
 
   const current = documentRequests[index]!
   const nowIso = options?.nowIso?.() ?? new Date().toISOString()
-  const lifecycle = createClientDocumentRequestCancelLifecyclePatch(validation.draft, nowIso)
+  const lifecycle = createClientDocumentRequestCancellationPatch(validation.draft, nowIso)
   const existing = normalizeClientDocumentRequestLifecycle(current.lifecycle)
   if (
     existing.status === 'cancelled' &&

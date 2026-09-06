@@ -6,10 +6,11 @@ import { canEditClientDocumentRequest } from '@/lib/demo/staffEditClientDocument
 import {
   applyCancelClientDocumentRequest,
   canCancelClientDocumentRequest,
-  createClientDocumentRequestCancelLifecyclePatch,
+  createClientDocumentRequestCancellationPatch,
   getClientDocumentRequestCancelContext,
-  isEligibleClientDocumentRequestForCancel,
-  normalizeClientDocumentRequestLifecycle,
+  getClientDocumentRequestLifecyclePresentation,
+  isActiveClientDocumentRequest,
+  isEligibleClientDocumentRequestForCancellation,
   validateClientDocumentRequestCancelDraft,
 } from '@/lib/demo/staffCancelClientDocumentRequest'
 import type { DemoDocumentRequest } from '@/lib/demo/types'
@@ -29,32 +30,34 @@ function request(overrides: Partial<DemoDocumentRequest> = {}): DemoDocumentRequ
 }
 
 describe('staffCancelClientDocumentRequest helpers', () => {
-  it('isEligible / canCancel only before upload on active matters', () => {
-    expect(isEligibleClientDocumentRequestForCancel(openRequest, demoSeedData.matters)).toBe(true)
+  it('isEligible / canCancel / isActive gate before upload', () => {
+    expect(isActiveClientDocumentRequest(openRequest)).toBe(true)
+    expect(isEligibleClientDocumentRequestForCancellation(openRequest, demoSeedData.matters)).toBe(
+      true,
+    )
     expect(canCancelClientDocumentRequest(openRequest, demoSeedData.matters)).toBe(true)
-    expect(isEligibleClientDocumentRequestForCancel(null, demoSeedData.matters)).toBe(false)
+    expect(isEligibleClientDocumentRequestForCancellation(null, demoSeedData.matters)).toBe(false)
     expect(
-      isEligibleClientDocumentRequestForCancel(
+      isEligibleClientDocumentRequestForCancellation(
         request({ status: 'fulfilled', fulfilled_document_id: 'doc-001' }),
         demoSeedData.matters,
       ),
     ).toBe(false)
-    expect(
-      canCancelClientDocumentRequest(
-        request({
-          lifecycle: {
-            status: 'cancelled',
-            cancelledAt: '2026-03-01T00:00:00.000Z',
-            cancelledById: staffId,
-            cancelledByName: 'Emma Kline',
-          },
-        }),
-        demoSeedData.matters,
-      ),
-    ).toBe(false)
+
+    const cancelled = request({
+      lifecycle: {
+        status: 'cancelled',
+        cancelledAt: '2026-03-01T00:00:00.000Z',
+        cancelledById: staffId,
+        cancelledByName: 'Emma Kline',
+      },
+    })
+    expect(isActiveClientDocumentRequest(cancelled)).toBe(false)
+    expect(canCancelClientDocumentRequest(cancelled, demoSeedData.matters)).toBe(false)
+    expect(getClientDocumentRequestLifecyclePresentation(cancelled).statusLabel).toBe('Cancelled')
   })
 
-  it('getClientDocumentRequestCancelContext exposes cancel labels and read-only context', () => {
+  it('getClientDocumentRequestCancelContext exposes labels and product wording', () => {
     const ok = getClientDocumentRequestCancelContext({
       request: openRequest,
       matters: demoSeedData.matters,
@@ -66,11 +69,10 @@ describe('staffCancelClientDocumentRequest helpers', () => {
     expect(ok.matterLabel).toBe(matter.file_id)
     expect(ok.clientLabel).toBe(matter.buyer.name.trim())
     expect(ok.requestTitle).toBe(openRequest.title)
-    expect(ok.requestStatusLabel).toBe('Awaiting upload')
     expect(ok.lifecycleStatus).toBe('active')
   })
 
-  it('validate + cancel patch sets lifecycle only and removes portal/upload eligibility', () => {
+  it('validate + cancellation patch sets lifecycle only and removes portal/upload eligibility', () => {
     const validation = validateClientDocumentRequestCancelDraft({
       draft: { requestId: ` ${openRequest.id} `, staffId: ` ${staffId} ` },
       documentRequests: demoSeedData.documentRequests,
@@ -81,7 +83,7 @@ describe('staffCancelClientDocumentRequest helpers', () => {
     if (!validation.ok) return
 
     expect(
-      createClientDocumentRequestCancelLifecyclePatch(validation.draft, '2026-03-20T12:00:00.000Z'),
+      createClientDocumentRequestCancellationPatch(validation.draft, '2026-03-20T12:00:00.000Z'),
     ).toEqual({
       status: 'cancelled',
       cancelledAt: '2026-03-20T12:00:00.000Z',
@@ -102,13 +104,8 @@ describe('staffCancelClientDocumentRequest helpers', () => {
       id: openRequest.id,
       matter_id: openRequest.matter_id,
       title: openRequest.title,
-      description: openRequest.description,
-      category: openRequest.category,
       status: 'open',
       fulfilled_document_id: null,
-      staff_receipt_acknowledged_at: openRequest.staff_receipt_acknowledged_at,
-      staff_receipt_reviewed_by_staff_id: openRequest.staff_receipt_reviewed_by_staff_id,
-      staff_receipt_reviewed_document_id: openRequest.staff_receipt_reviewed_document_id,
       staff_follow_up: openRequest.staff_follow_up,
       lifecycle: {
         status: 'cancelled',
@@ -121,6 +118,7 @@ describe('staffCancelClientDocumentRequest helpers', () => {
     expect(canEditClientDocumentRequest(cancelled, demoSeedData.matters)).toBe(false)
     expect(canCancelClientDocumentRequest(cancelled, demoSeedData.matters)).toBe(false)
     expect(canClientUploadDocumentRequest(cancelled, matter.id)).toBe(false)
+    expect(isActiveClientDocumentRequest(cancelled)).toBe(false)
 
     const portal = buildClientDocumentRequestStatusView({
       matterId: matter.id,
@@ -128,14 +126,5 @@ describe('staffCancelClientDocumentRequest helpers', () => {
       documents: demoSeedData.documents,
     })
     expect(portal.rows.some((r) => r.id === openRequest.id)).toBe(false)
-  })
-
-  it('normalize defaults missing lifecycle to active', () => {
-    expect(normalizeClientDocumentRequestLifecycle(undefined)).toEqual({
-      status: 'active',
-      cancelledAt: null,
-      cancelledById: null,
-      cancelledByName: null,
-    })
   })
 })

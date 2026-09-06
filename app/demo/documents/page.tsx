@@ -22,7 +22,7 @@ import {
 import { canEditClientDocumentRequest } from '@/lib/demo/staffEditClientDocumentRequest'
 import {
   canCancelClientDocumentRequest,
-  normalizeClientDocumentRequestLifecycle,
+  getClientDocumentRequestLifecyclePresentation,
 } from '@/lib/demo/staffCancelClientDocumentRequest'
 
 function formatDemoDateTime(value: string) {
@@ -499,7 +499,7 @@ export default function DemoDocumentsPage() {
                         textTransform: 'capitalize',
                       }}
                     >
-                      {normalizeClientDocumentRequestLifecycle(req.lifecycle).status === 'cancelled'
+                      {getClientDocumentRequestLifecyclePresentation(req).statusLabel === 'Cancelled'
                         ? 'Cancelled'
                         : req.status}
                     </td>
