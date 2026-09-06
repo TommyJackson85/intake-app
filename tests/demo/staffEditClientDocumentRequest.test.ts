@@ -4,8 +4,10 @@ import { buildClientDocumentRequestStatusView } from '@/lib/demo/clientDocumentR
 import {
   applyClientDocumentRequestEdit,
   canEditClientDocumentRequest,
+  createClientDocumentRequestEditPatch,
   getClientDocumentRequestEditContext,
   isClientSafeDocumentRequestEditDraft,
+  isEligibleClientDocumentRequestForEdit,
   validateClientDocumentRequestEditDraft,
 } from '@/lib/demo/staffEditClientDocumentRequest'
 import type { DemoDocumentRequest } from '@/lib/demo/types'
@@ -23,11 +25,12 @@ function request(overrides: Partial<DemoDocumentRequest> = {}): DemoDocumentRequ
 }
 
 describe('staffEditClientDocumentRequest helpers', () => {
-  it('canEditClientDocumentRequest allows only open unfulfilled requests on active matters', () => {
+  it('isEligibleClientDocumentRequestForEdit and canEditClientDocumentRequest deny after upload', () => {
+    expect(isEligibleClientDocumentRequestForEdit(openRequest, demoSeedData.matters)).toBe(true)
     expect(canEditClientDocumentRequest(openRequest, demoSeedData.matters)).toBe(true)
-    expect(canEditClientDocumentRequest(null, demoSeedData.matters)).toBe(false)
+    expect(isEligibleClientDocumentRequestForEdit(null, demoSeedData.matters)).toBe(false)
     expect(
-      canEditClientDocumentRequest(
+      isEligibleClientDocumentRequestForEdit(
         request({ status: 'fulfilled', fulfilled_document_id: 'doc-001' }),
         demoSeedData.matters,
       ),
@@ -37,7 +40,7 @@ describe('staffEditClientDocumentRequest helpers', () => {
     ).toBe(false)
 
     const deletedMatter = { ...matter, deletedAt: '2026-01-01T00:00:00.000Z' }
-    expect(canEditClientDocumentRequest(openRequest, [deletedMatter])).toBe(false)
+    expect(isEligibleClientDocumentRequestForEdit(openRequest, [deletedMatter])).toBe(false)
   })
 
   it('getClientDocumentRequestEditContext exposes edit labels and read-only matter/client/status', () => {
@@ -83,7 +86,7 @@ describe('staffEditClientDocumentRequest helpers', () => {
     ).toBe(false)
   })
 
-  it('validate + apply update client-facing fields only (matter/client/upload links/status/receipt/follow-up unchanged)', () => {
+  it('validate + createClientDocumentRequestEditPatch + apply update client-facing fields only', () => {
     const validation = validateClientDocumentRequestEditDraft({
       draft: {
         requestId: ` ${openRequest.id} `,
@@ -99,6 +102,11 @@ describe('staffEditClientDocumentRequest helpers', () => {
 
     expect(validation.draft).toEqual({
       requestId: openRequest.id,
+      title: 'Updated survey',
+      description: 'New client-facing note',
+      category: 'Title',
+    })
+    expect(createClientDocumentRequestEditPatch(validation.draft)).toEqual({
       title: 'Updated survey',
       description: 'New client-facing note',
       category: 'Title',

@@ -35,6 +35,13 @@ export type NormalizedClientDocumentRequestEditDraft = {
   category: DemoDocument['category']
 }
 
+/** Client-facing field patch only — never includes matter/status/upload/receipt/follow-up. */
+export type ClientDocumentRequestEditPatch = {
+  title: string
+  description: string | null
+  category: DemoDocument['category']
+}
+
 export type ClientDocumentRequestEditDraftValidation =
   | { ok: true; draft: NormalizedClientDocumentRequestEditDraft }
   | { ok: false; error: string }
@@ -56,9 +63,9 @@ export type ClientDocumentRequestEditContext = {
 }
 
 /**
- * Deny-by-default: active matter, open status, and no fulfilled document (before upload).
+ * Deny-by-default eligibility: active matter, open status, and no fulfilled document (before upload).
  */
-export function canEditClientDocumentRequest(
+export function isEligibleClientDocumentRequestForEdit(
   request: DemoDocumentRequest | null | undefined,
   matters: DemoMatter[],
 ): boolean {
@@ -67,6 +74,17 @@ export function canEditClientDocumentRequest(
   if (request.fulfilled_document_id) return false
   const matter = matters.find((m) => m.id === request.matter_id)
   return Boolean(matter && !matter.deletedAt)
+}
+
+/**
+ * Whether staff may edit client-facing fields on this request.
+ * Reuses isEligibleClientDocumentRequestForEdit; deny-by-default.
+ */
+export function canEditClientDocumentRequest(
+  request: DemoDocumentRequest | null | undefined,
+  matters: DemoMatter[],
+): boolean {
+  return isEligibleClientDocumentRequestForEdit(request, matters)
 }
 
 /**
@@ -143,7 +161,7 @@ export function validateClientDocumentRequestEditDraft(input: {
   if (!title) return { ok: false, error: 'Enter a request title.' }
 
   const request = documentRequests.find((r) => r.id === requestId)
-  if (!canEditClientDocumentRequest(request, matters)) {
+  if (!isEligibleClientDocumentRequestForEdit(request, matters)) {
     return {
       ok: false,
       error: 'Edit client document request is unavailable after upload or for inactive matters.',
@@ -162,7 +180,21 @@ export function validateClientDocumentRequestEditDraft(input: {
 }
 
 /**
- * Apply normalized client-facing field edits. Preserves matter, status, and internal workflow fields.
+ * Build the client-facing field patch from a normalized edit draft.
+ * Does not include matter, status, upload links, receipt, or follow-up fields.
+ */
+export function createClientDocumentRequestEditPatch(
+  draft: NormalizedClientDocumentRequestEditDraft,
+): ClientDocumentRequestEditPatch {
+  return {
+    title: draft.title,
+    description: draft.description,
+    category: draft.category,
+  }
+}
+
+/**
+ * Apply a validated client-facing edit. Preserves matter, status, upload links, and internal workflow fields.
  * Returns the same array reference when denied or when nothing changed.
  */
 export function applyClientDocumentRequestEdit(
@@ -177,15 +209,15 @@ export function applyClientDocumentRequestEdit(
   })
   if (!validation.ok) return documentRequests
 
-  const { requestId, title, description, category } = validation.draft
-  const index = documentRequests.findIndex((r) => r.id === requestId)
+  const patch = createClientDocumentRequestEditPatch(validation.draft)
+  const index = documentRequests.findIndex((r) => r.id === validation.draft.requestId)
   if (index < 0) return documentRequests
 
   const current = documentRequests[index]!
   if (
-    current.title === title &&
-    current.description === description &&
-    current.category === category
+    current.title === patch.title &&
+    current.description === patch.description &&
+    current.category === patch.category
   ) {
     return documentRequests
   }
@@ -193,9 +225,7 @@ export function applyClientDocumentRequestEdit(
   const next = documentRequests.slice()
   next[index] = {
     ...current,
-    title,
-    description,
-    category,
+    ...patch,
   }
   return next
 }
