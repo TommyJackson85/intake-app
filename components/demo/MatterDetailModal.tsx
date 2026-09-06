@@ -148,6 +148,7 @@ import {
   findIntakeLeadForMatter,
   formatConflictCheckMemoHistoryCount,
   getConflictCheckMemoGeneratedAt,
+  getConflictCheckMemoHistoryItem,
   getMatterConflictCheckMemoHistory,
   isGeneratedInternalConflictCheckMemo,
   normalizeConflictCheckReview,
@@ -1823,8 +1824,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {conflictMemoHistory.map((doc) => {
-                          const savedAt =
-                            getConflictCheckMemoGeneratedAt(doc) || doc.uploaded_at
+                          const item = getConflictCheckMemoHistoryItem(doc)
+                          const savedAt = item?.generatedAt || getConflictCheckMemoGeneratedAt(doc) || doc.uploaded_at
                           return (
                             <div
                               key={doc.id}
@@ -1841,7 +1842,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                               <div style={{ minWidth: 0, flex: '1 1 180px' }}>
                                 <div style={{ fontWeight: 800, color: '#134252', fontSize: 12 }}>{doc.name}</div>
                                 <div style={{ color: '#627c71', fontSize: 11, fontWeight: 700 }}>
-                                  Saved: {new Date(savedAt).toLocaleString()} · Internal only
+                                  Saved: {new Date(savedAt).toLocaleString()} · Internal only{item?.status ? ` · ${item.status}` : ''}
                                 </div>
                               </div>
                               <button
@@ -3289,8 +3290,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {conflictMemoHistory.map((doc) => {
-                        const savedAt =
-                          getConflictCheckMemoGeneratedAt(doc) || doc.uploaded_at
+                          const item = getConflictCheckMemoHistoryItem(doc)
+                          const savedAt = item?.generatedAt || getConflictCheckMemoGeneratedAt(doc) || doc.uploaded_at
                         return (
                           <div
                             key={doc.id}

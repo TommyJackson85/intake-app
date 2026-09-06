@@ -16,6 +16,7 @@ import {
   createConflictCheckReviewPatch,
   formatConflictCheckMemoHistoryCount,
   getConflictCheckMemoGeneratedAt,
+  getConflictCheckMemoHistoryItem,
   getIntakeConflictCheckMemoHistory,
   normalizeConflictCheckReview,
   runConflictCheckScreening,
@@ -983,7 +984,9 @@ export default function DemoIntakesPage() {
                     </div>
                   ) : (
                     getIntakeConflictCheckMemoHistory(documents, conflictModal.lead.id).map((doc) => {
-                      const savedAt = getConflictCheckMemoGeneratedAt(doc) || doc.uploaded_at
+                      const item = getConflictCheckMemoHistoryItem(doc)
+                      const savedAt =
+                        item?.generatedAt || getConflictCheckMemoGeneratedAt(doc) || doc.uploaded_at
                       return (
                         <div
                           key={doc.id}
@@ -997,9 +1000,12 @@ export default function DemoIntakesPage() {
                           }}
                         >
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontWeight: 800, color: '#134252', fontSize: 12 }}>{doc.name}</div>
+                            <div style={{ fontWeight: 800, color: '#134252', fontSize: 12 }}>
+                              {item?.name || doc.name}
+                            </div>
                             <div style={{ color: '#627c71', fontSize: 11, fontWeight: 700 }}>
                               Saved: {new Date(savedAt).toLocaleString()} · Internal only
+                              {item?.status ? ` · ${item.status}` : ''}
                             </div>
                           </div>
                         </div>

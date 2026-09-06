@@ -508,6 +508,15 @@ export function isConflictCheckReviewMemoDocument(
   )
 }
 
+/**
+ * Canonical Conflict Check Memo History API:
+ * - isGeneratedInternalConflictCheckMemo(document)
+ * - getMatterConflictCheckMemoHistory(documents, matterId)
+ * - getIntakeConflictCheckMemoHistory(documents, intakeId)
+ * - getConflictCheckMemoGeneratedAt(document)
+ * - formatConflictCheckMemoHistoryCount(count)
+ * - getConflictCheckMemoHistoryItem(document)
+ */
 /** True for generated Internal Conflict Check Review Memo documents (staff-internal only). */
 export function isGeneratedInternalConflictCheckMemo(
   document: Pick<DemoDocument, 'document_subtype' | 'generatedInternalSummary' | 'name' | 'deletedAt'>
