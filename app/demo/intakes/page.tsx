@@ -9,6 +9,16 @@ import {
   mapIntakeLeadToClientCreateInput,
   mapIntakeLeadToNewMatterInitialValues,
 } from '@/lib/demo/demoIntakeFlow'
+import {
+  canCompleteConflictCheckReview,
+  conflictCheckReviewStatusPresentation,
+  createConflictCheckGatePatch,
+  createConflictCheckReviewPatch,
+  normalizeConflictCheckReview,
+  runConflictCheckScreening,
+  type ConflictCheckReviewDraft,
+  type ConflictScreeningResult,
+} from '@/lib/demo/conflictCheckReview'
 import { useDemoStore } from '@/lib/demo/store'
 import NewIntakeDemoModal from '@/app/demo/_components/NewIntakeDemoModal'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
@@ -18,6 +28,7 @@ type ConflictResult = {
   clientMatches: DemoClient[]
   matterMatches: DemoMatter[]
   intakeMatches: DemoIntakeLead[]
+  screening: ConflictScreeningResult
 }
 
 function runConflictCheck(
@@ -26,33 +37,27 @@ function runConflictCheck(
   matters: DemoMatter[],
   allIntakeLeads: DemoIntakeLead[],
 ): ConflictResult {
-  const normalise = (s: string) => s.toLowerCase().trim()
-  const intake = effectiveIntakeSnapshot(lead)
-  const searchName = normalise(intake.clientName?.trim() ?? '')
-
-  const clientMatches = clients.filter(c =>
-    !c.deletedAt &&
-    (normalise(c.full_name).includes(searchName) || searchName.includes(normalise(c.full_name)))
-  )
-
-  const matterMatches = matters.filter(m =>
-    !m.deletedAt &&
-    (normalise(m.buyer.name).includes(searchName) || searchName.includes(normalise(m.buyer.name)) ||
-     normalise(m.seller.name).includes(searchName) || searchName.includes(normalise(m.seller.name)))
-  )
-
-  const intakeMatches = allIntakeLeads.filter(i => {
-    if (i.id === lead.id) return false
-    const otherSnapshot = effectiveIntakeSnapshot(i)
-    const otherName = normalise(otherSnapshot.clientName?.trim() ?? '')
-    return otherName.includes(searchName) || searchName.includes(otherName)
+  const screening = runConflictCheckScreening({
+    lead,
+    matters,
+    clients,
+    intakeLeads: allIntakeLeads,
   })
-
+  const clientMatches = clients.filter((c) =>
+    screening.hits.some((h) => h.sourceType === 'client' && h.sourceId === c.id)
+  )
+  const matterMatches = matters.filter((m) =>
+    screening.hits.some((h) => h.sourceType === 'matter' && h.sourceId === m.id)
+  )
+  const intakeMatches = allIntakeLeads.filter((i) =>
+    screening.hits.some((h) => h.sourceType === 'intake' && h.sourceId === i.id)
+  )
   return {
-    hasConflict: clientMatches.length > 0 || matterMatches.length > 0 || intakeMatches.length > 0,
+    hasConflict: screening.status === 'flagged',
     clientMatches,
     matterMatches,
     intakeMatches,
+    screening,
   }
 }
 
@@ -74,6 +79,12 @@ export default function DemoIntakesPage() {
     result: ConflictResult | null
   }>({ open: false, lead: null, result: null })
   const [confirmNote, setConfirmNote] = useState('')
+  const [reviewDraft, setReviewDraft] = useState<ConflictCheckReviewDraft>({
+    status: 'in_progress',
+    informationGaps: '',
+    internalNote: '',
+  })
+  const [reviewError, setReviewError] = useState<string | null>(null)
   const closeConflictModal = useCallback(() => {
     setConflictModal({ open: false, lead: null, result: null })
   }, [])
@@ -101,48 +112,100 @@ export default function DemoIntakesPage() {
         return
       }
       const result = runConflictCheck(lead, clients, matters, intakeLeads)
+      const existing = normalizeConflictCheckReview(lead.conflictCheckReview)
       setConflictModal({ open: true, lead, result })
       setConfirmNote('')
+      setReviewDraft({
+        status: existing.status === 'not_started' ? 'in_progress' : existing.status,
+        informationGaps: existing.informationGaps,
+        internalNote: existing.internalNote,
+      })
+      setReviewError(null)
     },
     [clients, matters, intakeLeads, showToast]
   )
 
   const handleMarkClear = useCallback(
     (leadId: string) => {
-      patchIntakeLead(leadId, {
-        conflict_check_status: 'clear',
-        conflict_check_completed_at: new Date().toISOString(),
-      })
+      const lead = conflictModal.lead?.id === leadId ? conflictModal.lead : intakeLeads.find((l) => l.id === leadId)
+      const screening = conflictModal.result?.screening
+      patchIntakeLead(
+        leadId,
+        createConflictCheckGatePatch({
+          status: 'clear',
+          screening: screening || null,
+          existingReview: lead?.conflictCheckReview,
+        })
+      )
       setConflictModal({ open: false, lead: null, result: null })
       showToast('Conflict check marked as clear.')
     },
-    [patchIntakeLead, showToast]
+    [conflictModal.lead, conflictModal.result, intakeLeads, patchIntakeLead, showToast]
   )
 
   const handleConfirmNoConflict = useCallback(
     (leadId: string, note: string) => {
-      patchIntakeLead(leadId, {
-        conflict_check_status: 'confirmed_no_conflict',
-        conflict_check_completed_at: new Date().toISOString(),
-        conflict_check_note: note || 'Reviewed and confirmed — no conflict.',
-      })
+      const lead = conflictModal.lead?.id === leadId ? conflictModal.lead : intakeLeads.find((l) => l.id === leadId)
+      const screening = conflictModal.result?.screening
+      patchIntakeLead(
+        leadId,
+        createConflictCheckGatePatch({
+          status: 'confirmed_no_conflict',
+          note: note || 'Reviewed and confirmed — no conflict.',
+          screening: screening || null,
+          existingReview: lead?.conflictCheckReview,
+        })
+      )
       setConflictModal({ open: false, lead: null, result: null })
       showToast('Conflict reviewed and confirmed clear.')
     },
-    [patchIntakeLead, showToast]
+    [conflictModal.lead, conflictModal.result, intakeLeads, patchIntakeLead, showToast]
   )
 
   const handleFlagConflict = useCallback(
     (leadId: string) => {
-      patchIntakeLead(leadId, {
-        conflict_check_status: 'flagged',
-        conflict_check_completed_at: new Date().toISOString(),
-      })
+      const lead = conflictModal.lead?.id === leadId ? conflictModal.lead : intakeLeads.find((l) => l.id === leadId)
+      const screening = conflictModal.result?.screening
+      patchIntakeLead(
+        leadId,
+        createConflictCheckGatePatch({
+          status: 'flagged',
+          screening: screening || null,
+          existingReview: lead?.conflictCheckReview,
+        })
+      )
       setConflictModal({ open: false, lead: null, result: null })
       showToast('Intake flagged as conflict.', 'err')
     },
-    [patchIntakeLead, showToast]
+    [conflictModal.lead, conflictModal.result, intakeLeads, patchIntakeLead, showToast]
   )
+
+  const handleSaveConflictReview = useCallback(() => {
+    const lead = conflictModal.lead
+    if (!lead) return
+    const check = canCompleteConflictCheckReview(reviewDraft)
+    if (!check.ok) {
+      setReviewError(check.reason || 'Cannot complete review.')
+      return
+    }
+    const actor = staff[0]
+    if (!actor) {
+      setReviewError('No staff profile available in demo store.')
+      return
+    }
+    const review = createConflictCheckReviewPatch({
+      draft: reviewDraft,
+      actor: { staffId: actor.id, staffName: actor.full_name },
+      existing: lead.conflictCheckReview,
+      screeningSummary: conflictModal.result?.screening.summary || lead.conflict_check_note || null,
+    })
+    patchIntakeLead(lead.id, { conflictCheckReview: review })
+    setConflictModal((prev) =>
+      prev.lead ? { ...prev, lead: { ...prev.lead, conflictCheckReview: review } } : prev
+    )
+    setReviewError(null)
+    showToast('Conflict check review saved.')
+  }, [conflictModal.lead, conflictModal.result, patchIntakeLead, reviewDraft, showToast, staff])
 
   useEffect(() => {
     setOrigin(typeof window !== 'undefined' ? window.location.origin : '')
@@ -764,6 +827,134 @@ export default function DemoIntakesPage() {
                 </div>
               </>
             )}
+
+            <div
+              style={{
+                marginTop: 22,
+                paddingTop: 16,
+                borderTop: '1px solid rgba(94,82,64,0.15)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#134252' }}>Conflict Check Review</div>
+                <div style={{ fontSize: 12, color: '#627c71', marginTop: 4, lineHeight: 1.45 }}>
+                  Internal lawyer-controlled review record. Operational only — not a legal opinion, ethical clearance, or conflict waiver.
+                </div>
+              </div>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 700, color: '#627c71' }}>
+                Review status
+                <select
+                  value={reviewDraft.status}
+                  onChange={(e) =>
+                    setReviewDraft((prev) => ({
+                      ...prev,
+                      status: e.target.value as ConflictCheckReviewDraft['status'],
+                    }))
+                  }
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: 6,
+                    border: '1px solid rgba(94,82,64,0.25)',
+                    fontWeight: 700,
+                    color: '#134252',
+                  }}
+                >
+                  <option value="not_started">Not started</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="needs_more_info">Needs more info</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 700, color: '#627c71' }}>
+                Information gaps
+                <textarea
+                  value={reviewDraft.informationGaps}
+                  onChange={(e) => setReviewDraft((prev) => ({ ...prev, informationGaps: e.target.value }))}
+                  placeholder="Missing facts still needed for a complete internal review"
+                  style={{
+                    width: '100%',
+                    minHeight: 52,
+                    padding: 10,
+                    borderRadius: 6,
+                    border: '1px solid rgba(94,82,64,0.25)',
+                    fontSize: 13,
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                  }}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 700, color: '#627c71' }}>
+                Internal note
+                <textarea
+                  value={reviewDraft.internalNote}
+                  onChange={(e) => setReviewDraft((prev) => ({ ...prev, internalNote: e.target.value }))}
+                  placeholder="Staff-only internal review note"
+                  style={{
+                    width: '100%',
+                    minHeight: 52,
+                    padding: 10,
+                    borderRadius: 6,
+                    border: '1px solid rgba(94,82,64,0.25)',
+                    fontSize: 13,
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                  }}
+                />
+              </label>
+              {reviewError ? (
+                <div style={{ color: '#c0152f', fontSize: 12, fontWeight: 700 }}>{reviewError}</div>
+              ) : null}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={handleSaveConflictReview}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    border: '1px solid #134252',
+                    background: '#134252',
+                    color: '#fff',
+                    fontWeight: 800,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Save review record
+                </button>
+                {conflictModal.lead.conflictCheckReview ? (
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      padding: '4px 8px',
+                      borderRadius: 999,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      background: conflictCheckReviewStatusPresentation(
+                        normalizeConflictCheckReview(conflictModal.lead.conflictCheckReview).status
+                      ).bg,
+                      color: conflictCheckReviewStatusPresentation(
+                        normalizeConflictCheckReview(conflictModal.lead.conflictCheckReview).status
+                      ).color,
+                      border: `1px solid ${
+                        conflictCheckReviewStatusPresentation(
+                          normalizeConflictCheckReview(conflictModal.lead.conflictCheckReview).status
+                        ).border
+                      }`,
+                    }}
+                  >
+                    {
+                      conflictCheckReviewStatusPresentation(
+                        normalizeConflictCheckReview(conflictModal.lead.conflictCheckReview).status
+                      ).label
+                    }
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
           </div>
         </div>
       )}

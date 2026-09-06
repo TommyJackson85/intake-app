@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState , useRef} from 'react'
 import { useDemoStore } from '@/lib/demo/store'
 import type {
   DemoCondoAssociationFinancialReview,
@@ -135,6 +135,21 @@ import {
   listCompletedCondoDiligenceSummaryReviewTasks,
   listCondoDiligenceSummaryReviewTasks,
 } from '@/lib/demo/demoMatterReviewTask'
+
+
+import {
+  buildConflictCheckReviewMemoContent,
+  canCompleteConflictCheckReview,
+  conflictCheckGateStatusLabel,
+  conflictCheckReviewStatusPresentation,
+  createConflictCheckReviewMemoDocumentInput,
+  createConflictCheckReviewPatch,
+  findIntakeLeadForMatter,
+  listConflictCheckReviewMemoDocuments,
+  normalizeConflictCheckReview,
+  runConflictCheckScreening,
+  type ConflictCheckReviewDraft,
+} from '@/lib/demo/conflictCheckReview'
 import {
   CONDO_DILIGENCE_ACTIVITY_VIEW_FILTERS,
   condoDiligenceActivityActionLabel,
@@ -309,6 +324,9 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     condoDiligenceActivities,
     staff,
     matters,
+    clients,
+    intakeLeads,
+    patchIntakeLead,
     addDemoDocument,
     addDemoDocumentRequest,
     addMatterReviewTask,
@@ -327,6 +345,18 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   >('idle')
   const [condoReportSavedDocId, setCondoReportSavedDocId] = useState<string | null>(null)
   const [condoMemoPanelOpen, setCondoMemoPanelOpen] = useState(false)
+
+  const [conflictReviewDraft, setConflictReviewDraft] = useState<ConflictCheckReviewDraft>({
+    status: 'in_progress',
+    informationGaps: '',
+    internalNote: '',
+  })
+  const [conflictReviewError, setConflictReviewError] = useState<string | null>(null)
+  const [conflictMemoPanelOpen, setConflictMemoPanelOpen] = useState(false)
+  const [conflictMemoSaveStatus, setConflictMemoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
+  const [conflictMemoCopyStatus, setConflictMemoCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const conflictMemoSaveLockRef = useRef(false)
+
   const [condoMemoCopyStatus, setCondoMemoCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
   const [condoMemoSaveStatus, setCondoMemoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
   const [condoMemoSavedDocId, setCondoMemoSavedDocId] = useState<string | null>(null)
@@ -543,6 +573,49 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
       matterLabel,
     })
   }, [condoReviewDashboard, effectiveMatter])
+
+  const linkedConflictIntakeLead = useMemo(() => {
+    if (!effectiveMatter) return null
+    return findIntakeLeadForMatter(intakeLeads, effectiveMatter)
+  }, [effectiveMatter, intakeLeads])
+
+  const conflictScreening = useMemo(() => {
+    if (!linkedConflictIntakeLead) return null
+    return runConflictCheckScreening({
+      lead: linkedConflictIntakeLead,
+      matters,
+      clients,
+      intakeLeads,
+    })
+  }, [linkedConflictIntakeLead, matters, clients, intakeLeads])
+
+  const conflictMemoHistory = useMemo(() => {
+    if (!effectiveMatter) return []
+    return listConflictCheckReviewMemoDocuments(documents, effectiveMatter.id)
+  }, [documents, effectiveMatter])
+
+  const conflictReviewMemoContent = useMemo(() => {
+    if (!linkedConflictIntakeLead || !effectiveMatter) return ''
+    const client = clients.find((c) => c.id === linkedConflictIntakeLead.linkedClientId) || null
+    return buildConflictCheckReviewMemoContent({
+      lead: linkedConflictIntakeLead,
+      matter: effectiveMatter,
+      client,
+      review: linkedConflictIntakeLead.conflictCheckReview,
+      screening: conflictScreening,
+    })
+  }, [linkedConflictIntakeLead, effectiveMatter, clients, conflictScreening])
+
+  useEffect(() => {
+    if (!linkedConflictIntakeLead) return
+    const existing = normalizeConflictCheckReview(linkedConflictIntakeLead.conflictCheckReview)
+    setConflictReviewDraft({
+      status: existing.status === 'not_started' ? 'in_progress' : existing.status,
+      informationGaps: existing.informationGaps,
+      internalNote: existing.internalNote,
+    })
+    setConflictReviewError(null)
+  }, [linkedConflictIntakeLead?.id, linkedConflictIntakeLead?.conflictCheckReview?.reviewedAt])
 
   const goToCondoDiligenceSection = (sectionId: string) => {
     setActiveTab('Condo Diligence')
@@ -1381,7 +1454,405 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                 </div>
               )}
 
-{condoReviewDashboard && (
+
+              {linkedConflictIntakeLead && (
+                <div
+                  style={{
+                    border: '1px solid rgba(94,82,64,0.12)',
+                    borderRadius: 8,
+                    padding: 12,
+                    background: 'white',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                        Conflict Check Review
+                      </div>
+                      <div style={{ fontSize: 11, color: '#627c71', marginTop: 4, lineHeight: 1.45, maxWidth: '40rem' }}>
+                        Internal lawyer-controlled conflict review for the linked intake lead. Operational only — not a
+                        legal opinion, ethical clearance, or conflict waiver.
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '5px 10px',
+                          borderRadius: 999,
+                          fontSize: 11,
+                          fontWeight: 900,
+                          background: conflictCheckReviewStatusPresentation(
+                            normalizeConflictCheckReview(linkedConflictIntakeLead.conflictCheckReview).status
+                          ).bg,
+                          color: conflictCheckReviewStatusPresentation(
+                            normalizeConflictCheckReview(linkedConflictIntakeLead.conflictCheckReview).status
+                          ).color,
+                          border: `1px solid ${
+                            conflictCheckReviewStatusPresentation(
+                              normalizeConflictCheckReview(linkedConflictIntakeLead.conflictCheckReview).status
+                            ).border
+                          }`,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {
+                          conflictCheckReviewStatusPresentation(
+                            normalizeConflictCheckReview(linkedConflictIntakeLead.conflictCheckReview).status
+                          ).label
+                        }
+                      </span>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '5px 10px',
+                          borderRadius: 999,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          background: '#f5f5f5',
+                          color: '#627c71',
+                          border: '1px solid rgba(94,82,64,0.2)',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Gate: {conflictCheckGateStatusLabel(linkedConflictIntakeLead.conflict_check_status || 'pending')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.45 }}>
+                    Screening: {conflictScreening?.summary || linkedConflictIntakeLead.conflict_check_note || 'No screening summary yet.'}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
+                      Review status
+                      <select
+                        value={conflictReviewDraft.status}
+                        onChange={(e) =>
+                          setConflictReviewDraft((prev) => ({
+                            ...prev,
+                            status: e.target.value as ConflictCheckReviewDraft['status'],
+                          }))
+                        }
+                        style={{
+                          padding: '6px 8px',
+                          borderRadius: 6,
+                          border: '1px solid rgba(94,82,64,0.25)',
+                          fontWeight: 700,
+                          color: '#134252',
+                        }}
+                      >
+                        <option value="not_started">Not started</option>
+                        <option value="in_progress">In progress</option>
+                        <option value="needs_more_info">Needs more info</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
+                      Information gaps
+                      <textarea
+                        value={conflictReviewDraft.informationGaps}
+                        onChange={(e) =>
+                          setConflictReviewDraft((prev) => ({ ...prev, informationGaps: e.target.value }))
+                        }
+                        rows={2}
+                        style={{
+                          padding: 8,
+                          borderRadius: 6,
+                          border: '1px solid rgba(94,82,64,0.25)',
+                          fontSize: 12,
+                          resize: 'vertical',
+                        }}
+                      />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
+                      Internal note
+                      <textarea
+                        value={conflictReviewDraft.internalNote}
+                        onChange={(e) =>
+                          setConflictReviewDraft((prev) => ({ ...prev, internalNote: e.target.value }))
+                        }
+                        rows={2}
+                        style={{
+                          padding: 8,
+                          borderRadius: 6,
+                          border: '1px solid rgba(94,82,64,0.25)',
+                          fontSize: 12,
+                          resize: 'vertical',
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {conflictReviewError ? (
+                    <div style={{ color: '#c0152f', fontSize: 12, fontWeight: 700 }}>{conflictReviewError}</div>
+                  ) : null}
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const check = canCompleteConflictCheckReview(conflictReviewDraft)
+                        if (!check.ok) {
+                          setConflictReviewError(check.reason || 'Cannot complete review.')
+                          return
+                        }
+                        const actor = staff[0]
+                        if (!actor) {
+                          setConflictReviewError('No staff profile available.')
+                          return
+                        }
+                        const review = createConflictCheckReviewPatch({
+                          draft: conflictReviewDraft,
+                          actor: { staffId: actor.id, staffName: actor.full_name },
+                          existing: linkedConflictIntakeLead.conflictCheckReview,
+                          screeningSummary:
+                            conflictScreening?.summary || linkedConflictIntakeLead.conflict_check_note || null,
+                        })
+                        patchIntakeLead(linkedConflictIntakeLead.id, { conflictCheckReview: review })
+                        setConflictReviewError(null)
+                      }}
+                      style={{
+                        background: '#134252',
+                        border: '1px solid #134252',
+                        borderRadius: 6,
+                        padding: '4px 8px',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: '#fff',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Save review
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConflictMemoPanelOpen((open) => !open)}
+                      style={{
+                        background: conflictMemoPanelOpen ? '#e8f4f8' : 'white',
+                        border: '1px solid rgba(94,82,64,0.25)',
+                        borderRadius: 6,
+                        padding: '4px 8px',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: '#134252',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {conflictMemoPanelOpen ? 'Hide memo' : 'Generate internal memo'}
+                    </button>
+                  </div>
+
+                  {conflictMemoPanelOpen ? (
+                    <div
+                      style={{
+                        border: '1px solid rgba(94,82,64,0.14)',
+                        borderRadius: 8,
+                        padding: 12,
+                        background: '#fcfcf9',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
+                        Internal Conflict Check Review Memo
+                      </div>
+                      <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.45 }}>
+                        Immutable internal snapshot when saved. Not shared to the client portal.
+                      </div>
+                      <pre
+                        style={{
+                          margin: 0,
+                          whiteSpace: 'pre-wrap',
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                          fontSize: 11,
+                          lineHeight: 1.45,
+                          color: '#134252',
+                          maxHeight: 220,
+                          overflow: 'auto',
+                          background: 'white',
+                          border: '1px solid rgba(94,82,64,0.12)',
+                          borderRadius: 6,
+                          padding: 10,
+                        }}
+                      >
+                        {conflictReviewMemoContent || 'No memo content.'}
+                      </pre>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        <button
+                          type="button"
+                          disabled={conflictMemoSaveStatus === 'saving'}
+                          onClick={() => {
+                            if (!effectiveMatter || !linkedConflictIntakeLead) return
+                            if (conflictMemoSaveLockRef.current || conflictMemoSaveStatus === 'saving') return
+                            conflictMemoSaveLockRef.current = true
+                            setConflictMemoSaveStatus('saving')
+                            const staffId = staff[0]?.id ?? ''
+                            const client =
+                              clients.find((c) => c.id === linkedConflictIntakeLead.linkedClientId) || null
+                            const draftInput = createConflictCheckReviewMemoDocumentInput({
+                              matter: effectiveMatter,
+                              lead: linkedConflictIntakeLead,
+                              uploadedByStaffId: staffId,
+                              client,
+                              review: linkedConflictIntakeLead.conflictCheckReview,
+                              screening: conflictScreening,
+                              content: conflictReviewMemoContent,
+                            })
+                            if (!draftInput) {
+                              setConflictMemoSaveStatus('failed')
+                              conflictMemoSaveLockRef.current = false
+                              window.setTimeout(() => setConflictMemoSaveStatus('idle'), 2500)
+                              return
+                            }
+                            const draftId = `doc-conflict-memo-${Date.now()}`
+                            addDemoDocument({ ...draftInput, id: draftId })
+                            const review = createConflictCheckReviewPatch({
+                              draft: {
+                                status: normalizeConflictCheckReview(linkedConflictIntakeLead.conflictCheckReview).status,
+                                informationGaps: normalizeConflictCheckReview(linkedConflictIntakeLead.conflictCheckReview)
+                                  .informationGaps,
+                                internalNote: normalizeConflictCheckReview(linkedConflictIntakeLead.conflictCheckReview)
+                                  .internalNote,
+                              },
+                              actor: {
+                                staffId: staff[0]?.id || 'staff',
+                                staffName: staff[0]?.full_name || 'Staff',
+                              },
+                              existing: linkedConflictIntakeLead.conflictCheckReview,
+                              linkedMemoDocumentId: draftId,
+                              screeningSummary:
+                                conflictScreening?.summary || linkedConflictIntakeLead.conflict_check_note || null,
+                            })
+                            patchIntakeLead(linkedConflictIntakeLead.id, { conflictCheckReview: review })
+                            setConflictMemoSaveStatus('saved')
+                            window.setTimeout(() => {
+                              setConflictMemoSaveStatus('idle')
+                              conflictMemoSaveLockRef.current = false
+                            }, 2500)
+                          }}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: 6,
+                            border: '1px solid rgba(94,82,64,0.25)',
+                            background: conflictMemoSaveStatus === 'saving' ? '#f0f0f0' : '#134252',
+                            fontWeight: 800,
+                            fontSize: 11,
+                            color: conflictMemoSaveStatus === 'saving' ? '#627c71' : '#fff',
+                            cursor: conflictMemoSaveStatus === 'saving' ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {conflictMemoSaveStatus === 'saving'
+                            ? 'Saving…'
+                            : conflictMemoSaveStatus === 'saved'
+                              ? 'Saved'
+                              : conflictMemoSaveStatus === 'failed'
+                                ? 'Save failed'
+                                : 'Save as internal draft'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(conflictReviewMemoContent)
+                              setConflictMemoCopyStatus('copied')
+                              window.setTimeout(() => setConflictMemoCopyStatus('idle'), 2000)
+                            } catch {
+                              setConflictMemoCopyStatus('failed')
+                              window.setTimeout(() => setConflictMemoCopyStatus('idle'), 2500)
+                            }
+                          }}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: 6,
+                            border: '1px solid rgba(94,82,64,0.25)',
+                            background: '#fff',
+                            fontWeight: 800,
+                            fontSize: 11,
+                            color: '#134252',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {conflictMemoCopyStatus === 'copied'
+                            ? 'Copied'
+                            : conflictMemoCopyStatus === 'failed'
+                              ? 'Copy failed'
+                              : 'Copy memo'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#134252', marginBottom: 6 }}>
+                      Conflict Check Memo History
+                    </div>
+                    {conflictMemoHistory.length === 0 ? (
+                      <div style={{ fontSize: 12, color: '#627c71' }}>No saved internal conflict check memos yet.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {conflictMemoHistory.map((doc) => {
+                          const savedAt =
+                            doc.generatedInternalSummary?.generatedAt?.trim() || doc.uploaded_at
+                          return (
+                            <div
+                              key={doc.id}
+                              style={{
+                                display: 'flex',
+                                gap: 12,
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                borderTop: '1px solid rgba(94,82,64,0.1)',
+                                paddingTop: 8,
+                              }}
+                            >
+                              <div style={{ minWidth: 0, flex: '1 1 180px' }}>
+                                <div style={{ fontWeight: 800, color: '#134252', fontSize: 12 }}>{doc.name}</div>
+                                <div style={{ color: '#627c71', fontSize: 11, fontWeight: 700 }}>
+                                  Saved: {new Date(savedAt).toLocaleString()} · Internal only
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setPreviewDocumentId(doc.id)}
+                                style={{
+                                  padding: '5px 10px',
+                                  borderRadius: 6,
+                                  border: '1px solid rgba(94,82,64,0.25)',
+                                  background: '#fff',
+                                  fontWeight: 800,
+                                  fontSize: 11,
+                                  color: '#134252',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                View memo
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+
+              {condoReviewDashboard && (
                 <div
                   style={{
                     border: '1px solid rgba(94,82,64,0.12)',

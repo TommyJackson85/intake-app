@@ -12,6 +12,7 @@ import {
   isCondoDiligenceInternalSummaryDocument,
   isCondoDiligenceReviewMemoDocument,
 } from '@/lib/demo/condoDiligence'
+import { isConflictCheckReviewMemoDocument } from '@/lib/demo/conflictCheckReview'
 
 type DocumentPreviewModalProps = {
   previewDocument: DemoDocument | null
@@ -134,8 +135,11 @@ export default function DocumentPreviewModal({
   const isEngagementLetter = isEngagementLetterDocument(previewDocument)
   const isCondoInternalSummary = isCondoDiligenceInternalSummaryDocument(previewDocument)
   const isCondoInternalMemo = isCondoDiligenceReviewMemoDocument(previewDocument)
-  const isCondoInternalSnapshot = isCondoInternalSummary || isCondoInternalMemo
-  const condoSnapshotTitle = isCondoInternalMemo
+  const isConflictCheckMemo = isConflictCheckReviewMemoDocument(previewDocument)
+  const isCondoInternalSnapshot = isCondoInternalSummary || isCondoInternalMemo || isConflictCheckMemo
+  const condoSnapshotTitle = isConflictCheckMemo
+    ? 'Internal Conflict Check Review Memo'
+    : isCondoInternalMemo
     ? 'Internal Condo Diligence Review Memo'
     : 'Internal Condo Diligence Summary'
   const condoSummaryContent = previewDocument.generatedInternalSummary?.content?.trim() || ''

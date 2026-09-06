@@ -623,6 +623,36 @@ export type DemoIntakeSnapshot = {
 
 export type DemoConflictCheckStatus = 'pending' | 'clear' | 'flagged' | 'confirmed_no_conflict'
 
+/**
+ * Internal lawyer-controlled Conflict Check Review workflow status.
+ * Separate from the intake gate (`DemoConflictCheckStatus`).
+ */
+export type DemoConflictCheckReviewStatus =
+  | 'not_started'
+  | 'in_progress'
+  | 'completed'
+  | 'needs_more_info'
+
+/**
+ * Structured internal Conflict Check Review record on an intake lead.
+ * Not a legal opinion, conflict waiver, or ethical-clearance determination.
+ */
+export type DemoConflictCheckReview = {
+  status: DemoConflictCheckReviewStatus
+  /** Missing facts still needed for a complete internal review. */
+  informationGaps: string
+  /** Staff-only internal review note. */
+  internalNote: string
+  reviewerId: string | null
+  reviewerName: string | null
+  /** ISO timestamp when the review was last recorded. */
+  reviewedAt: string | null
+  /** Optional link to a saved Internal Conflict Check Review Memo document id. */
+  linkedMemoDocumentId: string | null
+  /** Short screening snapshot captured when the review was recorded. */
+  screeningSummary: string | null
+}
+
 export type DemoIntakeLeadStatus = 'pending_client' | 'submitted'
 
 export type DemoIntakeDemoDelivery = 'link_saved' | 'email_sent'
@@ -654,6 +684,11 @@ export type DemoIntakeLead = {
   conflict_check_status?: DemoConflictCheckStatus
   conflict_check_completed_at?: string | null
   conflict_check_note?: string | null
+  /**
+   * Internal lawyer-controlled Conflict Check Review record.
+   * Operational only — not a legal opinion or ethical clearance determination.
+   */
+  conflictCheckReview?: DemoConflictCheckReview
 }
 
 export type DemoSeedData = {
@@ -717,8 +752,12 @@ export type DemoGeneratedInternalSummaryMetadata = {
    * Discriminator for generated internal text snapshots.
    * - `condo_diligence_internal_summary` — Internal Condo Diligence Summary
    * - `condo_diligence_review_memo` — Internal Condo Diligence Review Memo
+   * - `conflict_check_review_memo` — Internal Conflict Check Review Memo
    */
-  generatedType: 'condo_diligence_internal_summary' | 'condo_diligence_review_memo'
+  generatedType:
+    | 'condo_diligence_internal_summary'
+    | 'condo_diligence_review_memo'
+    | 'conflict_check_review_memo'
   generatedAt: string
   sourceMatterId: string
   content: string
