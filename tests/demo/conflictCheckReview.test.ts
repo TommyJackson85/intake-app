@@ -6,7 +6,13 @@ import {
   createConflictCheckReviewMemoDocumentInput,
   createConflictCheckReviewPatch,
   findIntakeLeadForMatter,
+  formatConflictCheckMemoHistoryCount,
+  getConflictCheckMemoGeneratedAt,
+  getConflictCheckMemoHistoryItem,
+  getIntakeConflictCheckMemoHistory,
+  getMatterConflictCheckMemoHistory,
   isConflictCheckReviewMemoDocument,
+  isGeneratedInternalConflictCheckMemo,
   listConflictCheckReviewMemoDocuments,
   normalizeConflictCheckReview,
   runConflictCheckScreening,
@@ -339,4 +345,60 @@ describe('conflictCheckReview', () => {
     expect(history[0]?.generatedInternalSummary?.content).toContain('No overlaps recorded.')
     expect(history[0]?.generatedInternalSummary?.content).toContain('Cleared for engagement.')
   })
+
+  it('exposes Internal only history helpers for matter and intake scopes', () => {
+    const matter = makeMatter()
+    const lead = makeLead({
+      linkedMatterFileId: matter.file_id,
+      conflict_check_status: 'clear',
+      conflictCheckReview: normalizeConflictCheckReview({
+        status: 'completed',
+        informationGaps: '',
+        internalNote: 'Cleared for engagement.',
+        reviewerId: 'staff-1',
+        reviewerName: 'Katherine Ruiz, Esq.',
+        reviewedAt: '2026-02-01T12:00:00.000Z',
+        linkedMemoDocumentId: null,
+        screeningSummary: 'No overlaps recorded.',
+      }),
+    })
+    const input = createConflictCheckReviewMemoDocumentInput({
+      matter,
+      lead,
+      uploadedByStaffId: 'staff-1',
+      review: lead.conflictCheckReview,
+      generatedAt: '2026-02-01T15:00:00.000Z',
+      id: 'doc-conflict-helpers',
+    })
+    expect(input?.generatedInternalSummary?.visibility).toBe('internal')
+    expect(input?.generatedInternalSummary?.sourceIntakeLeadId).toBe(lead.id)
+
+    const doc = {
+      id: 'doc-conflict-helpers',
+      matter_id: matter.id,
+      name: input!.name,
+      category: 'Compliance',
+      document_subtype: input!.document_subtype ?? null,
+      uploaded_at: '2026-02-01T15:00:00.000Z',
+      uploaded_by_staff_id: 'staff-1',
+      status: 'draft',
+      deletedAt: null,
+      generatedInternalSummary: input!.generatedInternalSummary,
+    } as DemoDocument
+
+    expect(isGeneratedInternalConflictCheckMemo(doc)).toBe(true)
+    expect(getConflictCheckMemoGeneratedAt(doc)).toBe('2026-02-01T15:00:00.000Z')
+    expect(getConflictCheckMemoHistoryItem(doc)?.visibility).toBe('internal')
+    expect(getConflictCheckMemoHistoryItem(doc)?.intakeLeadId).toBe(lead.id)
+    expect(getMatterConflictCheckMemoHistory([doc], matter.id).map((d) => d.id)).toEqual([
+      'doc-conflict-helpers',
+    ])
+    expect(getIntakeConflictCheckMemoHistory([doc], lead.id).map((d) => d.id)).toEqual([
+      'doc-conflict-helpers',
+    ])
+    expect(formatConflictCheckMemoHistoryCount(0)).toBe('No saved internal memos')
+    expect(formatConflictCheckMemoHistoryCount(1)).toBe('1 saved internal memo')
+    expect(formatConflictCheckMemoHistoryCount(2)).toBe('2 saved internal memos')
+  })
+
 })

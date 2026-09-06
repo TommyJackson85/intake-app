@@ -14,6 +14,9 @@ import {
   conflictCheckReviewStatusPresentation,
   createConflictCheckGatePatch,
   createConflictCheckReviewPatch,
+  formatConflictCheckMemoHistoryCount,
+  getConflictCheckMemoGeneratedAt,
+  getIntakeConflictCheckMemoHistory,
   normalizeConflictCheckReview,
   runConflictCheckScreening,
   type ConflictCheckReviewDraft,
@@ -68,7 +71,7 @@ function resolveIntakeUrl(lead: DemoIntakeLead, origin: string) {
 }
 
 export default function DemoIntakesPage() {
-  const { matters, staff, clients, intakeLeads, patchIntakeLead, createDemoClientIfNotExists, linkDemoClientToMatterByFileId, addDemoDocument } = useDemoStore()
+  const { matters, staff, clients, documents, intakeLeads, patchIntakeLead, createDemoClientIfNotExists, linkDemoClientToMatterByFileId, addDemoDocument } = useDemoStore()
   const [isNewIntakeOpen, setIsNewIntakeOpen] = useState(false)
   const [origin, setOrigin] = useState('')
   const [toast, setToast] = useState<{ message: string; tone: 'ok' | 'err' } | null>(null)
@@ -953,6 +956,58 @@ export default function DemoIntakesPage() {
                   </span>
                 ) : null}
               </div>
+
+              {conflictModal.lead ? (
+                <div
+                  style={{
+                    marginTop: 14,
+                    borderTop: '1px solid rgba(94,82,64,0.12)',
+                    paddingTop: 12,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#134252' }}>
+                    Conflict Check Memo History
+                  </div>
+                  <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.45 }}>
+                    Internal only. Prior saved Conflict Check Review memo snapshots for this intake.{' '}
+                    {formatConflictCheckMemoHistoryCount(
+                      getIntakeConflictCheckMemoHistory(documents, conflictModal.lead.id).length
+                    )}
+                  </div>
+                  {getIntakeConflictCheckMemoHistory(documents, conflictModal.lead.id).length === 0 ? (
+                    <div style={{ fontSize: 12, color: '#627c71' }}>
+                      No saved internal memos yet. Draft and save one from the linked matter Overview.
+                    </div>
+                  ) : (
+                    getIntakeConflictCheckMemoHistory(documents, conflictModal.lead.id).map((doc) => {
+                      const savedAt = getConflictCheckMemoGeneratedAt(doc) || doc.uploaded_at
+                      return (
+                        <div
+                          key={doc.id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            gap: 12,
+                            flexWrap: 'wrap',
+                            borderTop: '1px solid rgba(94,82,64,0.1)',
+                            paddingTop: 8,
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 800, color: '#134252', fontSize: 12 }}>{doc.name}</div>
+                            <div style={{ color: '#627c71', fontSize: 11, fontWeight: 700 }}>
+                              Saved: {new Date(savedAt).toLocaleString()} · Internal only
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              ) : null}
             </div>
 
           </div>

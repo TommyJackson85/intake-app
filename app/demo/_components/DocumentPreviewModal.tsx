@@ -12,7 +12,7 @@ import {
   isCondoDiligenceInternalSummaryDocument,
   isCondoDiligenceReviewMemoDocument,
 } from '@/lib/demo/condoDiligence'
-import { isConflictCheckReviewMemoDocument } from '@/lib/demo/conflictCheckReview'
+import { isGeneratedInternalConflictCheckMemo } from '@/lib/demo/conflictCheckReview'
 
 type DocumentPreviewModalProps = {
   previewDocument: DemoDocument | null
@@ -135,7 +135,7 @@ export default function DocumentPreviewModal({
   const isEngagementLetter = isEngagementLetterDocument(previewDocument)
   const isCondoInternalSummary = isCondoDiligenceInternalSummaryDocument(previewDocument)
   const isCondoInternalMemo = isCondoDiligenceReviewMemoDocument(previewDocument)
-  const isConflictCheckMemo = isConflictCheckReviewMemoDocument(previewDocument)
+  const isConflictCheckMemo = isGeneratedInternalConflictCheckMemo(previewDocument)
   const isCondoInternalSnapshot = isCondoInternalSummary || isCondoInternalMemo || isConflictCheckMemo
   const condoSnapshotTitle = isConflictCheckMemo
     ? 'Internal Conflict Check Review Memo'
@@ -352,7 +352,9 @@ export default function DocumentPreviewModal({
             </div>
             <div style={{ fontSize: 12, color: '#627c71', marginBottom: 12 }}>
               {isCondoInternalSnapshot
-                ? 'Saved immutable snapshot. Not regenerated from current matter data. Not shared to the client portal.'
+                ? isConflictCheckMemo
+                  ? 'Internal only. Saved immutable Conflict Check Review memo snapshot. Not regenerated from current matter data. Not shared to the client portal.'
+                  : 'Saved immutable snapshot. Not regenerated from current matter data. Not shared to the client portal.'
                 : 'Simulated first-page preview. No real file stored.'}
             </div>
             {isCondoInternalSnapshot ? (

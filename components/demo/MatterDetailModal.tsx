@@ -145,8 +145,10 @@ import {
   createConflictCheckReviewMemoDocumentInput,
   createConflictCheckReviewPatch,
   findIntakeLeadForMatter,
-  isConflictCheckReviewMemoDocument,
-  listConflictCheckReviewMemoDocuments,
+  formatConflictCheckMemoHistoryCount,
+  getConflictCheckMemoGeneratedAt,
+  getMatterConflictCheckMemoHistory,
+  isGeneratedInternalConflictCheckMemo,
   normalizeConflictCheckReview,
   runConflictCheckScreening,
   type ConflictCheckReviewDraft,
@@ -592,7 +594,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
 
   const conflictMemoHistory = useMemo(() => {
     if (!effectiveMatter) return []
-    return listConflictCheckReviewMemoDocuments(documents, effectiveMatter.id)
+    return getMatterConflictCheckMemoHistory(documents, effectiveMatter.id)
   }, [documents, effectiveMatter])
 
   const conflictReviewMemoContent = useMemo(() => {
@@ -1652,7 +1654,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         cursor: 'pointer',
                       }}
                     >
-                      {conflictMemoPanelOpen ? 'Hide memo' : 'Generate internal memo'}
+                      {conflictMemoPanelOpen ? 'Hide memo' : 'Draft internal memo'}
                     </button>
                   </div>
 
@@ -1672,8 +1674,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         Internal Conflict Check Review Memo
                       </div>
                       <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.45 }}>
-                        Built from recorded conflict screening and Conflict Check Review. Saving creates an immutable
-                        internal snapshot (not shared to the client portal).
+                        Draft from recorded conflict screening and Conflict Check Review. Saving creates an immutable Internal only snapshot (not shared to the client portal).
                       </div>
                       <pre
                         style={{
@@ -1775,7 +1776,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                               ? 'Saved'
                               : conflictMemoSaveStatus === 'failed'
                                 ? 'Save failed'
-                                : 'Save as internal draft'}
+                                : 'Save internal memo'}
                         </button>
                         <button
                           type="button"
@@ -1815,8 +1816,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       Conflict Check Memo History
                     </div>
                     <div style={{ fontSize: 11, color: '#627c71', marginBottom: 6, lineHeight: 1.45 }}>
-                      Saved immutable internal memo snapshots based on recorded conflict screening and Conflict Check
-                      Review information. Open any prior snapshot below.
+                      Internal only. Saved immutable memo snapshots based on recorded conflict screening and Conflict
+                      Check Review information. Open any prior snapshot below. {formatConflictCheckMemoHistoryCount(conflictMemoHistory.length)}
                     </div>
                     {conflictMemoHistory.length === 0 ? (
                       <div style={{ fontSize: 12, color: '#627c71' }}>No saved internal conflict check memos yet.</div>
@@ -1824,7 +1825,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {conflictMemoHistory.map((doc) => {
                           const savedAt =
-                            doc.generatedInternalSummary?.generatedAt?.trim() || doc.uploaded_at
+                            getConflictCheckMemoGeneratedAt(doc) || doc.uploaded_at
                           return (
                             <div
                               key={doc.id}
@@ -2196,7 +2197,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                 ? 'Saved'
                                 : condoMemoSaveStatus === 'failed'
                                   ? 'Save failed'
-                                  : 'Save as internal draft'}
+                                  : 'Save internal memo'}
                           </button>
                           <button
                             type="button"
@@ -3276,8 +3277,9 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       Conflict Check Memo History
                     </div>
                     <div style={{ fontSize: 12, color: '#627c71', lineHeight: 1.45 }}>
-                      Saved immutable internal memo snapshots based on recorded conflict screening and Conflict Check
-                      Review information. Lawyer work product only — not shared to the client portal.
+                      Internal only. Saved immutable memo snapshots based on recorded conflict screening and Conflict
+                      Check Review information. Lawyer work product only — not shared to the client portal.{' '}
+                      {formatConflictCheckMemoHistoryCount(conflictMemoHistory.length)}
                     </div>
                   </div>
                   {conflictMemoHistory.length === 0 ? (
@@ -3289,7 +3291,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {conflictMemoHistory.map((doc) => {
                         const savedAt =
-                          doc.generatedInternalSummary?.generatedAt?.trim() || doc.uploaded_at
+                          getConflictCheckMemoGeneratedAt(doc) || doc.uploaded_at
                         return (
                           <div
                             key={doc.id}
@@ -3366,7 +3368,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                     const uploadedBy = staff.find((s) => s.id === doc.uploaded_by_staff_id)?.full_name ?? 'Staff'
                     const isInternalSummary = isCondoDiligenceInternalSummaryDocument(doc)
                     const isInternalMemo = isCondoDiligenceReviewMemoDocument(doc)
-                    const isConflictCheckMemo = isConflictCheckReviewMemoDocument(doc)
+                    const isConflictCheckMemo = isGeneratedInternalConflictCheckMemo(doc)
                     return (
                       <div
                         key={doc.id}
@@ -3724,7 +3726,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                 ? 'Saved'
                                 : condoReportSaveStatus === 'failed'
                                   ? 'Save failed'
-                                  : 'Save as internal draft'}
+                                  : 'Save internal memo'}
                           </button>
                           <button
                             type="button"

@@ -508,15 +508,93 @@ export function isConflictCheckReviewMemoDocument(
   )
 }
 
+/** True for generated Internal Conflict Check Review Memo documents (staff-internal only). */
+export function isGeneratedInternalConflictCheckMemo(
+  document: Pick<DemoDocument, 'document_subtype' | 'generatedInternalSummary' | 'name' | 'deletedAt'>
+): boolean {
+  if (!isConflictCheckReviewMemoDocument(document)) return false
+  const visibility = document.generatedInternalSummary?.visibility
+  return visibility === undefined || visibility === 'internal'
+}
+
 export function conflictCheckReviewMemoSortTime(
   document: Pick<DemoDocument, 'uploaded_at' | 'generatedInternalSummary'>
 ): number {
-  const iso = document.generatedInternalSummary?.generatedAt?.trim() || document.uploaded_at
+  const iso = getConflictCheckMemoGeneratedAt(document) || document.uploaded_at
   const t = new Date(iso).getTime()
   return Number.isFinite(t) ? t : 0
 }
 
+export function getConflictCheckMemoGeneratedAt(
+  document: Pick<DemoDocument, 'uploaded_at' | 'generatedInternalSummary'>
+): string | null {
+  const generatedAt = document.generatedInternalSummary?.generatedAt?.trim()
+  if (generatedAt) return generatedAt
+  const uploaded = document.uploaded_at?.trim()
+  return uploaded || null
+}
+
+export type ConflictCheckMemoHistoryItem = {
+  id: string
+  name: string
+  matterId: string
+  generatedAt: string
+  status: DemoDocument['status']
+  visibility: 'internal'
+  content: string
+  intakeLeadId: string | null
+}
+
+export function getConflictCheckMemoHistoryItem(
+  document: Pick<
+    DemoDocument,
+    | 'id'
+    | 'name'
+    | 'matter_id'
+    | 'status'
+    | 'deletedAt'
+    | 'uploaded_at'
+    | 'document_subtype'
+    | 'generatedInternalSummary'
+  >
+): ConflictCheckMemoHistoryItem | null {
+  if (!isGeneratedInternalConflictCheckMemo(document)) return null
+  const generatedAt = getConflictCheckMemoGeneratedAt(document)
+  if (!generatedAt) return null
+  return {
+    id: document.id,
+    name: document.name,
+    matterId: document.matter_id,
+    generatedAt,
+    status: document.status,
+    visibility: 'internal',
+    content: document.generatedInternalSummary?.content?.trim() || '',
+    intakeLeadId: document.generatedInternalSummary?.sourceIntakeLeadId ?? null,
+  }
+}
+
+export function formatConflictCheckMemoHistoryCount(count: number): string {
+  if (count <= 0) return 'No saved internal memos'
+  if (count === 1) return '1 saved internal memo'
+  return `${count} saved internal memos`
+}
+
 export function listConflictCheckReviewMemoDocuments<
+  T extends Pick<
+    DemoDocument,
+    | 'id'
+    | 'name'
+    | 'deletedAt'
+    | 'uploaded_at'
+    | 'document_subtype'
+    | 'generatedInternalSummary'
+    | 'matter_id'
+  >,
+>(documents: readonly T[], matterId?: string): T[] {
+  return getMatterConflictCheckMemoHistory(documents, matterId)
+}
+
+export function getMatterConflictCheckMemoHistory<
   T extends Pick<
     DemoDocument,
     | 'id'
@@ -532,8 +610,33 @@ export function listConflictCheckReviewMemoDocuments<
     .filter(
       (doc) =>
         !doc.deletedAt &&
-        isConflictCheckReviewMemoDocument(doc) &&
+        isGeneratedInternalConflictCheckMemo(doc) &&
         (!matterId || doc.matter_id === matterId)
+    )
+    .slice()
+    .sort((a, b) => conflictCheckReviewMemoSortTime(b) - conflictCheckReviewMemoSortTime(a))
+}
+
+export function getIntakeConflictCheckMemoHistory<
+  T extends Pick<
+    DemoDocument,
+    | 'id'
+    | 'name'
+    | 'deletedAt'
+    | 'uploaded_at'
+    | 'document_subtype'
+    | 'generatedInternalSummary'
+    | 'matter_id'
+  >,
+>(documents: readonly T[], intakeId: string): T[] {
+  const id = intakeId.trim()
+  if (!id) return []
+  return documents
+    .filter(
+      (doc) =>
+        !doc.deletedAt &&
+        isGeneratedInternalConflictCheckMemo(doc) &&
+        doc.generatedInternalSummary?.sourceIntakeLeadId === id
     )
     .slice()
     .sort((a, b) => conflictCheckReviewMemoSortTime(b) - conflictCheckReviewMemoSortTime(a))
@@ -572,6 +675,7 @@ export function createConflictCheckReviewMemoDocumentInput(input: {
     generatedType: 'conflict_check_review_memo',
     generatedAt,
     sourceMatterId: matter_id,
+    sourceIntakeLeadId: input.lead.id,
     content,
     visibility: 'internal',
   }
@@ -582,7 +686,7 @@ export function createConflictCheckReviewMemoDocumentInput(input: {
     category: 'Compliance',
     document_subtype: CONFLICT_CHECK_REVIEW_MEMO_SUBTYPE,
     description:
-      'Internal conflict check review memo snapshot — not shared to the client portal. Operational work product only. Not a legal opinion, ethical clearance, or conflict waiver.',
+      'Internal only — conflict check review memo snapshot. Not shared to the client portal. Operational work product only. Not a legal opinion, ethical clearance, or conflict waiver.',
     document_date: generatedAt.slice(0, 10),
     source: 'Conflict Check Review (demo) — internal memo',
     status: 'draft',
