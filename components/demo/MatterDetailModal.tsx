@@ -1643,6 +1643,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                     <button
                       type="button"
                       onClick={() => setConflictMemoPanelOpen((open) => !open)}
+                      aria-label={conflictMemoPanelOpen ? 'Hide internal conflict check memo draft' : 'Draft internal memo'}
+                      aria-expanded={conflictMemoPanelOpen}
                       style={{
                         background: conflictMemoPanelOpen ? '#e8f4f8' : 'white',
                         border: '1px solid rgba(94,82,64,0.25)',
@@ -1671,10 +1673,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                       }}
                     >
                       <div style={{ fontSize: 13, fontWeight: 900, color: '#134252' }}>
-                        Internal Conflict Check Review Memo
+                        Draft internal memo
                       </div>
                       <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.45 }}>
-                        Draft from recorded conflict screening and Conflict Check Review. Saving creates an immutable Internal only snapshot (not shared to the client portal).
+                        Internal Conflict Check Review Memo draft from recorded screening and Conflict Check Review.
+                        Saving creates an immutable Internal only snapshot (not shared to the client portal).
                       </div>
                       <pre
                         style={{
