@@ -20,6 +20,31 @@ export const POST_CLOSING_UNDERTAKINGS_DISCLAIMER =
 /** Neutral internal label for one recorded post-closing item (not a legal undertaking determination). */
 export const POST_CLOSING_RECORDED_ITEM_LABEL = 'Recorded item'
 
+/**
+ * Confirm copy when removing a recorded internal post-closing item from a matter.
+ * Removal is workspace-local only — not a matter/client/document/task/closing/legal change.
+ */
+export const POST_CLOSING_REMOVE_RECORDED_ITEM_NOTICE =
+  'This removes the recorded internal undertaking item from this matter. It does not change matter status, client records, documents, tasks, closing status, or any legal determination.'
+
+/**
+ * Removes one recorded internal undertaking item from a review draft/record.
+ * Does not change matter status, client records, documents, tasks, closing status,
+ * or any legal determination.
+ */
+export function removePostClosingUndertaking(
+  record: DemoPostClosingUndertakingsReview | null | undefined,
+  undertakingId: string
+): DemoPostClosingUndertakingsReview {
+  const normalized = normalizePostClosingUndertakingsReview(record)
+  const id = undertakingId.trim()
+  if (!id) return normalized
+  return {
+    ...normalized,
+    undertakings: (normalized.undertakings || []).filter((row) => row.id !== id),
+  }
+}
+
 /** Canonical product alias for the review record. */
 export type PostClosingUndertakingsReview = DemoPostClosingUndertakingsReview
 /** Canonical product alias for a single recorded post-closing item. */

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   POST_CLOSING_RECORDED_ITEM_LABEL,
+  POST_CLOSING_REMOVE_RECORDED_ITEM_NOTICE,
   POST_CLOSING_UNDERTAKINGS_DISCLAIMER,
   buildDefaultPostClosingUndertaking,
   buildDefaultPostClosingUndertakingsReview,
@@ -14,6 +15,7 @@ import {
   postClosingUndertakingsApplicabilityLabel,
   postClosingUndertakingsInternalReviewStatusLabel,
   postClosingUndertakingsInternalReviewStatusPresentation,
+  removePostClosingUndertaking,
 } from '@/lib/demo/postClosingUndertakings'
 
 describe('postClosingUndertakings', () => {
@@ -160,5 +162,27 @@ describe('postClosingUndertakings', () => {
     expect(POST_CLOSING_UNDERTAKINGS_DISCLAIMER.toLowerCase()).toContain(
       'complete or satisfied'
     )
+  })
+
+  it('removes a recorded item without implying legal or matter-status changes', () => {
+    expect(POST_CLOSING_REMOVE_RECORDED_ITEM_NOTICE).toBe(
+      'This removes the recorded internal undertaking item from this matter. It does not change matter status, client records, documents, tasks, closing status, or any legal determination.'
+    )
+    expect(POST_CLOSING_REMOVE_RECORDED_ITEM_NOTICE.toLowerCase()).toContain(
+      'does not change matter status'
+    )
+    expect(POST_CLOSING_REMOVE_RECORDED_ITEM_NOTICE.toLowerCase()).toContain(
+      'any legal determination'
+    )
+
+    const existing = buildDefaultPostClosingUndertakingsReview()
+    const keep = buildDefaultPostClosingUndertaking({ id: 'pcu-keep', title: 'Keep' })
+    const drop = buildDefaultPostClosingUndertaking({ id: 'pcu-drop', title: 'Drop' })
+    const next = removePostClosingUndertaking(
+      { ...existing, undertakings: [keep, drop] },
+      'pcu-drop'
+    )
+    expect(next.undertakings).toHaveLength(1)
+    expect(next.undertakings?.[0]?.id).toBe('pcu-keep')
   })
 })

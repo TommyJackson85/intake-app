@@ -161,6 +161,7 @@ import {
 } from '@/lib/demo/conflictCheckReview'
 import {
   POST_CLOSING_RECORDED_ITEM_LABEL,
+  POST_CLOSING_REMOVE_RECORDED_ITEM_NOTICE,
   POST_CLOSING_UNDERTAKINGS_DISCLAIMER,
   buildDefaultPostClosingUndertaking,
   countActivePostClosingUndertakings,
@@ -171,6 +172,7 @@ import {
   postClosingUndertakingStatusLabel,
   postClosingUndertakingsApplicabilityLabel,
   postClosingUndertakingsInternalReviewStatusPresentation,
+  removePostClosingUndertaking,
   type PostClosingUndertakingsReviewDraft,
 } from '@/lib/demo/postClosingUndertakings'
 import {
@@ -2140,12 +2142,14 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             </div>
                             <button
                               type="button"
-                              onClick={() =>
+                              title={POST_CLOSING_REMOVE_RECORDED_ITEM_NOTICE}
+                              onClick={() => {
+                                if (!window.confirm(POST_CLOSING_REMOVE_RECORDED_ITEM_NOTICE)) return
                                 setPostClosingDraft((prev) => ({
                                   ...prev,
-                                  undertakings: prev.undertakings.filter((row) => row.id !== item.id),
+                                  undertakings: removePostClosingUndertaking(prev, item.id).undertakings || [],
                                 }))
-                              }
+                              }}
                               style={{
                                 padding: '4px 8px',
                                 borderRadius: 6,
