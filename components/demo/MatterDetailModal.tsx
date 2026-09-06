@@ -50,9 +50,10 @@ import type {
   DemoCondoSirsResult,
   DemoCondoSirsRiskLevel,
   DemoMatter,
-  DemoPostClosingUndertakingItem,
-  DemoPostClosingUndertakingItemStatus,
-  DemoPostClosingUndertakingsStatus,
+  DemoPostClosingUndertakingResponsibleParty,
+  DemoPostClosingUndertakingStatus,
+  DemoPostClosingUndertakingsApplicability,
+  DemoPostClosingUndertakingsInternalReviewStatus,
   DemoMatterReviewTaskStatus,
   DemoMatterStatus,
 } from '@/lib/demo/types'
@@ -160,14 +161,16 @@ import {
 } from '@/lib/demo/conflictCheckReview'
 import {
   POST_CLOSING_UNDERTAKINGS_DISCLAIMER,
-  buildDefaultPostClosingUndertakingItem,
-  countOpenPostClosingUndertakingItems,
-  createPostClosingUndertakingsPatch,
-  formatPostClosingUndertakingsItemCount,
-  normalizePostClosingUndertakings,
-  postClosingUndertakingItemStatusLabel,
-  postClosingUndertakingsStatusPresentation,
-  type PostClosingUndertakingsDraft,
+  buildDefaultPostClosingUndertaking,
+  countActivePostClosingUndertakings,
+  createPostClosingUndertakingsReviewPatch,
+  formatPostClosingUndertakingsCount,
+  normalizePostClosingUndertakingsReview,
+  postClosingUndertakingResponsiblePartyLabel,
+  postClosingUndertakingStatusLabel,
+  postClosingUndertakingsApplicabilityLabel,
+  postClosingUndertakingsInternalReviewStatusPresentation,
+  type PostClosingUndertakingsReviewDraft,
 } from '@/lib/demo/postClosingUndertakings'
 import {
   CONDO_DILIGENCE_ACTIVITY_VIEW_FILTERS,
@@ -379,11 +382,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   const [conflictMemoCopyStatus, setConflictMemoCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
   const conflictMemoSaveLockRef = useRef(false)
 
-  const [postClosingDraft, setPostClosingDraft] = useState<PostClosingUndertakingsDraft>({
-    status: 'not_started',
-    followUpContext: '',
-    internalNote: '',
-    items: [],
+  const [postClosingDraft, setPostClosingDraft] = useState<PostClosingUndertakingsReviewDraft>({
+    applicability: 'unknown',
+    internalReviewStatus: 'not_started',
+    reviewNote: '',
+    undertakings: [],
   })
   const [postClosingSaveStatus, setPostClosingSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
   const [postClosingError, setPostClosingError] = useState<string | null>(null)
@@ -425,19 +428,19 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
 
   const postClosingUndertakings = useMemo(() => {
     if (!effectiveMatter) return null
-    return normalizePostClosingUndertakings(getPostClosingUndertakings(effectiveMatter.id))
+    return normalizePostClosingUndertakingsReview(getPostClosingUndertakings(effectiveMatter.id))
   }, [effectiveMatter, getPostClosingUndertakings, open])
 
   useEffect(() => {
     if (!postClosingUndertakings) return
     setPostClosingDraft({
-      status: postClosingUndertakings.status,
-      followUpContext: postClosingUndertakings.followUpContext,
-      internalNote: postClosingUndertakings.internalNote,
-      items: postClosingUndertakings.items.map((item) => ({ ...item })),
+      applicability: postClosingUndertakings.applicability || 'unknown',
+      internalReviewStatus: postClosingUndertakings.internalReviewStatus || 'not_started',
+      reviewNote: postClosingUndertakings.reviewNote || '',
+      undertakings: (postClosingUndertakings.undertakings || []).map((row) => ({ ...row })),
     })
     setPostClosingError(null)
-  }, [effectiveMatter?.id, postClosingUndertakings?.updatedAt])
+  }, [effectiveMatter?.id, postClosingUndertakings?.reviewedAt])
   const fincenSummary = fincenStatusPresentation({
     required: fincenRequired,
     completedFields: fincenCompletedFields,
@@ -1957,13 +1960,25 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           borderRadius: 999,
                           fontSize: 11,
                           fontWeight: 900,
-                          background: postClosingUndertakingsStatusPresentation(postClosingDraft.status).bg,
-                          color: postClosingUndertakingsStatusPresentation(postClosingDraft.status).color,
-                          border: `1px solid ${postClosingUndertakingsStatusPresentation(postClosingDraft.status).border}`,
+                          background: postClosingUndertakingsInternalReviewStatusPresentation(
+                            postClosingDraft.internalReviewStatus
+                          ).bg,
+                          color: postClosingUndertakingsInternalReviewStatusPresentation(
+                            postClosingDraft.internalReviewStatus
+                          ).color,
+                          border: `1px solid ${
+                            postClosingUndertakingsInternalReviewStatusPresentation(
+                              postClosingDraft.internalReviewStatus
+                            ).border
+                          }`,
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {postClosingUndertakingsStatusPresentation(postClosingDraft.status).label}
+                        {
+                          postClosingUndertakingsInternalReviewStatusPresentation(
+                            postClosingDraft.internalReviewStatus
+                          ).label
+                        }
                       </span>
                       <span
                         style={{
@@ -1978,35 +1993,58 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {formatPostClosingUndertakingsItemCount(postClosingDraft.items.length)}
+                        {formatPostClosingUndertakingsCount(postClosingDraft.undertakings.length)}
                       </span>
                     </div>
                   </div>
 
                   <div style={{ fontSize: 11, color: '#627c71', lineHeight: 1.45 }}>
-                    Open / active tracking rows:{' '}
-                    {countOpenPostClosingUndertakingItems({
-                      status: postClosingDraft.status,
-                      followUpContext: postClosingDraft.followUpContext,
-                      internalNote: postClosingDraft.internalNote,
-                      items: postClosingDraft.items,
-                      recordedByStaffId: null,
-                      recordedByStaffName: null,
-                      recordedAt: null,
-                      updatedAt: null,
+                    Applicability:{' '}
+                    {postClosingUndertakingsApplicabilityLabel(postClosingDraft.applicability)}. Active
+                    tracking rows:{' '}
+                    {countActivePostClosingUndertakings({
+                      applicability: postClosingDraft.applicability,
+                      internalReviewStatus: postClosingDraft.internalReviewStatus,
+                      reviewNote: postClosingDraft.reviewNote,
+                      undertakings: postClosingDraft.undertakings,
                     })}
-                    . Item statuses are internal tracking labels only.
+                    . Statuses are internal tracking labels only.
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
-                      Workspace status
+                      Applicability
                       <select
-                        value={postClosingDraft.status}
+                        value={postClosingDraft.applicability}
                         onChange={(e) =>
                           setPostClosingDraft((prev) => ({
                             ...prev,
-                            status: e.target.value as DemoPostClosingUndertakingsStatus,
+                            applicability: e.target.value as DemoPostClosingUndertakingsApplicability,
+                          }))
+                        }
+                        style={{
+                          padding: '6px 8px',
+                          borderRadius: 6,
+                          border: '1px solid rgba(94,82,64,0.25)',
+                          fontWeight: 700,
+                          color: '#134252',
+                        }}
+                      >
+                        <option value="unknown">Unknown</option>
+                        <option value="not_applicable">Not applicable</option>
+                        <option value="applicable">Applicable</option>
+                        <option value="lawyer_review_required">Lawyer review required</option>
+                      </select>
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
+                      Internal review status
+                      <select
+                        value={postClosingDraft.internalReviewStatus}
+                        onChange={(e) =>
+                          setPostClosingDraft((prev) => ({
+                            ...prev,
+                            internalReviewStatus: e.target
+                              .value as DemoPostClosingUndertakingsInternalReviewStatus,
                           }))
                         }
                         style={{
@@ -2018,60 +2056,43 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         }}
                       >
                         <option value="not_started">Not started</option>
-                        <option value="in_progress">In progress</option>
-                        <option value="monitoring">Monitoring</option>
-                        <option value="internally_noted">Internally noted</option>
+                        <option value="information_needed">Information needed</option>
+                        <option value="in_review">In review</option>
+                        <option value="lawyer_review_required">Lawyer review required</option>
+                        <option value="review_recorded">Review recorded</option>
                       </select>
-                    </label>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
-                      Matter follow-up context
-                      <textarea
-                        value={postClosingDraft.followUpContext}
-                        onChange={(e) =>
-                          setPostClosingDraft((prev) => ({ ...prev, followUpContext: e.target.value }))
-                        }
-                        rows={2}
-                        placeholder="Internal follow-up context for this matter’s post-closing items"
-                        style={{
-                          padding: 8,
-                          borderRadius: 6,
-                          border: '1px solid rgba(94,82,64,0.25)',
-                          fontWeight: 600,
-                          color: '#134252',
-                          resize: 'vertical',
-                        }}
-                      />
-                    </label>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
-                      Internal note
-                      <textarea
-                        value={postClosingDraft.internalNote}
-                        onChange={(e) =>
-                          setPostClosingDraft((prev) => ({ ...prev, internalNote: e.target.value }))
-                        }
-                        rows={2}
-                        placeholder="Staff-only note — not a determination that closing or any obligation is complete"
-                        style={{
-                          padding: 8,
-                          borderRadius: 6,
-                          border: '1px solid rgba(94,82,64,0.25)',
-                          fontWeight: 600,
-                          color: '#134252',
-                          resize: 'vertical',
-                        }}
-                      />
                     </label>
                   </div>
 
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
+                    Review note
+                    <textarea
+                      value={postClosingDraft.reviewNote}
+                      onChange={(e) =>
+                        setPostClosingDraft((prev) => ({ ...prev, reviewNote: e.target.value }))
+                      }
+                      rows={2}
+                      placeholder="Staff-only review note — not a determination that closing or any obligation is complete"
+                      style={{
+                        padding: 8,
+                        borderRadius: 6,
+                        border: '1px solid rgba(94,82,64,0.25)',
+                        fontWeight: 600,
+                        color: '#134252',
+                        resize: 'vertical',
+                      }}
+                    />
+                  </label>
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#134252' }}>Recorded items</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#134252' }}>Undertakings</div>
                       <button
                         type="button"
                         onClick={() =>
                           setPostClosingDraft((prev) => ({
                             ...prev,
-                            items: [...prev.items, buildDefaultPostClosingUndertakingItem()],
+                            undertakings: [...prev.undertakings, buildDefaultPostClosingUndertaking()],
                           }))
                         }
                         style={{
@@ -2085,15 +2106,15 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           cursor: 'pointer',
                         }}
                       >
-                        Add item
+                        Add undertaking
                       </button>
                     </div>
-                    {postClosingDraft.items.length === 0 ? (
+                    {postClosingDraft.undertakings.length === 0 ? (
                       <div style={{ fontSize: 12, color: '#627c71' }}>
-                        No post-closing items recorded yet.
+                        No post-closing undertakings recorded yet.
                       </div>
                     ) : (
-                      postClosingDraft.items.map((item, index) => (
+                      postClosingDraft.undertakings.map((item, index) => (
                         <div
                           key={item.id}
                           style={{
@@ -2108,14 +2129,18 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                             <div style={{ fontSize: 11, fontWeight: 800, color: '#627c71' }}>
-                              Item {index + 1} · {postClosingUndertakingItemStatusLabel(item.status)}
+                              Undertaking {index + 1} ·{' '}
+                              {postClosingUndertakingStatusLabel(item.status || 'not_recorded')} ·{' '}
+                              {postClosingUndertakingResponsiblePartyLabel(
+                                item.responsibleParty || 'unknown'
+                              )}
                             </div>
                             <button
                               type="button"
                               onClick={() =>
                                 setPostClosingDraft((prev) => ({
                                   ...prev,
-                                  items: prev.items.filter((row) => row.id !== item.id),
+                                  undertakings: prev.undertakings.filter((row) => row.id !== item.id),
                                 }))
                               }
                               style={{
@@ -2133,15 +2158,15 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             </button>
                           </div>
                           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
-                            Description
+                            Title
                             <input
-                              value={item.description}
+                              value={item.title}
                               onChange={(e) => {
-                                const description = e.target.value
+                                const title = e.target.value
                                 setPostClosingDraft((prev) => ({
                                   ...prev,
-                                  items: prev.items.map((row) =>
-                                    row.id === item.id ? { ...row, description } : row
+                                  undertakings: prev.undertakings.map((row) =>
+                                    row.id === item.id ? { ...row, title } : row
                                   ),
                                 }))
                               }}
@@ -2157,14 +2182,46 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                           </label>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
-                              Tracking status
+                              Responsible party
                               <select
-                                value={item.status}
+                                value={item.responsibleParty || 'unknown'}
                                 onChange={(e) => {
-                                  const status = e.target.value as DemoPostClosingUndertakingItemStatus
+                                  const responsibleParty =
+                                    e.target.value as DemoPostClosingUndertakingResponsibleParty
                                   setPostClosingDraft((prev) => ({
                                     ...prev,
-                                    items: prev.items.map((row) =>
+                                    undertakings: prev.undertakings.map((row) =>
+                                      row.id === item.id ? { ...row, responsibleParty } : row
+                                    ),
+                                  }))
+                                }}
+                                style={{
+                                  padding: '6px 8px',
+                                  borderRadius: 6,
+                                  border: '1px solid rgba(94,82,64,0.25)',
+                                  fontWeight: 700,
+                                  color: '#134252',
+                                }}
+                              >
+                                <option value="unknown">Unknown</option>
+                                <option value="client">Client</option>
+                                <option value="buyer">Buyer</option>
+                                <option value="seller">Seller</option>
+                                <option value="lender">Lender</option>
+                                <option value="title_or_settlement_party">Title / settlement party</option>
+                                <option value="attorney">Attorney</option>
+                                <option value="other">Other</option>
+                              </select>
+                            </label>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
+                              Tracking status
+                              <select
+                                value={item.status || 'not_recorded'}
+                                onChange={(e) => {
+                                  const status = e.target.value as DemoPostClosingUndertakingStatus
+                                  setPostClosingDraft((prev) => ({
+                                    ...prev,
+                                    undertakings: prev.undertakings.map((row) =>
                                       row.id === item.id ? { ...row, status } : row
                                     ),
                                   }))
@@ -2177,23 +2234,49 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                                   color: '#134252',
                                 }}
                               >
-                                <option value="open">Open</option>
-                                <option value="in_progress">In progress</option>
-                                <option value="noted">Noted</option>
-                                <option value="closed_internally">Closed internally</option>
+                                <option value="not_recorded">Not recorded</option>
+                                <option value="outstanding">Outstanding</option>
+                                <option value="received_for_review">Received for review</option>
+                                <option value="follow_up_needed">Follow-up needed</option>
+                                <option value="recorded_complete">Recorded complete</option>
                               </select>
                             </label>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
                               Target date
                               <input
                                 type="date"
-                                value={item.targetDate}
+                                value={item.targetDate || ''}
                                 onChange={(e) => {
-                                  const targetDate = e.target.value
+                                  const targetDate = e.target.value || null
                                   setPostClosingDraft((prev) => ({
                                     ...prev,
-                                    items: prev.items.map((row) =>
+                                    undertakings: prev.undertakings.map((row) =>
                                       row.id === item.id ? { ...row, targetDate } : row
+                                    ),
+                                  }))
+                                }}
+                                style={{
+                                  padding: '6px 8px',
+                                  borderRadius: 6,
+                                  border: '1px solid rgba(94,82,64,0.25)',
+                                  fontWeight: 600,
+                                  color: '#134252',
+                                }}
+                              />
+                            </label>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
+                              Recorded completion date
+                              <input
+                                type="date"
+                                value={item.recordedCompletionDate || ''}
+                                onChange={(e) => {
+                                  const recordedCompletionDate = e.target.value || null
+                                  setPostClosingDraft((prev) => ({
+                                    ...prev,
+                                    undertakings: prev.undertakings.map((row) =>
+                                      row.id === item.id ? { ...row, recordedCompletionDate } : row
                                     ),
                                   }))
                                 }}
@@ -2208,20 +2291,20 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             </label>
                           </div>
                           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
-                            Follow-up context
+                            Details
                             <textarea
-                              value={item.followUpContext}
+                              value={item.details || ''}
                               onChange={(e) => {
-                                const followUpContext = e.target.value
+                                const details = e.target.value
                                 setPostClosingDraft((prev) => ({
                                   ...prev,
-                                  items: prev.items.map((row) =>
-                                    row.id === item.id ? { ...row, followUpContext } : row
+                                  undertakings: prev.undertakings.map((row) =>
+                                    row.id === item.id ? { ...row, details } : row
                                   ),
                                 }))
                               }}
                               rows={2}
-                              placeholder="Internal follow-up context for this item"
+                              placeholder="Internal details for this undertaking"
                               style={{
                                 padding: 8,
                                 borderRadius: 6,
@@ -2233,20 +2316,20 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             />
                           </label>
                           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, fontWeight: 800, color: '#627c71' }}>
-                            Notes
+                            Follow-up note
                             <textarea
-                              value={item.notes}
+                              value={item.followUpNote || ''}
                               onChange={(e) => {
-                                const notes = e.target.value
+                                const followUpNote = e.target.value
                                 setPostClosingDraft((prev) => ({
                                   ...prev,
-                                  items: prev.items.map((row) =>
-                                    row.id === item.id ? { ...row, notes } : row
+                                  undertakings: prev.undertakings.map((row) =>
+                                    row.id === item.id ? { ...row, followUpNote } : row
                                   ),
                                 }))
                               }}
                               rows={2}
-                              placeholder="Internal notes — not confirmation that an obligation is satisfied"
+                              placeholder="Internal follow-up note — not confirmation that an obligation is satisfied"
                               style={{
                                 padding: 8,
                                 borderRadius: 6,
@@ -2279,7 +2362,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                         try {
                           ensurePostClosingUndertakings(effectiveMatter.id)
                           const actor = staff[0]
-                          const next = createPostClosingUndertakingsPatch({
+                          const next = createPostClosingUndertakingsReviewPatch({
                             draft: postClosingDraft,
                             actor: {
                               staffId: actor?.id || 'staff',
@@ -2319,11 +2402,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                             ? 'Save failed'
                             : 'Save undertakings record'}
                     </button>
-                    {postClosingUndertakings?.updatedAt ? (
+                    {postClosingUndertakings?.reviewedAt ? (
                       <span style={{ fontSize: 11, color: '#627c71', fontWeight: 700 }}>
-                        Last saved {new Date(postClosingUndertakings.updatedAt).toLocaleString()}
-                        {postClosingUndertakings.recordedByStaffName
-                          ? ` · ${postClosingUndertakings.recordedByStaffName}`
+                        Last saved {new Date(postClosingUndertakings.reviewedAt).toLocaleString()}
+                        {postClosingUndertakings.reviewedByName
+                          ? ` · ${postClosingUndertakings.reviewedByName}`
                           : ''}
                       </span>
                     ) : null}

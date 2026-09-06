@@ -34,7 +34,7 @@ import type {
   DemoMatterReviewTask,
   DemoMatterReviewTaskStatus,
   DemoCondoDiligenceActivity,
-  DemoPostClosingUndertakings,
+  DemoPostClosingUndertakingsReview,
 } from '@/lib/demo/types'
 import { deriveMatterStatus } from '@/lib/demo-utils'
 import { findExistingDemoClient } from '@/lib/demo/demoIntakeFlow'
@@ -96,8 +96,8 @@ import {
   normalizeCondoLawyerReviewCheckpoint,
 } from '@/lib/demo/condoDiligence'
 import {
-  buildDefaultPostClosingUndertakings,
-  normalizePostClosingUndertakings,
+  buildDefaultPostClosingUndertakingsReview,
+  normalizePostClosingUndertakingsReview,
 } from '@/lib/demo/postClosingUndertakings'
 import {
   appendDemoMatterReviewTaskIfValid,
@@ -174,9 +174,9 @@ type DemoContextType = {
   getCondoDiligence: (matterId: string) => DemoCondoDiligence | undefined
   ensureCondoDiligence: (matterId: string) => void
   patchCondoDiligence: (matterId: string, patch: Partial<DemoCondoDiligence>) => void
-  getPostClosingUndertakings: (matterId: string) => DemoPostClosingUndertakings | undefined
+  getPostClosingUndertakings: (matterId: string) => DemoPostClosingUndertakingsReview | undefined
   ensurePostClosingUndertakings: (matterId: string) => void
-  patchPostClosingUndertakings: (matterId: string, patch: DemoPostClosingUndertakings) => void
+  patchPostClosingUndertakings: (matterId: string, patch: DemoPostClosingUndertakingsReview) => void
   registerIntakeLead: (input: {
     token: string
     fileReference: string
@@ -300,7 +300,7 @@ function persistDemoDocumentRequests(rows: DemoDocumentRequest[]) {
 }
 
 
-function persistDemoPostClosingUndertakings(map: Record<string, DemoPostClosingUndertakings>) {
+function persistDemoPostClosingUndertakingsReview(map: Record<string, DemoPostClosingUndertakingsReview>) {
   try {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY, JSON.stringify(map))
@@ -636,7 +636,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       recentlyDeletedMatters: DemoMatter[]
       recentlyDeletedClients: DemoClient[]
       condoDiligenceByMatterId: Record<string, DemoCondoDiligence>
-      postClosingUndertakingsByMatterId: Record<string, DemoPostClosingUndertakings>
+      postClosingUndertakingsByMatterId: Record<string, DemoPostClosingUndertakingsReview>
       matterReviewTasks: DemoMatterReviewTask[]
       condoDiligenceActivities: DemoCondoDiligenceActivity[]
     }
@@ -756,13 +756,13 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           try {
             const parsed = JSON.parse(rawPostClosingUndertakings) as unknown
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-              const next: Record<string, import('@/lib/demo/types').DemoPostClosingUndertakings> = {
+              const next: Record<string, import('@/lib/demo/types').DemoPostClosingUndertakingsReview> = {
                 ...prev.postClosingUndertakingsByMatterId,
               }
               for (const [matterId, row] of Object.entries(parsed as Record<string, unknown>)) {
                 if (!matterId.trim()) continue
-                next[matterId] = normalizePostClosingUndertakings(
-                  row as import('@/lib/demo/types').DemoPostClosingUndertakings
+                next[matterId] = normalizePostClosingUndertakingsReview(
+                  row as import('@/lib/demo/types').DemoPostClosingUndertakingsReview
                 )
               }
               postClosingUndertakingsByMatterId = next
@@ -853,7 +853,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const t = window.setTimeout(() => {
       try {
-        persistDemoPostClosingUndertakings(state.postClosingUndertakingsByMatterId)
+        persistDemoPostClosingUndertakingsReview(state.postClosingUndertakingsByMatterId)
       } catch {
         /* ignore */
       }
@@ -1012,10 +1012,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       try {
         const parsed = JSON.parse(e.newValue) as unknown
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return
-        const next: Record<string, DemoPostClosingUndertakings> = {}
+        const next: Record<string, DemoPostClosingUndertakingsReview> = {}
         for (const [matterId, row] of Object.entries(parsed as Record<string, unknown>)) {
           if (!matterId.trim()) continue
-          next[matterId] = normalizePostClosingUndertakings(row as DemoPostClosingUndertakings)
+          next[matterId] = normalizePostClosingUndertakingsReview(row as DemoPostClosingUndertakingsReview)
         }
         setState((prev) => ({
           ...prev,
@@ -1203,7 +1203,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             ) as Record<string, DemoCondoDiligence>
             const postClosingUndertakingsByMatterId = Object.fromEntries(
               Object.entries(prev.postClosingUndertakingsByMatterId).filter(([k]) => k !== matterId),
-            ) as Record<string, DemoPostClosingUndertakings>
+            ) as Record<string, DemoPostClosingUndertakingsReview>
             return {
               ...prev,
               matters: prev.matters.filter((m) => m.id !== matterId),
@@ -2225,7 +2225,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             ...prev,
             postClosingUndertakingsByMatterId: {
               ...prev.postClosingUndertakingsByMatterId,
-              [id]: buildDefaultPostClosingUndertakings(),
+              [id]: buildDefaultPostClosingUndertakingsReview(),
             },
           }
         })
@@ -2236,10 +2236,12 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         setState((prev) => {
           const existing = prev.postClosingUndertakingsByMatterId[id]
           if (!existing) return prev
-          const next = normalizePostClosingUndertakings({
+          const next = normalizePostClosingUndertakingsReview({
             ...existing,
             ...patch,
-            items: Array.isArray(patch.items) ? patch.items : existing.items,
+            undertakings: Array.isArray(patch.undertakings)
+              ? patch.undertakings
+              : existing.undertakings,
           })
           return {
             ...prev,

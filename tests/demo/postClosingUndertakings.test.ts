@@ -1,75 +1,110 @@
 import { describe, expect, it } from 'vitest'
 import {
   POST_CLOSING_UNDERTAKINGS_DISCLAIMER,
-  buildDefaultPostClosingUndertakingItem,
-  buildDefaultPostClosingUndertakings,
-  countOpenPostClosingUndertakingItems,
-  createPostClosingUndertakingsPatch,
-  formatPostClosingUndertakingsItemCount,
-  isPostClosingUndertakingsUntouched,
-  normalizePostClosingUndertakings,
-  postClosingUndertakingItemStatusLabel,
-  postClosingUndertakingsStatusLabel,
-  postClosingUndertakingsStatusPresentation,
+  buildDefaultPostClosingUndertaking,
+  buildDefaultPostClosingUndertakingsReview,
+  countActivePostClosingUndertakings,
+  createPostClosingUndertakingsReviewPatch,
+  formatPostClosingUndertakingsCount,
+  isPostClosingUndertakingsReviewUntouched,
+  normalizePostClosingUndertakingsReview,
+  postClosingUndertakingResponsiblePartyLabel,
+  postClosingUndertakingStatusLabel,
+  postClosingUndertakingsApplicabilityLabel,
+  postClosingUndertakingsInternalReviewStatusLabel,
+  postClosingUndertakingsInternalReviewStatusPresentation,
 } from '@/lib/demo/postClosingUndertakings'
 
 describe('postClosingUndertakings', () => {
-  it('builds an empty default record', () => {
-    const record = buildDefaultPostClosingUndertakings()
-    expect(record.status).toBe('not_started')
-    expect(record.items).toEqual([])
-    expect(record.followUpContext).toBe('')
-    expect(record.internalNote).toBe('')
-    expect(isPostClosingUndertakingsUntouched(record)).toBe(true)
+  it('builds an empty default review record', () => {
+    const record = buildDefaultPostClosingUndertakingsReview()
+    expect(record.applicability).toBe('unknown')
+    expect(record.internalReviewStatus).toBe('not_started')
+    expect(record.undertakings).toEqual([])
+    expect(record.reviewNote).toBe('')
+    expect(isPostClosingUndertakingsReviewUntouched(record)).toBe(true)
   })
 
   it('normalizes missing fields and unknown statuses safely', () => {
-    const normalized = normalizePostClosingUndertakings({
-      status: 'unknown' as never,
-      items: [
+    const normalized = normalizePostClosingUndertakingsReview({
+      applicability: 'bogus' as never,
+      internalReviewStatus: 'unknown' as never,
+      undertakings: [
         {
           id: '',
-          description: ' Record deed ',
+          title: ' Record deed ',
+          responsibleParty: 'bogus' as never,
           status: 'bogus' as never,
-          followUpContext: ' Confirm recording package ',
+          followUpNote: ' Confirm recording package ',
+          details: ' Internal details ',
           targetDate: '2026-04-01',
-          notes: ' Internal only ',
         },
       ],
-      followUpContext: ' Matter-level follow-up ',
-      internalNote: ' Staff note ',
+      reviewNote: ' Staff review note ',
+      reviewedById: 'staff-1',
+      reviewedByName: 'Katherine Ruiz, Esq.',
+      reviewedAt: '2026-03-01T12:00:00.000Z',
+    })
+    expect(normalized.applicability).toBe('unknown')
+    expect(normalized.internalReviewStatus).toBe('not_started')
+    expect(normalized.undertakings).toHaveLength(1)
+    expect(normalized.undertakings?.[0]?.id).toBe('pcu-1')
+    expect(normalized.undertakings?.[0]?.title).toBe('Record deed')
+    expect(normalized.undertakings?.[0]?.status).toBe('not_recorded')
+    expect(normalized.undertakings?.[0]?.responsibleParty).toBe('unknown')
+    expect(normalized.reviewNote).toBe('Staff review note')
+    expect(isPostClosingUndertakingsReviewUntouched(normalized)).toBe(false)
+  })
+
+  it('migrates legacy item-based records into the review schema', () => {
+    const normalized = normalizePostClosingUndertakingsReview({
+      status: 'monitoring',
+      followUpContext: 'Matter-level follow-up',
+      internalNote: 'Legacy staff note',
+      items: [
+        {
+          id: 'legacy-1',
+          description: 'Final title policy follow-up',
+          status: 'in_progress',
+          followUpContext: 'Request status from title agent.',
+          notes: 'Legacy notes',
+          targetDate: '2026-04-15',
+        },
+      ],
       recordedByStaffId: 'staff-1',
       recordedByStaffName: 'Katherine Ruiz, Esq.',
       recordedAt: '2026-03-01T12:00:00.000Z',
-      updatedAt: '2026-03-02T12:00:00.000Z',
-    })
-    expect(normalized.status).toBe('not_started')
-    expect(normalized.items).toHaveLength(1)
-    expect(normalized.items[0]?.id).toBe('pcu-item-1')
-    expect(normalized.items[0]?.description).toBe('Record deed')
-    expect(normalized.items[0]?.status).toBe('open')
-    expect(normalized.followUpContext).toBe('Matter-level follow-up')
-    expect(isPostClosingUndertakingsUntouched(normalized)).toBe(false)
+    } as never)
+    expect(normalized.applicability).toBe('unknown')
+    expect(normalized.internalReviewStatus).toBe('in_review')
+    expect(normalized.reviewNote).toBe('Legacy staff note')
+    expect(normalized.reviewedByName).toBe('Katherine Ruiz, Esq.')
+    expect(normalized.undertakings).toHaveLength(1)
+    expect(normalized.undertakings?.[0]?.title).toBe('Final title policy follow-up')
+    expect(normalized.undertakings?.[0]?.status).toBe('outstanding')
+    expect(normalized.undertakings?.[0]?.followUpNote).toBe('Request status from title agent.')
   })
 
-  it('creates a dated patch from draft items and follow-up context', () => {
-    const existing = buildDefaultPostClosingUndertakings()
-    const item = buildDefaultPostClosingUndertakingItem({
+  it('creates a dated patch from draft undertakings and review fields', () => {
+    const existing = buildDefaultPostClosingUndertakingsReview()
+    const item = buildDefaultPostClosingUndertaking({
       id: 'pcu-1',
-      description: 'Final title policy follow-up',
+      title: 'Final title policy follow-up',
+      nowIso: '2026-03-10T15:00:00.000Z',
     })
-    const patch = createPostClosingUndertakingsPatch({
+    const patch = createPostClosingUndertakingsReviewPatch({
       draft: {
-        status: 'monitoring',
-        followUpContext: 'Waiting on underwriter policy issuance.',
-        internalNote: 'Internal tracking only — not a closing-completeness determination.',
-        items: [
+        applicability: 'applicable',
+        internalReviewStatus: 'in_review',
+        reviewNote: 'Internal tracking only — not a closing-completeness determination.',
+        undertakings: [
           {
             ...item,
-            status: 'in_progress',
-            followUpContext: 'Request status from title agent.',
+            responsibleParty: 'title_or_settlement_party',
+            status: 'outstanding',
+            followUpNote: 'Request status from title agent.',
+            details: 'Underwriter policy issuance',
             targetDate: '2026-04-15',
-            notes: '',
           },
         ],
       },
@@ -77,23 +112,36 @@ describe('postClosingUndertakings', () => {
       existing,
       nowIso: '2026-03-10T15:00:00.000Z',
     })
-    expect(patch.status).toBe('monitoring')
-    expect(patch.items).toHaveLength(1)
-    expect(patch.items[0]?.description).toBe('Final title policy follow-up')
-    expect(patch.items[0]?.status).toBe('in_progress')
-    expect(patch.followUpContext).toBe('Waiting on underwriter policy issuance.')
-    expect(patch.recordedByStaffName).toBe('Katherine Ruiz, Esq.')
-    expect(patch.recordedAt).toBe('2026-03-10T15:00:00.000Z')
-    expect(patch.updatedAt).toBe('2026-03-10T15:00:00.000Z')
-    expect(countOpenPostClosingUndertakingItems(patch)).toBe(1)
+    expect(patch.applicability).toBe('applicable')
+    expect(patch.internalReviewStatus).toBe('in_review')
+    expect(patch.undertakings).toHaveLength(1)
+    expect(patch.undertakings?.[0]?.title).toBe('Final title policy follow-up')
+    expect(patch.undertakings?.[0]?.status).toBe('outstanding')
+    expect(patch.undertakings?.[0]?.responsibleParty).toBe('title_or_settlement_party')
+    expect(patch.reviewNote).toBe(
+      'Internal tracking only — not a closing-completeness determination.'
+    )
+    expect(patch.reviewedByName).toBe('Katherine Ruiz, Esq.')
+    expect(patch.reviewedAt).toBe('2026-03-10T15:00:00.000Z')
+    expect(countActivePostClosingUndertakings(patch)).toBe(1)
   })
 
   it('labels statuses without implying legal satisfaction', () => {
-    expect(postClosingUndertakingsStatusLabel('internally_noted')).toBe('Internally noted')
-    expect(postClosingUndertakingItemStatusLabel('closed_internally')).toBe('Closed internally')
-    expect(postClosingUndertakingsStatusPresentation('monitoring').label).toBe('Monitoring')
-    expect(formatPostClosingUndertakingsItemCount(0)).toBe('No recorded items')
-    expect(formatPostClosingUndertakingsItemCount(2)).toBe('2 recorded items')
+    expect(postClosingUndertakingsApplicabilityLabel('lawyer_review_required')).toBe(
+      'Lawyer review required'
+    )
+    expect(postClosingUndertakingsInternalReviewStatusLabel('review_recorded')).toBe(
+      'Review recorded'
+    )
+    expect(postClosingUndertakingStatusLabel('recorded_complete')).toBe('Recorded complete')
+    expect(postClosingUndertakingResponsiblePartyLabel('title_or_settlement_party')).toBe(
+      'Title / settlement party'
+    )
+    expect(postClosingUndertakingsInternalReviewStatusPresentation('in_review').label).toBe(
+      'In review'
+    )
+    expect(formatPostClosingUndertakingsCount(0)).toBe('No recorded undertakings')
+    expect(formatPostClosingUndertakingsCount(2)).toBe('2 recorded undertakings')
   })
 
   it('includes the non-determination disclaimer copy', () => {

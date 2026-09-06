@@ -864,56 +864,84 @@ export type DemoCondoDiligenceActivity = {
 }
 
 /**
- * Internal Post-Closing Undertakings workspace status.
- * Operational tracking only — not a closing-completeness or obligation-satisfaction determination.
+ * Whether post-closing undertakings appear applicable for internal tracking.
+ * Operational only — not a legal applicability determination.
  */
-export type DemoPostClosingUndertakingsStatus =
-  | 'not_started'
-  | 'in_progress'
-  | 'monitoring'
-  | 'internally_noted'
+export type DemoPostClosingUndertakingsApplicability =
+  | 'unknown'
+  | 'not_applicable'
+  | 'applicable'
+  | 'lawyer_review_required'
 
 /**
- * Status for a single recorded post-closing undertaking item.
- * "Closed internally" means staff closed the tracking row — not that the obligation is satisfied.
+ * Internal review status for the Post-Closing Undertakings workspace.
+ * Operational tracking only — not a closing-completeness or obligation-satisfaction determination.
  */
-export type DemoPostClosingUndertakingItemStatus =
-  | 'open'
-  | 'in_progress'
-  | 'noted'
-  | 'closed_internally'
+export type DemoPostClosingUndertakingsInternalReviewStatus =
+  | 'not_started'
+  | 'information_needed'
+  | 'in_review'
+  | 'lawyer_review_required'
+  | 'review_recorded'
 
-/** One internal post-closing undertaking / follow-up item tracked for a matter. */
-export type DemoPostClosingUndertakingItem = {
+/**
+ * Responsible party for a recorded post-closing undertaking (internal tracking label).
+ */
+export type DemoPostClosingUndertakingResponsibleParty =
+  | 'unknown'
+  | 'client'
+  | 'buyer'
+  | 'seller'
+  | 'lender'
+  | 'title_or_settlement_party'
+  | 'attorney'
+  | 'other'
+
+/**
+ * Tracking status for a single post-closing undertaking.
+ * "Recorded complete" means staff recorded completion in this workspace —
+ * not that any legal, title, escrow, recording, payoff, or trust-account obligation is satisfied.
+ */
+export type DemoPostClosingUndertakingStatus =
+  | 'not_recorded'
+  | 'outstanding'
+  | 'received_for_review'
+  | 'follow_up_needed'
+  | 'recorded_complete'
+
+/** One internal post-closing undertaking tracked for a matter. */
+export type DemoPostClosingUndertaking = {
   id: string
-  /** Short description of the internal undertaking or follow-up item. */
-  description: string
-  status: DemoPostClosingUndertakingItemStatus
-  /** Staff follow-up context for this item (internal only). */
-  followUpContext: string
+  title: string
+  responsibleParty?: DemoPostClosingUndertakingResponsibleParty
+  status?: DemoPostClosingUndertakingStatus
   /** Optional target / reminder date (YYYY-MM-DD). Not a legal deadline determination. */
-  targetDate: string
-  /** Additional internal notes for this item. */
-  notes: string
+  targetDate?: string | null
+  details?: string
+  followUpNote?: string
+  /** Date staff recorded completion in this workspace — not legal/title/escrow completion. */
+  recordedCompletionDate?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
 }
 
 /**
- * Matter-scoped Post-Closing Undertakings record.
+ * Matter-scoped Post-Closing Undertakings review record.
  * Records internal post-closing items and follow-up context only.
  * Does not determine whether an obligation is satisfied, whether closing is complete,
  * or whether any legal, title, escrow, recording, payoff, or trust-account requirement has been met.
  */
-export type DemoPostClosingUndertakings = {
-  status: DemoPostClosingUndertakingsStatus
-  items: DemoPostClosingUndertakingItem[]
-  /** Matter-level internal follow-up context. */
-  followUpContext: string
-  /** Staff-only internal note for the undertakings workspace. */
-  internalNote: string
-  recordedByStaffId: string | null
-  recordedByStaffName: string | null
-  /** ISO timestamp when the record was first saved. */
-  recordedAt: string | null
-  /** ISO timestamp when the record was last updated. */
-  updatedAt: string | null
+export type DemoPostClosingUndertakingsReview = {
+  applicability?: DemoPostClosingUndertakingsApplicability
+  internalReviewStatus?: DemoPostClosingUndertakingsInternalReviewStatus
+  reviewNote?: string
+  reviewedById?: string | null
+  reviewedByName?: string | null
+  reviewedAt?: string | null
+  undertakings?: DemoPostClosingUndertaking[]
 }
+
+/** @deprecated Prefer DemoPostClosingUndertakingsReview. */
+export type DemoPostClosingUndertakings = DemoPostClosingUndertakingsReview
+/** @deprecated Prefer DemoPostClosingUndertaking. */
+export type DemoPostClosingUndertakingItem = DemoPostClosingUndertaking
