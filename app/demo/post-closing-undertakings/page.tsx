@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useMemo } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
-import { buildPostClosingUndertakingsWorklist } from '@/lib/demo/postClosingUndertakingsWorklist'
 import { POST_CLOSING_RECORDED_ITEM_LABEL } from '@/lib/demo/postClosingUndertakings'
+import { getPostClosingUndertakingsWorklist } from '@/lib/demo/postClosingUndertakingsWorklist'
 
 function formatWorklistDate(value: string | null) {
   if (!value) return '—'
@@ -23,7 +23,7 @@ export default function PostClosingUndertakingsWorklistPage() {
 
   const worklist = useMemo(
     () =>
-      buildPostClosingUndertakingsWorklist({
+      getPostClosingUndertakingsWorklist({
         matters,
         postClosingUndertakingsByMatterId,
       }),
@@ -54,9 +54,8 @@ export default function PostClosingUndertakingsWorklistPage() {
           fontSize: 13,
         }}
       >
-        Outstanding follow-up items:{' '}
         <span style={{ color: worklist.pendingCount > 0 ? '#b45309' : '#627c71' }}>
-          {worklist.pendingCount}
+          {worklist.countLabel}
         </span>
       </div>
 

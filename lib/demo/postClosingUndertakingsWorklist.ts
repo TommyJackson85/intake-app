@@ -56,11 +56,25 @@ export type PostClosingUndertakingsWorklistItem = {
 
 export type PostClosingUndertakingsWorklist = {
   pendingCount: number
+  countLabel: string
   items: PostClosingUndertakingsWorklistItem[]
   disclaimer: string
 }
 
-export function isPostClosingUndertakingOutstandingFollowUp(
+function emptyToNull(value: string | null | undefined): string | null {
+  const trimmed = (value || '').trim()
+  return trimmed || null
+}
+
+function resolveMatterLabel(matter: DemoMatter): string {
+  return matter.property?.address?.trim() || matter.file_id
+}
+
+/**
+ * Whether a recorded undertaking belongs on the outstanding-follow-up worklist.
+ * Deny-by-default for unknown / complete / not-recorded statuses.
+ */
+export function isPostClosingUndertakingWorklistEligible(
   status: DemoPostClosingUndertakingStatus | string | null | undefined
 ): boolean {
   return (
@@ -70,8 +84,76 @@ export function isPostClosingUndertakingOutstandingFollowUp(
   )
 }
 
-function resolveMatterLabel(matter: DemoMatter): string {
-  return matter.property?.address?.trim() || matter.file_id
+/** @deprecated Prefer isPostClosingUndertakingWorklistEligible. */
+export function isPostClosingUndertakingOutstandingFollowUp(
+  status: DemoPostClosingUndertakingStatus | string | null | undefined
+): boolean {
+  return isPostClosingUndertakingWorklistEligible(status)
+}
+
+export function getPostClosingUndertakingTargetDate(
+  undertaking: Pick<DemoPostClosingUndertaking, 'targetDate'> | null | undefined
+): string | null {
+  return emptyToNull(undertaking?.targetDate)
+}
+
+export function getPostClosingUndertakingUpdatedAt(
+  undertaking: Pick<DemoPostClosingUndertaking, 'updatedAt' | 'createdAt'> | null | undefined
+): string | null {
+  return emptyToNull(undertaking?.updatedAt) || emptyToNull(undertaking?.createdAt)
+}
+
+export function formatPostClosingUndertakingsWorklistCount(count: number): string {
+  if (count <= 0) return 'No outstanding follow-up items'
+  if (count === 1) return '1 outstanding follow-up item'
+  return `${count} outstanding follow-up items`
+}
+
+/**
+ * Project one worklist row from a matter + review + undertaking.
+ * Returns null when the undertaking is not worklist-eligible.
+ */
+export function getPostClosingUndertakingsWorklistItem(input: {
+  matter: DemoMatter
+  review?: DemoPostClosingUndertakingsReview | null
+  undertaking: DemoPostClosingUndertaking
+}): PostClosingUndertakingsWorklistItem | null {
+  const matter = input.matter
+  if (!matter || matter.deletedAt) return null
+
+  const normalizedUndertakingStatus = input.undertaking.status || 'not_recorded'
+  if (!isPostClosingUndertakingWorklistEligible(normalizedUndertakingStatus)) return null
+
+  const normalizedReview = normalizePostClosingUndertakingsReview(input.review)
+  const status = normalizedUndertakingStatus as DemoPostClosingUndertakingStatus
+  const responsibleParty = (input.undertaking.responsibleParty ||
+    'unknown') as DemoPostClosingUndertakingResponsibleParty
+  const statusPresentation = getPostClosingUndertakingStatusPresentation(status)
+  const reviewStatus = normalizedReview.internalReviewStatus || 'not_started'
+  const reviewApplicability = normalizedReview.applicability || 'unknown'
+
+  return {
+    matterId: matter.id,
+    matterFileId: matter.file_id,
+    matterLabel: resolveMatterLabel(matter),
+    matterStatus: matter.status,
+    undertakingId: input.undertaking.id,
+    title: (input.undertaking.title || '').trim() || POST_CLOSING_RECORDED_ITEM_LABEL,
+    status,
+    statusLabel: statusPresentation.label,
+    statusPresentation,
+    responsibleParty,
+    responsiblePartyLabel: postClosingUndertakingResponsiblePartyLabel(responsibleParty),
+    targetDate: getPostClosingUndertakingTargetDate(input.undertaking),
+    followUpNote: (input.undertaking.followUpNote || '').trim(),
+    details: (input.undertaking.details || '').trim(),
+    reviewApplicability,
+    reviewApplicabilityLabel: postClosingUndertakingsApplicabilityLabel(reviewApplicability),
+    reviewStatus,
+    reviewStatusLabel: getPostClosingReviewStatusPresentation(reviewStatus).label,
+    updatedAt: getPostClosingUndertakingUpdatedAt(input.undertaking),
+    createdAt: emptyToNull(input.undertaking.createdAt),
+  }
 }
 
 function sortKey(item: PostClosingUndertakingsWorklistItem): number {
@@ -82,10 +164,10 @@ function sortKey(item: PostClosingUndertakingsWorklistItem): number {
 }
 
 /**
- * Pure internal worklist of recorded post-closing items with outstanding follow-up status.
- * Skips deleted matters and non-outstanding item statuses. Deny-by-default otherwise.
+ * Internal worklist of recorded post-closing items with outstanding follow-up status.
+ * Skips deleted matters and non-eligible item statuses. Deny-by-default otherwise.
  */
-export function buildPostClosingUndertakingsWorklist(input: {
+export function getPostClosingUndertakingsWorklist(input: {
   matters: DemoMatter[]
   postClosingUndertakingsByMatterId: Record<string, DemoPostClosingUndertakingsReview | undefined>
 }): PostClosingUndertakingsWorklist {
@@ -99,38 +181,13 @@ export function buildPostClosingUndertakingsWorklist(input: {
     if (!matter) continue
 
     const normalized = normalizePostClosingUndertakingsReview(record)
-    const reviewStatus = normalized.internalReviewStatus || 'not_started'
-    const reviewApplicability = normalized.applicability || 'unknown'
-
     for (const row of normalized.undertakings || []) {
-      if (!isPostClosingUndertakingOutstandingFollowUp(row.status)) continue
-      const status = (row.status || 'outstanding') as DemoPostClosingUndertakingStatus
-      const responsibleParty = (row.responsibleParty ||
-        'unknown') as DemoPostClosingUndertakingResponsibleParty
-      const statusPresentation = getPostClosingUndertakingStatusPresentation(status)
-
-      items.push({
-        matterId: matter.id,
-        matterFileId: matter.file_id,
-        matterLabel: resolveMatterLabel(matter),
-        matterStatus: matter.status,
-        undertakingId: row.id,
-        title: row.title || POST_CLOSING_RECORDED_ITEM_LABEL,
-        status,
-        statusLabel: statusPresentation.label,
-        statusPresentation,
-        responsibleParty,
-        responsiblePartyLabel: postClosingUndertakingResponsiblePartyLabel(responsibleParty),
-        targetDate: row.targetDate ?? null,
-        followUpNote: (row.followUpNote || '').trim(),
-        details: (row.details || '').trim(),
-        reviewApplicability,
-        reviewApplicabilityLabel: postClosingUndertakingsApplicabilityLabel(reviewApplicability),
-        reviewStatus,
-        reviewStatusLabel: getPostClosingReviewStatusPresentation(reviewStatus).label,
-        updatedAt: row.updatedAt ?? null,
-        createdAt: row.createdAt ?? null,
+      const item = getPostClosingUndertakingsWorklistItem({
+        matter,
+        review: normalized,
+        undertaking: row,
       })
+      if (item) items.push(item)
     }
   }
 
@@ -144,14 +201,23 @@ export function buildPostClosingUndertakingsWorklist(input: {
 
   return {
     pendingCount: items.length,
+    countLabel: formatPostClosingUndertakingsWorklistCount(items.length),
     items,
     disclaimer: POST_CLOSING_UNDERTAKINGS_WORKLIST_DISCLAIMER,
   }
 }
 
-/** @internal helper for tests — project one undertaking row without matter lookup. */
+/** @deprecated Prefer getPostClosingUndertakingsWorklist. */
+export function buildPostClosingUndertakingsWorklist(input: {
+  matters: DemoMatter[]
+  postClosingUndertakingsByMatterId: Record<string, DemoPostClosingUndertakingsReview | undefined>
+}): PostClosingUndertakingsWorklist {
+  return getPostClosingUndertakingsWorklist(input)
+}
+
+/** @deprecated Prefer isPostClosingUndertakingWorklistEligible. */
 export function projectPostClosingUndertakingWorklistCandidate(
   undertaking: DemoPostClosingUndertaking
 ): boolean {
-  return isPostClosingUndertakingOutstandingFollowUp(undertaking.status)
+  return isPostClosingUndertakingWorklistEligible(undertaking.status)
 }
