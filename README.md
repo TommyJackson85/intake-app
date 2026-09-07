@@ -60,7 +60,14 @@ Publish the generated `./out` directory as the GitHub Pages artifact (or copy it
 publishing folder). Client navigation via `next/link` and bundled assets include the `/intake-app`
 prefix automatically when built this way.
 
-**Not included in the static export** (stashed only for that build, then restored): API route
-handlers, request-time proxy/middleware, force-dynamic pages, server actions, and dynamic App
-Router segments that lack `generateStaticParams` (for example `/demo/matters/[id]`, portal/intake
-token routes). Those remain on Vercel.
+**Not included in the static export** (stashed only for that build, then restored):
+
+- All `app/api/**` route handlers and `app/auth/logout`
+- `app/auth/post-login` (`force-dynamic`) and `app/auth/signup` (Server Action)
+- `app/dashboard/**` (server/cookie-backed product UI)
+- Dynamic segments without `generateStaticParams`: `/demo/matters/[id]`, `/demo/portal/[token]`,
+  `/demo/intake/[token]`, `/demo/fincen-cert/[token]`, `/intake/[token]`
+- `proxy.ts` (request-time middleware replacement; unsupported for export)
+
+Those capabilities remain on Vercel. Hardcoded absolute `<a href="/…">` strings (not `next/link`)
+are not rewritten by `basePath`; prefer `next/link` for in-app navigation.

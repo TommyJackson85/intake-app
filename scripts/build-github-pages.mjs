@@ -29,16 +29,16 @@ const EXPORT_INCOMPATIBLE_PATHS = [
   'app/auth/logout',
   // force-dynamic page
   'app/auth/post-login',
-  // Server Action module (not available on static hosting)
-  'app/auth/signup/signupAction.ts',
+  // Signup uses a Server Action — not available on static hosting
+  'app/auth/signup',
+  // Full dashboard app depends on server clients / cookies / APIs
+  'app/dashboard',
   // Dynamic App Router segments without generateStaticParams
   'app/demo/portal',
   'app/demo/intake',
   'app/demo/matters/[id]',
   'app/demo/fincen-cert',
   'app/intake',
-  'app/dashboard/matters/[id]',
-  'app/dashboard/intakes/[id]',
   // Request-time proxy (Next 16 middleware replacement) — unsupported for export
   'proxy.ts',
 ]
@@ -50,12 +50,26 @@ function ensureCleanStash() {
   fs.mkdirSync(stashRoot, { recursive: true })
 }
 
+function movePath(from, to) {
+  fs.mkdirSync(path.dirname(to), { recursive: true })
+  try {
+    fs.renameSync(from, to)
+  } catch (err) {
+    // Cloud / overlay filesystems often reject rename across devices (EXDEV).
+    if (err && typeof err === 'object' && 'code' in err && err.code === 'EXDEV') {
+      fs.cpSync(from, to, { recursive: true })
+      fs.rmSync(from, { recursive: true, force: true })
+      return
+    }
+    throw err
+  }
+}
+
 function stashPath(relPath) {
   const from = path.join(root, relPath)
   if (!fs.existsSync(from)) return false
   const to = path.join(stashRoot, relPath)
-  fs.mkdirSync(path.dirname(to), { recursive: true })
-  fs.renameSync(from, to)
+  movePath(from, to)
   return true
 }
 
@@ -65,11 +79,10 @@ function restoreStash() {
     const from = path.join(stashRoot, relPath)
     if (!fs.existsSync(from)) continue
     const to = path.join(root, relPath)
-    fs.mkdirSync(path.dirname(to), { recursive: true })
     if (fs.existsSync(to)) {
       fs.rmSync(to, { recursive: true, force: true })
     }
-    fs.renameSync(from, to)
+    movePath(from, to)
   }
   fs.rmSync(stashRoot, { recursive: true, force: true })
 }
@@ -93,9 +106,9 @@ function assertExportArtifacts() {
 
   // Spot-check that asset URLs / RSC references include the project base path.
   const homeHtml = fs.readFileSync(path.join(outDir, 'index.html'), 'utf8')
-  if (!homeHtml.includes('/intake-app/_next/') && !homeHtml.includes('/intake-app/')) {
+  if (!homeHtml.includes('/intake-app/_next/')) {
     throw new Error(
-      'Homepage HTML does not reference /intake-app base path; assetPrefix/basePath may be misconfigured.',
+      'Homepage HTML does not reference /intake-app/_next/ assets; basePath/assetPrefix may be misconfigured.',
     )
   }
 
