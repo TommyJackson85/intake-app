@@ -7,6 +7,7 @@ import { useDemoStore } from '@/lib/demo/store'
 import { buildEngagementLetterDraftInput } from '@/lib/demo/demoDocument'
 import { resolveEngagementLetterPreview } from '@/lib/demo/engagementLetterPreview'
 import { isCondoDiligenceEligible } from '@/lib/demo/condoDiligence'
+import { useAccessibleDialog } from '@/hooks/useAccessibleDialog'
 
 export function getNextDemoFileId(existingFileIds: string[]) {
   const parsed = existingFileIds
@@ -102,6 +103,14 @@ export default function NewMatterModal({
 
   const isDismissable = useMemo(() => isOpen, [isOpen])
 
+  const { panelRef: newMatterDialogPanelRef } = useAccessibleDialog({
+    open: isDismissable,
+    onClose,
+    initialFocusSelector: '[data-new-matter-dialog-close]',
+    closeOnEscape: true,
+    restoreFocus: true,
+  })
+
   useEffect(() => {
     if (!isOpen) return
     setSaveError(null)
@@ -183,23 +192,6 @@ export default function NewMatterModal({
       setEngagementPropertyAddress(propertyAddress)
     }
   }, [engagementPropertyAddress, isOpen, propertyAddress])
-
-  useEffect(() => {
-    if (!isDismissable) return
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      document.body.style.overflow = prevOverflow
-    }
-  }, [isDismissable, onClose])
 
   if (!isOpen) return null
   const condoDiligenceMayApply = isCondoDiligenceEligible({
@@ -296,9 +288,7 @@ export default function NewMatterModal({
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Create matter (demo)"
+      role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -314,6 +304,11 @@ export default function NewMatterModal({
       }}
     >
       <div
+        ref={newMatterDialogPanelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Create matter (demo)"
+        tabIndex={-1}
         style={{
           width: '100%',
           maxWidth: '880px',
@@ -325,6 +320,7 @@ export default function NewMatterModal({
           maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
+          outline: 'none',
         }}
       >
         <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(94,82,64,0.15)', display: 'flex', alignItems: 'center' }}>
@@ -338,7 +334,8 @@ export default function NewMatterModal({
           <div style={{ marginLeft: 'auto' }}>
             <button
               type="button"
-              aria-label="Close"
+              aria-label="Close create matter dialog"
+              data-new-matter-dialog-close
               onClick={onClose}
               style={{
                 background: 'none',
