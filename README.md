@@ -65,9 +65,12 @@ prefix automatically when built this way.
 - All `app/api/**` route handlers and `app/auth/logout`
 - `app/auth/post-login` (`force-dynamic`) and `app/auth/signup` (Server Action)
 - `app/dashboard/**` (server/cookie-backed product UI)
-- Dynamic segments without `generateStaticParams`: `/demo/matters/[id]`, `/demo/portal/[token]`,
+- Dynamic segments without `generateStaticParams`: `/demo/portal/[token]`,
   `/demo/intake/[token]`, `/demo/fincen-cert/[token]`, `/intake/[token]`
 - `proxy.ts` (request-time middleware replacement; unsupported for export)
+
+`/demo/matters/[id]` is included in the static export: `generateStaticParams` emits one page
+per seeded demo matter `file_id`.
 
 Those capabilities remain on Vercel. Hardcoded absolute `<a href="/…">` strings (not `next/link`)
 are not rewritten by `basePath`; prefer `next/link` for in-app navigation.

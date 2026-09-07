@@ -241,7 +241,19 @@ function DemoMattersContent() {
                       <>
                         <td style={{ padding: '14px', color: '#134252', fontWeight: 800 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <span style={{ color: '#208096', textDecoration: 'underline' }}>{m.file_id}</span>
+                            <Link
+                              href={`/demo/matters/${encodeURIComponent(m.file_id)}`}
+                              style={{ color: '#208096', textDecoration: 'underline' }}
+                              onClick={(e) => {
+                                // Prefer the in-page modal for plain left-clicks; keep href for new tab / copy link.
+                                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+                                e.preventDefault()
+                                setSelectedMatter(m)
+                                setSelectedMatterInitialTab(undefined)
+                              }}
+                            >
+                              {m.file_id}
+                            </Link>
                             {condoChip && (
                               <span
                                 title="Condo diligence (demo)"
