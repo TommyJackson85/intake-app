@@ -25,6 +25,8 @@ import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMat
 import MatterDetailModal from '@/components/demo/MatterDetailModal'
 import MatterRowActionsMenu from '@/components/demo/MatterRowActionsMenu'
 import AccessibleConfirmDialog from '@/components/a11y/AccessibleConfirmDialog'
+import DemoMattersFallback from '@/components/demo/DemoMattersFallback'
+import { buildDemoMatterNotFoundCopy } from '@/lib/demo/demoMattersFallback'
 import type { DemoCondoDiligenceMatterStatus, DemoMatter } from '@/lib/demo/types'
 import { condoDiligenceMatterStatusPresentation, isCondoDiligenceEligible } from '@/lib/demo/condoDiligence'
 import {
@@ -79,6 +81,7 @@ function DemoMattersContent() {
     matterId: string
     fileId: string
   } | null>(null)
+  const [unknownMatterDeepLink, setUnknownMatterDeepLink] = useState<string | null>(null)
 
   const searchParams = useSearchParams()
   const selectedMatterFromQuery = searchParams.get('matter')
@@ -168,7 +171,10 @@ function DemoMattersContent() {
 
   useEffect(() => {
     if (didOpenFromQueryRef.current) return
-    if (!selectedMatterFromQuery) return
+    if (!selectedMatterFromQuery) {
+      setUnknownMatterDeepLink(null)
+      return
+    }
     // Prefer live store row; fall back to canonical seed identity for list/detail alignment.
     const canonical = getDemoMatterById(selectedMatterFromQuery)
     const match =
@@ -178,7 +184,11 @@ function DemoMattersContent() {
           m.id === selectedMatterFromQuery ||
           (canonical != null && m.id === canonical.id),
       ) ?? null
-    if (!match) return
+    if (!match) {
+      setUnknownMatterDeepLink(selectedMatterFromQuery)
+      return
+    }
+    setUnknownMatterDeepLink(null)
     didOpenFromQueryRef.current = true
     setSelectedMatterId(match.id)
   }, [selectedMatterFromQuery, matters])
@@ -272,6 +282,18 @@ function DemoMattersContent() {
           </Link>
         </div>
       )}
+
+      {unknownMatterDeepLink ? (
+        <div style={{ marginBottom: 20 }}>
+          <DemoMattersFallback
+            copy={buildDemoMatterNotFoundCopy({ attemptedRef: unknownMatterDeepLink })}
+            secondaryAction={{
+              label: 'Dismiss',
+              onClick: () => setUnknownMatterDeepLink(null),
+            }}
+          />
+        </div>
+      ) : null}
 
       <div
         style={{

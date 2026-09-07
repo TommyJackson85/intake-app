@@ -5,6 +5,7 @@ import {
   findDemoMatterByDetailParam,
   getDemoMatterDetailStaticParams,
 } from '@/lib/demo/demoMatterDetailRoutes'
+import { shouldNotFoundDemoMatterParam } from '@/lib/demo/demoMattersFallback'
 
 /**
  * Pre-render every seeded demo matter detail URL for static export / GitHub Pages.
@@ -23,8 +24,12 @@ type DemoMatterByIdPageProps = {
 export default async function DemoMatterByIdPage({ params }: DemoMatterByIdPageProps) {
   const resolved = await Promise.resolve(params)
   const id = typeof resolved?.id === 'string' ? resolved.id : ''
-  const matter = findDemoMatterByDetailParam(id)
 
+  if (shouldNotFoundDemoMatterParam(id, findDemoMatterByDetailParam)) {
+    notFound()
+  }
+
+  const matter = findDemoMatterByDetailParam(id)
   if (!matter) {
     notFound()
   }
