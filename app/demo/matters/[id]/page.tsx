@@ -1,9 +1,9 @@
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 
+import DemoMatterDetailRedirect from '@/app/demo/matters/[id]/DemoMatterDetailRedirect'
 import {
   findDemoMatterByDetailParam,
   getDemoMatterDetailStaticParams,
-  getDemoMatterListDeepLink,
 } from '@/lib/demo/demoMatterDetailRoutes'
 
 /**
@@ -29,6 +29,5 @@ export default async function DemoMatterByIdPage({ params }: DemoMatterByIdPageP
     notFound()
   }
 
-  // Valid seeded matters deep-link into the existing matters list modal UX.
-  redirect(getDemoMatterListDeepLink(matter.file_id))
+  return <DemoMatterDetailRedirect fileId={matter.file_id} />
 }
