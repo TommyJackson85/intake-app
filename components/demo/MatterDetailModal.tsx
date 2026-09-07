@@ -779,6 +779,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
         aria-modal="true"
         aria-label={`Matter details ${effectiveMatter.file_id}`}
         tabIndex={-1}
+        data-testid="demo-matter-detail-dialog"
         style={{
           width: '100%',
           maxWidth: '1024px',

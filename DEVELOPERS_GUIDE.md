@@ -20,3 +20,44 @@ REGISTRATION
 
 BACKFILL PASSWORD command example
 npm run backfill:password -- user@firm.com "TempP@ssw0rd!"
+
+## Testing
+
+### Unit tests (Vitest)
+```bash
+npm test
+```
+Runs pure/unit tests under `tests/` (Node by default; jsdom via `/** @vitest-environment jsdom */` where needed). No Supabase credentials required for demo unit suites.
+
+### Demo matters E2E (Playwright)
+Regression coverage for the public demo matters journey (client-local demo data only — no production data, no Supabase).
+
+**Exact command (build + suite):**
+```bash
+npm run test:e2e
+```
+That runs `npm run build && playwright test` against `next start` on `http://127.0.0.1:4173`.
+
+**If a production server is already running:**
+```bash
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npm run test:e2e:existing
+```
+
+**Install browser binaries once (CI / fresh machine):**
+```bash
+npx playwright install chromium
+```
+
+**Artifacts on failure:** screenshots, traces, and video under `test-results/`; HTML report in `playwright-report/`.
+
+**CI expectations:** Compliance workflow remains required (`npm run check:compliance`). Playwright E2E is available locally and can be wired as an optional/required job; it must not call third-party network services and uses only seeded demo fixtures.
+
+**Journeys covered (`e2e/demo-matters.spec.ts`):**
+- Open `/demo/matters` and verify the list loads
+- Search for a known matter and clear search
+- Apply and clear a status filter
+- Open a known matter detail from the list (modal) and Escape to close
+- Load a known matter detail URL directly
+- Load an invalid matter detail URL and recover via not-found
+- Non-destructive row action (copy portal link) + Escape closes archive confirm without mutating
+

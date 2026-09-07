@@ -236,7 +236,7 @@ function DemoMattersContent() {
   })()
 
   return (
-    <div className="demo-matters-a11y-scope">
+    <div className="demo-matters-a11y-scope" data-testid="demo-matters-page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ marginBottom: '6px', fontSize: '32px' }}>Matters</h1>
@@ -312,6 +312,7 @@ function DemoMattersContent() {
             onChange={(e) => updateListFilters({ search: e.target.value })}
             placeholder="File, party, property, owner…"
             aria-label="Search matters"
+            data-testid="demo-matters-search"
             style={{
               padding: '8px 12px',
               borderRadius: 8,
@@ -327,6 +328,7 @@ function DemoMattersContent() {
             value={listQuery.status}
             onChange={(e) => updateListFilters({ status: e.target.value })}
             aria-label="Filter by status"
+            data-testid="demo-matters-status-filter"
             style={{
               padding: '8px 12px',
               borderRadius: 8,
@@ -449,6 +451,7 @@ function DemoMattersContent() {
           <button
             type="button"
             onClick={clearListFilters}
+            data-testid="demo-matters-clear-filters"
             style={{
               alignSelf: 'flex-end',
               padding: '8px 12px',
@@ -475,7 +478,7 @@ function DemoMattersContent() {
           marginBottom: 10,
         }}
       >
-        <span style={{ fontSize: 12, color: '#627c71', fontWeight: 700 }}>
+        <span style={{ fontSize: 12, color: '#627c71', fontWeight: 700 }} data-testid="demo-matters-count">
           {listView.totalCount} matter{listView.totalCount === 1 ? '' : 's'}
           {listView.hasActiveFilters ? ' matching filters' : ''}
           {listView.pageCount > 1
@@ -529,6 +532,7 @@ function DemoMattersContent() {
           <table
             style={{ width: '100%', borderCollapse: 'collapse' }}
             aria-label="Open demo matters"
+            data-testid="demo-matters-table"
           >
             <caption
               style={{
@@ -571,6 +575,8 @@ function DemoMattersContent() {
               {pageMatters.map((m) => (
                 <tr
                   key={m.id}
+                  data-testid={`demo-matters-row-${m.file_id}`}
+                  data-matter-file-id={m.file_id}
                   onClick={() => {
                     openMatterDetail(m.id)
                   }}
@@ -658,6 +664,7 @@ function DemoMattersContent() {
                             <Link
                               href={getDemoMatterDetailPath(m.file_id)}
                               aria-label={`Open matter ${m.file_id}`}
+                              data-testid={`demo-matters-file-link-${m.file_id}`}
                               style={{ color: '#208096', textDecoration: 'underline' }}
                               onClick={(e) => {
                                 // Prefer the in-page modal for plain left-clicks; keep href for new tab / copy link.

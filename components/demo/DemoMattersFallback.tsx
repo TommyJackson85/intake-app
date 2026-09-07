@@ -66,12 +66,13 @@ export default function DemoMattersFallback({ copy, secondaryAction }: DemoMatte
     <section
       role="status"
       aria-live="polite"
+      data-testid={copy.kind === 'not_found' ? 'demo-matters-not-found' : 'demo-matters-error'}
       style={panelStyle}
     >
       <h1 style={titleStyle}>{copy.title}</h1>
       <p style={bodyStyle}>{copy.description}</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-        <Link href={copy.recoveryHref} style={primaryButtonStyle}>
+        <Link href={copy.recoveryHref} style={primaryButtonStyle} data-testid="demo-matters-recovery-link">
           {copy.recoveryLabel}
         </Link>
         {secondaryAction ? (

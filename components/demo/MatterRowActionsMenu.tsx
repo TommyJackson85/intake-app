@@ -101,6 +101,7 @@ export default function MatterRowActionsMenu({
         aria-controls={open ? menuId : undefined}
         aria-label={`Actions for matter ${matterFileId}`}
         data-matter-actions-trigger={matterId}
+        data-testid={`demo-matters-actions-${matterFileId}`}
         onClick={(e) => {
           e.stopPropagation()
           setOpen((prev) => !prev)
@@ -130,6 +131,7 @@ export default function MatterRowActionsMenu({
           id={menuId}
           role="menu"
           aria-label={`Actions for matter ${matterFileId}`}
+          data-testid={`demo-matters-actions-menu-${matterFileId}`}
           style={{
             position: 'absolute',
             right: 0,
@@ -148,6 +150,7 @@ export default function MatterRowActionsMenu({
               key={item.id}
               type="button"
               role="menuitem"
+              data-testid={`demo-matters-action-${item.id}`}
               disabled={item.disabled}
               onClick={(e) => {
                 e.stopPropagation()
