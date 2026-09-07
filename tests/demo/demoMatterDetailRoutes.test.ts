@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { demoSeedData } from '@/lib/demo/demoData'
+import {
+  getDemoMatterById,
+  getDemoMatterFileIds,
+} from '@/lib/demo/demoMatters'
 import {
   findDemoMatterByDetailParam,
   getDemoMatterDetailIds,
@@ -8,28 +11,28 @@ import {
 } from '@/lib/demo/demoMatterDetailRoutes'
 
 describe('demoMatterDetailRoutes', () => {
-  it('generates static params for every seeded demo matter file_id', () => {
+  it('generates static params from the canonical demoMatters module', () => {
     const ids = getDemoMatterDetailIds()
     const params = getDemoMatterDetailStaticParams()
 
-    expect(ids.length).toBeGreaterThan(0)
-    expect(ids).toEqual(demoSeedData.matters.map((m) => m.file_id))
+    expect(ids).toEqual(getDemoMatterFileIds())
     expect(params).toEqual(ids.map((id) => ({ id })))
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('resolves a known matter file_id and matter id', () => {
-    const seed = demoSeedData.matters[0]!
-    const byFileId = findDemoMatterByDetailParam(seed.file_id)
-    const byMatterId = findDemoMatterByDetailParam(seed.id)
+  it('resolves a known matter file_id and matter id via shared lookup', () => {
+    const seed = getDemoMatterById('matter-001')
+    expect(seed).not.toBeNull()
+    const byFileId = findDemoMatterByDetailParam(seed!.file_id)
+    const byMatterId = findDemoMatterByDetailParam(seed!.id)
 
     expect(byFileId).toMatchObject({
-      id: seed.id,
-      file_id: seed.file_id,
+      id: seed!.id,
+      file_id: seed!.file_id,
     })
-    expect(byMatterId?.id).toBe(seed.id)
-    expect(getDemoMatterListDeepLink(seed.file_id)).toBe(
-      `/demo/matters?matter=${encodeURIComponent(seed.file_id)}`,
+    expect(byMatterId?.id).toBe(seed!.id)
+    expect(getDemoMatterListDeepLink(seed!.file_id)).toBe(
+      `/demo/matters?matter=${encodeURIComponent(seed!.file_id)}`,
     )
   })
 
