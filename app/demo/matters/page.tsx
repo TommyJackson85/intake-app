@@ -61,7 +61,8 @@ export default function DemoMattersPage() {
 }
 
 function DemoMattersContent() {
-  const { matters, archiveMatter, archivedMatters, getCondoDiligence, matterReviewTasks } = useDemoStore()
+  const { matters, archiveMatter, archivedMatters, getCondoDiligence, matterReviewTasks, demoEpoch } =
+    useDemoStore()
 
   const [hoveredMatterId, setHoveredMatterId] = useState<string | null>(null)
   /** Stable id only — always re-resolve from latest open matters before render/actions. */
@@ -140,7 +141,7 @@ function DemoMattersContent() {
       return
     }
     const ok = window.confirm(
-      'Archive this matter? In demo mode this only hides it for this session and resets on refresh.',
+      'Archive this matter? In demo mode it stays archived in this browser after refresh. Use Reset demo data to restore fixtures.',
     )
     if (!ok) return
     const latest = resolveMatterForListAction({ matterId, openMatters: matters })
@@ -193,6 +194,15 @@ function DemoMattersContent() {
     setListQuery((prev) => ({ ...prev, page: listView.page }))
   }, [listQuery.page, listView.page])
 
+  // Reset list filters / selection when demo fixtures are restored.
+  useEffect(() => {
+    if (demoEpoch === 0) return
+    setListQuery(createDefaultDemoMattersListQuery())
+    clearMatterDetailSelection()
+    setHoveredMatterId(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: react only to demoEpoch
+  }, [demoEpoch])
+
   const emptyStateMessage = (() => {
     if (matters.length === 0) return 'No open matters.'
     if (listQuery.openCondoReviewTasksOnly && listView.totalCount === 0 && !listView.hasActiveFilters) {
@@ -209,7 +219,7 @@ function DemoMattersContent() {
           <h1 style={{ marginBottom: '6px', fontSize: '32px' }}>Matters</h1>
           <p style={{ margin: 0, color: '#627c71' }}>Open matters for your demo firm.</p>
           <p style={{ marginTop: '6px', marginBottom: 0, color: '#627c71', fontSize: '12px' }}>
-            Demo mode: archiving only affects this session and resets on refresh.
+            Demo mode: edits persist in this browser after refresh. Use Reset demo data to restore fixtures.
           </p>
         </div>
         <button
@@ -242,7 +252,7 @@ function DemoMattersContent() {
             color: '#134252',
           }}
         >
-          <strong>Demo mode:</strong> matter created in-memory for this session.{' '}
+          <strong>Demo mode:</strong> matter created in this browser for the demo session (persists after refresh).{' '}
           <Link href="/auth/signup" style={{ color: '#208096', fontWeight: 800, textDecoration: 'none' }}>
             Sign up to create real matters.
           </Link>

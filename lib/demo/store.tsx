@@ -115,6 +115,29 @@ import {
   buildCondoDiligenceActivityForTaskCreated,
   parseStoredDemoCondoDiligenceActivities,
 } from '@/lib/demo/demoCondoDiligenceActivity'
+import {
+  DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY,
+  DEMO_CONDO_DILIGENCE_STORAGE_KEY,
+  DEMO_DOCUMENT_REQUESTS_STORAGE_KEY,
+  DEMO_DOCUMENTS_STORAGE_KEY,
+  DEMO_FINCEN_CERT_STORAGE_KEY,
+  DEMO_INTAKE_LEADS_STORAGE_KEY,
+  DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY,
+  DEMO_MATTERS_STORAGE_KEY,
+  DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY,
+  clearAllDemoPersistedState,
+  readDemoPersistedData,
+  safeLocalStorageGet,
+  safeSessionStorageGet,
+  safeSessionStorageSet,
+  serializeDemoPersistedData,
+  validateDemoMattersStoredArray,
+  validateFinCENCertRequestsArray,
+  validateIdArray,
+  validateIntakeLeadsArray,
+  validateObjectMap,
+  writeDemoPersistedData,
+} from '@/lib/demo/demoPersistence'
 
 type DemoContextType = {
   demoFirm: DemoSeedData['demoFirm']
@@ -224,6 +247,13 @@ type DemoContextType = {
   submitFinCENCert: (token: string, owners: FinCENBeneficialOwner[]) => void
   getFinCENCertByToken: (token: string) => DemoFinCENCertRequest | undefined
   cancelPendingFinCENCert: (matterId: string) => void
+  /**
+   * Increments when demo data is reset so list UI (filters, selection) can clear.
+   * Persisted demo slices survive refresh; use `resetDemoData` to restore fixtures.
+   */
+  demoEpoch: number
+  /** Clears all demo localStorage/sessionStorage keys and restores canonical seed fixtures. */
+  resetDemoData: () => void
 }
 
 
@@ -248,99 +278,32 @@ type CreateDemoMatterInput = {
 
 const DemoContext = createContext<DemoContextType | null>(null)
 
-/** Persists FinCEN cert requests so /demo/fincen-cert/[token] works across tabs and refreshes */
-const DEMO_FINCEN_CERT_STORAGE_KEY = 'lawintake-demo-fincen-cert-requests-v1'
-
-/** Full demo matters snapshot — survives refresh and syncs across tabs (demo-only). */
-const DEMO_MATTERS_STORAGE_KEY = 'lawintake-demo-matters-v1'
-
-/** Demo documents snapshot — merged with seed by id on load (demo-only). */
-const DEMO_DOCUMENTS_STORAGE_KEY = 'lawintake-demo-documents-v1'
-
-/** Lawyer-side document requests — merged with seed by id on load (demo-only). */
-const DEMO_DOCUMENT_REQUESTS_STORAGE_KEY = 'lawintake-demo-document-requests-v1'
-
-/** Matter-scoped condo diligence checklist (demo-only; keyed by matter id). */
-const DEMO_CONDO_DILIGENCE_STORAGE_KEY = 'lawintake-demo-condo-diligence-v1'
-
-/** Matter-scoped Post-Closing Undertakings records (demo-only; keyed by matter id). */
-const DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY = 'lawintake-demo-post-closing-undertakings-v1'
-
-/** Internal matter review tasks linked to saved summary documents (demo-only; not portal-visible). */
-const DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY = 'lawintake-demo-matter-review-tasks-v1'
-
-/** Internal Condo Diligence review-task activity events (demo-only; not portal-visible). */
-const DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY = 'lawintake-demo-condo-diligence-activities-v1'
-
 function persistDemoMatters(matters: DemoMatter[]) {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(DEMO_MATTERS_STORAGE_KEY, JSON.stringify(matters))
-    }
-  } catch {
-    /* ignore quota / private mode */
-  }
+  writeDemoPersistedData(DEMO_MATTERS_STORAGE_KEY, matters)
 }
 
 function persistDemoDocuments(documents: DemoDocument[]) {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(DEMO_DOCUMENTS_STORAGE_KEY, JSON.stringify(documents))
-    }
-  } catch {
-    /* ignore quota / private mode */
-  }
+  writeDemoPersistedData(DEMO_DOCUMENTS_STORAGE_KEY, documents)
 }
 
 function persistDemoDocumentRequests(rows: DemoDocumentRequest[]) {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(DEMO_DOCUMENT_REQUESTS_STORAGE_KEY, JSON.stringify(rows))
-    }
-  } catch {
-    /* ignore quota / private mode */
-  }
+  writeDemoPersistedData(DEMO_DOCUMENT_REQUESTS_STORAGE_KEY, rows)
 }
 
-
 function persistDemoPostClosingUndertakingsReview(map: Record<string, DemoPostClosingUndertakingsReview>) {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY, JSON.stringify(map))
-    }
-  } catch {
-    /* ignore quota / private mode */
-  }
+  writeDemoPersistedData(DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY, map)
 }
 
 function persistDemoCondoDiligence(map: Record<string, DemoCondoDiligence>) {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(DEMO_CONDO_DILIGENCE_STORAGE_KEY, JSON.stringify(map))
-    }
-  } catch {
-    /* ignore quota / private mode */
-  }
+  writeDemoPersistedData(DEMO_CONDO_DILIGENCE_STORAGE_KEY, map)
 }
 
 function persistDemoMatterReviewTasks(tasks: DemoMatterReviewTask[]) {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY, JSON.stringify(tasks))
-    }
-  } catch {
-    /* ignore quota / private mode */
-  }
+  writeDemoPersistedData(DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY, tasks)
 }
 
 function persistDemoCondoDiligenceActivities(activities: DemoCondoDiligenceActivity[]) {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY, JSON.stringify(activities))
-    }
-  } catch {
-    /* ignore quota / private mode */
-  }
+  writeDemoPersistedData(DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY, activities)
 }
 
 function isDemoCondoDiligenceDocStatus(s: unknown): s is DemoCondoDiligenceDocStatus {
@@ -423,34 +386,24 @@ function parseDemoCondoDiligenceRow(raw: unknown): DemoCondoDiligence | null {
 }
 
 function parseCondoDiligenceMapFromStorage(raw: string): Record<string, DemoCondoDiligence> | null {
-  try {
-    const parsed = JSON.parse(raw) as unknown
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
-    const out: Record<string, DemoCondoDiligence> = {}
-    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
-      const matterId = k.trim()
-      if (!matterId) continue
-      const row = parseDemoCondoDiligenceRow(v)
-      if (row) out[matterId] = row
-    }
-    return Object.keys(out).length > 0 ? out : null
-  } catch {
-    return null
+  const parsed = readDemoPersistedData(raw, validateObjectMap)
+  if (!parsed) return null
+  const out: Record<string, DemoCondoDiligence> = {}
+  for (const [k, v] of Object.entries(parsed)) {
+    const matterId = k.trim()
+    if (!matterId) continue
+    const row = parseDemoCondoDiligenceRow(v)
+    if (row) out[matterId] = row
   }
+  return Object.keys(out).length > 0 ? out : null
 }
 
 /** Read matters from localStorage (e.g. cert page before React state hydrates). */
 export function readDemoMattersFromStorage(): DemoMatter[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(DEMO_MATTERS_STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as DemoMatter[]
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
-  } catch {
-    return []
-  }
+  const raw = safeLocalStorageGet(DEMO_MATTERS_STORAGE_KEY)
+  const rows = readDemoPersistedData(raw, validateDemoMattersStoredArray)
+  if (!rows) return []
+  return rows.filter((m): m is DemoMatter => m != null && typeof m.id === 'string') as DemoMatter[]
 }
 
 /** Stored rows win on id collision so FinCEN updates persist; seed fills any missing ids. */
@@ -478,45 +431,34 @@ function normalizeFinCENCertRequestsMatterIds(requests: DemoFinCENCertRequest[])
 }
 
 function persistFinCENCertRequests(requests: DemoFinCENCertRequest[]) {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      const normalized = normalizeFinCENCertRequestsMatterIds(requests)
-      localStorage.setItem(DEMO_FINCEN_CERT_STORAGE_KEY, JSON.stringify(normalized))
-    }
-  } catch {
-    /* ignore quota / private mode */
-  }
+  const normalized = normalizeFinCENCertRequestsMatterIds(requests)
+  writeDemoPersistedData(DEMO_FINCEN_CERT_STORAGE_KEY, normalized)
 }
 
 /** Synchronous read for client-only routes before DemoProvider hydration runs. */
 export function readFinCENCertRequestFromStorage(token: string): DemoFinCENCertRequest | undefined {
-  if (typeof window === 'undefined') return undefined
-  try {
-    const raw = localStorage.getItem(DEMO_FINCEN_CERT_STORAGE_KEY)
-    if (!raw) return undefined
-    const parsed = JSON.parse(raw) as DemoFinCENCertRequest[]
-    if (!Array.isArray(parsed)) return undefined
-    const normalized = normalizeFinCENCertRequestsMatterIds(parsed)
-    return normalized.find((r) => r.token === token)
-  } catch {
-    return undefined
-  }
+  const raw = safeLocalStorageGet(DEMO_FINCEN_CERT_STORAGE_KEY)
+  const parsed = readDemoPersistedData(raw, validateFinCENCertRequestsArray)
+  if (!parsed) return undefined
+  const normalized = normalizeFinCENCertRequestsMatterIds(parsed as unknown as DemoFinCENCertRequest[])
+  return normalized.find((r) => r.token === token)
 }
 
-/** Persists demo intake leads so /demo/intake/[token] works across tabs and refreshes */
-const DEMO_INTAKE_LEADS_STORAGE_KEY = 'lawintake-demo-intake-leads-v1'
-const LEGACY_DEMO_INTAKE_LEADS_SESSION_KEY = DEMO_INTAKE_LEADS_STORAGE_KEY
-
 function persistIntakeLeads(leads: DemoIntakeLead[]) {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(DEMO_INTAKE_LEADS_STORAGE_KEY, JSON.stringify(leads))
-    }
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.setItem(LEGACY_DEMO_INTAKE_LEADS_SESSION_KEY, JSON.stringify(leads))
-    }
-  } catch {
-    /* ignore quota / private mode */
+  writeDemoPersistedData(DEMO_INTAKE_LEADS_STORAGE_KEY, leads)
+  // Legacy mirror for older tabs that still listen on sessionStorage.
+  safeSessionStorageSet(DEMO_INTAKE_LEADS_STORAGE_KEY, serializeDemoPersistedData(leads))
+}
+
+function createInitialDemoRuntimeState() {
+  return {
+    ...cloneSeedData(),
+    recentlyDeletedMatters: [] as DemoMatter[],
+    recentlyDeletedClients: [] as DemoClient[],
+    condoDiligenceByMatterId: {} as Record<string, DemoCondoDiligence>,
+    postClosingUndertakingsByMatterId: {} as Record<string, DemoPostClosingUndertakingsReview>,
+    matterReviewTasks: [] as DemoMatterReviewTask[],
+    condoDiligenceActivities: [] as DemoCondoDiligenceActivity[],
   }
 }
 
@@ -638,52 +580,32 @@ function syncMattersWithCertRequests(matters: DemoMatter[], requests: DemoFinCEN
 
 export function DemoProvider({ children }: { children: React.ReactNode }) {
   // Matters + FinCEN cert requests hydrate from localStorage; seed fills missing ids on first load.
-  const [state, setState] = useState<
-    DemoSeedData & {
-      recentlyDeletedMatters: DemoMatter[]
-      recentlyDeletedClients: DemoClient[]
-      condoDiligenceByMatterId: Record<string, DemoCondoDiligence>
-      postClosingUndertakingsByMatterId: Record<string, DemoPostClosingUndertakingsReview>
-      matterReviewTasks: DemoMatterReviewTask[]
-      condoDiligenceActivities: DemoCondoDiligenceActivity[]
-    }
-  >(() => ({
-    ...cloneSeedData(),
-    recentlyDeletedMatters: [],
-    recentlyDeletedClients: [],
-    condoDiligenceByMatterId: {},
-    postClosingUndertakingsByMatterId: {},
-    matterReviewTasks: [],
-    condoDiligenceActivities: [],
-  }))
+  const [state, setState] = useState(createInitialDemoRuntimeState)
+  const [demoEpoch, setDemoEpoch] = useState(0)
 
   useEffect(() => {
     try {
-      const rawLocal = typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_INTAKE_LEADS_STORAGE_KEY) : null
-      const rawSession =
-        typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(LEGACY_DEMO_INTAKE_LEADS_SESSION_KEY) : null
+      const rawLocal = safeLocalStorageGet(DEMO_INTAKE_LEADS_STORAGE_KEY)
+      const rawSession = safeSessionStorageGet(DEMO_INTAKE_LEADS_STORAGE_KEY)
       const raw = rawLocal ?? rawSession
       if (!raw) return
-      const parsed = JSON.parse(raw) as DemoIntakeLead[]
-      if (!Array.isArray(parsed) || parsed.length === 0) return
-      if (!rawLocal && rawSession && typeof localStorage !== 'undefined') {
-        localStorage.setItem(DEMO_INTAKE_LEADS_STORAGE_KEY, rawSession)
+      const parsed = readDemoPersistedData(raw, validateIntakeLeadsArray)
+      if (!parsed) return
+      if (!rawLocal && rawSession) {
+        writeDemoPersistedData(DEMO_INTAKE_LEADS_STORAGE_KEY, parsed)
       }
-      setState((prev) => ({ ...prev, intakeLeads: parsed }))
+      setState((prev) => ({ ...prev, intakeLeads: parsed as unknown as DemoIntakeLead[] }))
     } catch {
-      /* ignore */
+      /* ignore — keep seed */
     }
   }, [])
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== DEMO_INTAKE_LEADS_STORAGE_KEY || !e.newValue) return
-      try {
-        const parsed = JSON.parse(e.newValue) as DemoIntakeLead[]
-        if (Array.isArray(parsed)) setState((prev) => ({ ...prev, intakeLeads: parsed }))
-      } catch {
-        /* ignore */
-      }
+      const parsed = readDemoPersistedData(e.newValue, validateIntakeLeadsArray)
+      if (!parsed) return
+      setState((prev) => ({ ...prev, intakeLeads: parsed as unknown as DemoIntakeLead[] }))
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
@@ -692,19 +614,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   /** Hydrate matters + FinCEN cert requests + documents + document requests from localStorage (same session / after refresh / new tab). */
   useEffect(() => {
     try {
-      const rawMatters = typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_MATTERS_STORAGE_KEY) : null
-      const rawFincen = typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_FINCEN_CERT_STORAGE_KEY) : null
-      const rawDocuments = typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_DOCUMENTS_STORAGE_KEY) : null
-      const rawDocumentRequests =
-        typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_DOCUMENT_REQUESTS_STORAGE_KEY) : null
-      const rawCondoDiligence =
-        typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_CONDO_DILIGENCE_STORAGE_KEY) : null
-      const rawPostClosingUndertakings =
-        typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY) : null
-      const rawMatterReviewTasks =
-        typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY) : null
-      const rawCondoDiligenceActivities =
-        typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY) : null
+      const rawMatters = safeLocalStorageGet(DEMO_MATTERS_STORAGE_KEY)
+      const rawFincen = safeLocalStorageGet(DEMO_FINCEN_CERT_STORAGE_KEY)
+      const rawDocuments = safeLocalStorageGet(DEMO_DOCUMENTS_STORAGE_KEY)
+      const rawDocumentRequests = safeLocalStorageGet(DEMO_DOCUMENT_REQUESTS_STORAGE_KEY)
+      const rawCondoDiligence = safeLocalStorageGet(DEMO_CONDO_DILIGENCE_STORAGE_KEY)
+      const rawPostClosingUndertakings = safeLocalStorageGet(DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY)
+      const rawMatterReviewTasks = safeLocalStorageGet(DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY)
+      const rawCondoDiligenceActivities = safeLocalStorageGet(DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY)
       if (
         !rawMatters &&
         !rawFincen &&
@@ -719,35 +636,35 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       setState((prev) => {
         let matters = prev.matters
         if (rawMatters) {
-          const parsed = JSON.parse(rawMatters) as DemoMatter[]
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const stored = parsed.filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
+          const storedRows = readDemoPersistedData(rawMatters, validateDemoMattersStoredArray)
+          if (storedRows && storedRows.length > 0) {
+            const stored = storedRows.filter((m): m is DemoMatter => m != null && typeof m.id === 'string') as DemoMatter[]
             matters = mergeStoredMattersWithSeed(stored, [...DEMO_MATTERS])
           }
         }
         let fincenCertRequests = prev.fincenCertRequests
         if (rawFincen) {
-          const parsed = JSON.parse(rawFincen) as DemoFinCENCertRequest[]
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            fincenCertRequests = normalizeFinCENCertRequestsMatterIds(parsed)
+          const parsed = readDemoPersistedData(rawFincen, validateFinCENCertRequestsArray)
+          if (parsed && parsed.length > 0) {
+            fincenCertRequests = normalizeFinCENCertRequestsMatterIds(parsed as unknown as DemoFinCENCertRequest[])
           }
         }
         matters = syncMattersWithCertRequests(matters, fincenCertRequests)
         let documents = prev.documents
         if (rawDocuments) {
-          const parsed = JSON.parse(rawDocuments) as DemoDocument[]
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const stored = parsed.filter((d): d is DemoDocument => d != null && typeof d.id === 'string')
+          const storedRows = readDemoPersistedData(rawDocuments, validateIdArray)
+          if (storedRows && storedRows.length > 0) {
+            const stored = storedRows.filter((d): d is DemoDocument => d != null && typeof d.id === 'string') as DemoDocument[]
             documents = mergeStoredDocumentsWithSeed(stored, prev.documents)
           }
         }
         let documentRequests = prev.documentRequests
         if (rawDocumentRequests) {
-          const parsed = JSON.parse(rawDocumentRequests) as DemoDocumentRequest[]
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const stored = parsed
+          const storedRows = readDemoPersistedData(rawDocumentRequests, validateIdArray)
+          if (storedRows && storedRows.length > 0) {
+            const stored = storedRows
               .filter((r): r is DemoDocumentRequest => r != null && typeof r.id === 'string')
-              .map(withCoercedDocumentRequestStatus)
+              .map(withCoercedDocumentRequestStatus) as DemoDocumentRequest[]
             documentRequests = mergeStoredDocumentRequestsWithSeed(stored, prev.documentRequests)
           }
         }
@@ -760,40 +677,36 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         }
         let postClosingUndertakingsByMatterId = prev.postClosingUndertakingsByMatterId
         if (rawPostClosingUndertakings) {
-          try {
-            const parsed = JSON.parse(rawPostClosingUndertakings) as unknown
-            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-              const next: Record<string, import('@/lib/demo/types').DemoPostClosingUndertakingsReview> = {
-                ...prev.postClosingUndertakingsByMatterId,
-              }
-              for (const [matterId, row] of Object.entries(parsed as Record<string, unknown>)) {
-                if (!matterId.trim()) continue
-                next[matterId] = normalizePostClosingUndertakingsReview(
-                  row as import('@/lib/demo/types').DemoPostClosingUndertakingsReview
-                )
-              }
-              postClosingUndertakingsByMatterId = next
+          const parsed = readDemoPersistedData(rawPostClosingUndertakings, validateObjectMap)
+          if (parsed) {
+            const next: Record<string, DemoPostClosingUndertakingsReview> = {
+              ...prev.postClosingUndertakingsByMatterId,
             }
-          } catch {
-            /* keep prev */
+            for (const [matterId, row] of Object.entries(parsed)) {
+              if (!matterId.trim()) continue
+              next[matterId] = normalizePostClosingUndertakingsReview(
+                row as DemoPostClosingUndertakingsReview,
+              )
+            }
+            postClosingUndertakingsByMatterId = next
           }
         }
         let matterReviewTasks = prev.matterReviewTasks
         if (rawMatterReviewTasks) {
-          try {
-            const parsed = JSON.parse(rawMatterReviewTasks) as unknown
+          const parsed = readDemoPersistedData(rawMatterReviewTasks, (data) =>
+            Array.isArray(data) ? data : null,
+          )
+          if (parsed) {
             matterReviewTasks = parseStoredDemoMatterReviewTasks(parsed)
-          } catch {
-            /* keep prev */
           }
         }
         let condoDiligenceActivities = prev.condoDiligenceActivities
         if (rawCondoDiligenceActivities) {
-          try {
-            const parsed = JSON.parse(rawCondoDiligenceActivities) as unknown
+          const parsed = readDemoPersistedData(rawCondoDiligenceActivities, (data) =>
+            Array.isArray(data) ? data : null,
+          )
+          if (parsed) {
             condoDiligenceActivities = parseStoredDemoCondoDiligenceActivities(parsed)
-          } catch {
-            /* keep prev */
           }
         }
         return {
@@ -809,7 +722,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         }
       })
     } catch {
-      /* ignore */
+      /* ignore — keep seed; never blank the demo */
     }
   }, [])
 
@@ -894,18 +807,14 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== DEMO_FINCEN_CERT_STORAGE_KEY || !e.newValue) return
-      try {
-        const parsed = JSON.parse(e.newValue) as DemoFinCENCertRequest[]
-        if (!Array.isArray(parsed)) return
-        const normalized = normalizeFinCENCertRequestsMatterIds(parsed)
-        setState((prev) => ({
-          ...prev,
-          fincenCertRequests: normalized,
-          matters: syncMattersWithCertRequests(prev.matters, normalized),
-        }))
-      } catch {
-        /* ignore */
-      }
+      const parsed = readDemoPersistedData(e.newValue, validateFinCENCertRequestsArray)
+      if (!parsed) return
+      const normalized = normalizeFinCENCertRequestsMatterIds(parsed as unknown as DemoFinCENCertRequest[])
+      setState((prev) => ({
+        ...prev,
+        fincenCertRequests: normalized,
+        matters: syncMattersWithCertRequests(prev.matters, normalized),
+      }))
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
@@ -914,30 +823,26 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== DEMO_MATTERS_STORAGE_KEY || !e.newValue) return
-      try {
-        const parsed = JSON.parse(e.newValue) as DemoMatter[]
-        if (!Array.isArray(parsed)) return
-        const sanitized = parsed.filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
-        setState((prev) => {
-          let fincenCertRequests = prev.fincenCertRequests
-          try {
-            const rawF = typeof localStorage !== 'undefined' ? localStorage.getItem(DEMO_FINCEN_CERT_STORAGE_KEY) : null
-            if (rawF) {
-              const fp = JSON.parse(rawF) as DemoFinCENCertRequest[]
-              if (Array.isArray(fp) && fp.length > 0) fincenCertRequests = normalizeFinCENCertRequestsMatterIds(fp)
-            }
-          } catch {
-            /* keep prev */
+      const sanitizedRows = readDemoPersistedData(e.newValue, validateDemoMattersStoredArray)
+      if (!sanitizedRows) return
+      const sanitized = sanitizedRows.filter(
+        (m): m is DemoMatter => m != null && typeof m.id === 'string',
+      ) as DemoMatter[]
+      setState((prev) => {
+        let fincenCertRequests = prev.fincenCertRequests
+        const rawF = safeLocalStorageGet(DEMO_FINCEN_CERT_STORAGE_KEY)
+        if (rawF) {
+          const fp = readDemoPersistedData(rawF, validateFinCENCertRequestsArray)
+          if (fp && fp.length > 0) {
+            fincenCertRequests = normalizeFinCENCertRequestsMatterIds(fp as unknown as DemoFinCENCertRequest[])
           }
-          const matters = syncMattersWithCertRequests(
-            mergeStoredMattersWithSeed(sanitized, [...DEMO_MATTERS]),
-            fincenCertRequests,
-          )
-          return { ...prev, matters, fincenCertRequests }
-        })
-      } catch {
-        /* ignore */
-      }
+        }
+        const matters = syncMattersWithCertRequests(
+          mergeStoredMattersWithSeed(sanitized, [...DEMO_MATTERS]),
+          fincenCertRequests,
+        )
+        return { ...prev, matters, fincenCertRequests }
+      })
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
@@ -946,17 +851,15 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== DEMO_DOCUMENTS_STORAGE_KEY || !e.newValue) return
-      try {
-        const parsed = JSON.parse(e.newValue) as DemoDocument[]
-        if (!Array.isArray(parsed)) return
-        const sanitized = parsed.filter((d): d is DemoDocument => d != null && typeof d.id === 'string')
-        setState((prev) => ({
-          ...prev,
-          documents: mergeStoredDocumentsWithSeed(sanitized, prev.documents),
-        }))
-      } catch {
-        /* ignore */
-      }
+      const sanitizedRows = readDemoPersistedData(e.newValue, validateIdArray)
+      if (!sanitizedRows) return
+      const sanitized = sanitizedRows.filter(
+        (d): d is DemoDocument => d != null && typeof d.id === 'string',
+      ) as DemoDocument[]
+      setState((prev) => ({
+        ...prev,
+        documents: mergeStoredDocumentsWithSeed(sanitized, prev.documents),
+      }))
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
@@ -965,19 +868,15 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== DEMO_DOCUMENT_REQUESTS_STORAGE_KEY || !e.newValue) return
-      try {
-        const parsed = JSON.parse(e.newValue) as DemoDocumentRequest[]
-        if (!Array.isArray(parsed)) return
-        const sanitized = parsed
-          .filter((r): r is DemoDocumentRequest => r != null && typeof r.id === 'string')
-          .map(withCoercedDocumentRequestStatus)
-        setState((prev) => ({
-          ...prev,
-          documentRequests: mergeStoredDocumentRequestsWithSeed(sanitized, prev.documentRequests),
-        }))
-      } catch {
-        /* ignore */
-      }
+      const sanitizedRows = readDemoPersistedData(e.newValue, validateIdArray)
+      if (!sanitizedRows) return
+      const sanitized = sanitizedRows
+        .filter((r): r is DemoDocumentRequest => r != null && typeof r.id === 'string')
+        .map(withCoercedDocumentRequestStatus) as DemoDocumentRequest[]
+      setState((prev) => ({
+        ...prev,
+        documentRequests: mergeStoredDocumentRequestsWithSeed(sanitized, prev.documentRequests),
+      }))
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
@@ -986,16 +885,12 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== DEMO_CONDO_DILIGENCE_STORAGE_KEY || !e.newValue) return
-      try {
-        const storedMap = parseCondoDiligenceMapFromStorage(e.newValue)
-        if (!storedMap) return
-        setState((prev) => ({
-          ...prev,
-          condoDiligenceByMatterId: { ...prev.condoDiligenceByMatterId, ...storedMap },
-        }))
-      } catch {
-        /* ignore */
-      }
+      const storedMap = parseCondoDiligenceMapFromStorage(e.newValue)
+      if (!storedMap) return
+      setState((prev) => ({
+        ...prev,
+        condoDiligenceByMatterId: { ...prev.condoDiligenceByMatterId, ...storedMap },
+      }))
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
@@ -1004,13 +899,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY || !e.newValue) return
-      try {
-        const parsed = JSON.parse(e.newValue) as unknown
-        const matterReviewTasks = parseStoredDemoMatterReviewTasks(parsed)
-        setState((prev) => ({ ...prev, matterReviewTasks }))
-      } catch {
-        /* ignore */
-      }
+      const parsed = readDemoPersistedData(e.newValue, (data) => (Array.isArray(data) ? data : null))
+      if (!parsed) return
+      const matterReviewTasks = parseStoredDemoMatterReviewTasks(parsed)
+      setState((prev) => ({ ...prev, matterReviewTasks }))
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
@@ -1019,21 +911,17 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY || !e.newValue) return
-      try {
-        const parsed = JSON.parse(e.newValue) as unknown
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return
-        const next: Record<string, DemoPostClosingUndertakingsReview> = {}
-        for (const [matterId, row] of Object.entries(parsed as Record<string, unknown>)) {
-          if (!matterId.trim()) continue
-          next[matterId] = normalizePostClosingUndertakingsReview(row as DemoPostClosingUndertakingsReview)
-        }
-        setState((prev) => ({
-          ...prev,
-          postClosingUndertakingsByMatterId: { ...prev.postClosingUndertakingsByMatterId, ...next },
-        }))
-      } catch {
-        /* ignore */
+      const parsed = readDemoPersistedData(e.newValue, validateObjectMap)
+      if (!parsed) return
+      const next: Record<string, DemoPostClosingUndertakingsReview> = {}
+      for (const [matterId, row] of Object.entries(parsed)) {
+        if (!matterId.trim()) continue
+        next[matterId] = normalizePostClosingUndertakingsReview(row as DemoPostClosingUndertakingsReview)
       }
+      setState((prev) => ({
+        ...prev,
+        postClosingUndertakingsByMatterId: { ...prev.postClosingUndertakingsByMatterId, ...next },
+      }))
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
@@ -1042,20 +930,36 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY || !e.newValue) return
-      try {
-        const parsed = JSON.parse(e.newValue) as unknown
-        const condoDiligenceActivities = parseStoredDemoCondoDiligenceActivities(parsed)
-        setState((prev) => ({ ...prev, condoDiligenceActivities }))
-      } catch {
-        /* ignore */
-      }
+      const parsed = readDemoPersistedData(e.newValue, (data) => (Array.isArray(data) ? data : null))
+      if (!parsed) return
+      const condoDiligenceActivities = parseStoredDemoCondoDiligenceActivities(parsed)
+      setState((prev) => ({ ...prev, condoDiligenceActivities }))
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
+  const resetDemoData = React.useCallback(() => {
+    clearAllDemoPersistedState()
+    const next = createInitialDemoRuntimeState()
+    setState(next)
+    setDemoEpoch((n) => n + 1)
+    // Re-write seed snapshots so other tabs / sync readers see fixtures immediately.
+    persistDemoMatters(next.matters)
+    persistDemoDocuments(next.documents)
+    persistDemoDocumentRequests(next.documentRequests)
+    persistDemoCondoDiligence(next.condoDiligenceByMatterId)
+    persistDemoPostClosingUndertakingsReview(next.postClosingUndertakingsByMatterId)
+    persistDemoMatterReviewTasks(next.matterReviewTasks)
+    persistDemoCondoDiligenceActivities(next.condoDiligenceActivities)
+    persistFinCENCertRequests(next.fincenCertRequests)
+    persistIntakeLeads(next.intakeLeads)
+  }, [])
+
   const value = useMemo<DemoContextType>(() => {
     return {
+      demoEpoch,
+      resetDemoData,
       demoFirm: state.demoFirm,
       staff: state.staff,
       matters: state.matters
@@ -2264,7 +2168,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         })
       },
     }
-  }, [state])
+  }, [state, demoEpoch, resetDemoData])
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>
 }

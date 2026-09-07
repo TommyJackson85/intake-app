@@ -182,7 +182,7 @@ export default function DemoFinCENCertPage() {
             fontSize: 13,
           }}
         >
-          Demo FinCEN certification — updates the in-memory matter in this browser tab only.
+          Demo FinCEN certification — updates the demo matter in this browser (persists after refresh until Reset demo data).
         </div>
         <div
           style={{

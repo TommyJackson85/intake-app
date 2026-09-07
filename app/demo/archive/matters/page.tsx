@@ -17,7 +17,8 @@ export default function DemoArchivedMattersPage() {
           <h1 style={{ marginBottom: '6px', fontSize: '32px' }}>Archived Matters</h1>
           <p style={{ margin: 0, color: '#627c71' }}>
             You are viewing archived demo data. Restore brings items back to active lists. Delete permanently removes
-            items from this demo session only. All demo data resets on full page refresh.
+            items from this browser&apos;s demo data. Matter archives persist after refresh — use Reset demo data to
+            restore fixtures.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -65,7 +66,7 @@ export default function DemoArchivedMattersPage() {
                           type="button"
                           onClick={() => {
                             const ok = window.confirm(
-                              'In demo mode, this removes the matter from this session only. All demo data returns on full page refresh.'
+                              'In demo mode, this removes the matter from this browser\'s demo list. Seeded matters can return after Reset demo data / seed merge. Use Reset demo data to fully restore fixtures.',
                             )
                             if (ok) permanentlyDeleteMatter(m.id)
                           }}

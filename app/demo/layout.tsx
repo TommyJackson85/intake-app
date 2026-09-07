@@ -5,6 +5,8 @@ import { DemoProvider } from '@/lib/demo/store'
 import { usePathname } from 'next/navigation'
 import { DemoDataProvider } from '@/context/DemoDataContext'
 import { MobileTopBar, MobileBottomNav } from '@/components/MobileNav'
+import { DemoPersistenceNotice } from '@/app/demo/_components/DemoPersistenceNotice'
+import { DemoResetControls } from '@/app/demo/_components/DemoResetControls'
 
 export default function DemoLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -79,8 +81,11 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
                 })}
               </nav>
 
-              <div style={{ marginTop: '30px', fontSize: '12px', color: '#90cfd9' }}>
-                Matters &amp; FinCEN cert state persist in this browser (localStorage). Clear site data to reset.
+              <div style={{ marginTop: '30px', fontSize: '12px', color: '#90cfd9', lineHeight: 1.45 }}>
+                Demo edits persist in this browser after refresh. Use Reset demo data to restore fixtures.
+              </div>
+              <div style={{ marginTop: '12px' }}>
+                <DemoResetControls compact />
               </div>
 
               <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
@@ -99,20 +104,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
             {/* Scrollable content */}
             <main style={{ flex: 1, overflowY: 'auto' }} className="pt-14 pb-16 lg:pt-0 lg:pb-0">
               <div className="px-4 py-6 lg:px-10 lg:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
-                <div
-                  role="alert"
-                  style={{
-                    marginBottom: '20px',
-                    padding: '14px 16px',
-                    border: '1px solid #f0b429',
-                    borderRadius: '8px',
-                    background: '#fff8e6',
-                    color: '#134252',
-                  }}
-                >
-                  <strong>You are in demo mode.</strong> Data is fake. Matters and FinCEN certification state persist in
-                  your browser (localStorage) until you clear site data. No real client data is sent to a server.
-                </div>
+                <DemoPersistenceNotice />
                 {children}
               </div>
             </main>

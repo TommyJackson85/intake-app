@@ -12,7 +12,8 @@ export default function DemoClientsPage() {
         <div>
           <h1 style={{ fontSize: '32px', marginBottom: '6px' }}>Clients</h1>
           <p style={{ margin: 0, color: '#627c71', fontSize: '12px' }}>
-            Demo mode: archiving only affects this session and resets on refresh.
+            Demo mode: client archives are session-only and clear on refresh. Matter/document demo edits persist until
+            you use Reset demo data.
           </p>
         </div>
         <Link
