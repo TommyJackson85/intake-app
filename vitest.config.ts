@@ -6,10 +6,7 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     globals: true,
-    environmentMatchGlobs: [
-      ['tests/**/*.test.tsx', 'jsdom'],
-      ['tests/a11y/**', 'jsdom'],
-    ],
+    // jsdom a11y tests opt in via `/** @vitest-environment jsdom */` per file.
   },
   resolve: {
     alias: {
