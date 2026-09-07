@@ -155,7 +155,8 @@ function DemoPageContent() {
         <div style={{ background: 'white', border: '1px solid rgba(94,82,64,0.2)', borderRadius: '8px', padding: '20px' }}>
           <h2 style={{ marginTop: 0 }}>No active matters</h2>
           <p style={{ color: '#627c71', marginBottom: 0 }}>
-            All demo matters may be archived for this session. Refresh the page to restore seeded demo data.
+            All demo matters may be archived in this browser. Use <strong>Reset demo data</strong> to restore
+            seeded fixtures.
           </p>
         </div>
         <SystemContractMapCard />
@@ -215,7 +216,7 @@ function DemoPageContent() {
           }}
         >
           <div>
-            <strong>Demo mode:</strong> matter created in-memory for this session.{' '}
+            <strong>Demo mode:</strong> matter created in this browser (persists after refresh).{' '}
             <Link href="/auth/signup" style={{ color: '#208096', fontWeight: 800, textDecoration: 'none' }}>
               Sign up to create real matters.
             </Link>

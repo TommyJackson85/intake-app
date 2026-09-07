@@ -16,8 +16,8 @@ export default function DemoArchivedClientsPage() {
         <div>
           <h1 style={{ marginBottom: '6px', fontSize: '32px' }}>Archived Clients</h1>
           <p style={{ margin: 0, color: '#627c71' }}>
-            You are viewing archived demo data. Restore brings items back to active lists. Delete permanently removes
-            items from this demo session only. All demo data resets on full page refresh.
+            You are viewing archived demo clients. Client archives are session-only and clear on refresh. Use Reset
+            demo data to restore persisted matter/document fixtures.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>

@@ -101,7 +101,10 @@ export default function DemoClientIntakePage() {
     return (
       <div style={{ color: '#134252' }}>
         <h1 style={{ fontSize: 24, marginBottom: 8 }}>Intake link not found</h1>
-        <p style={{ color: '#627c71' }}>This demo link is invalid or the session was refreshed (demo data is in-memory only).</p>
+        <p style={{ color: '#627c71' }}>
+          This demo link is invalid or was cleared. Intake leads persist in this browser after refresh — use Reset
+          demo data from the demo shell if you need to restore fixtures.
+        </p>
         <Link href="/demo/intakes" style={{ color: '#208096', fontWeight: 800 }}>
           Back to Intake / Leads
         </Link>
