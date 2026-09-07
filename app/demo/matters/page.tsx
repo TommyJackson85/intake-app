@@ -5,6 +5,12 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
 import { getDemoMatterById } from '@/lib/demo/demoMatters'
 import { getDemoMatterDetailPath } from '@/lib/demo/demoMatterDetailRoutes'
+import {
+  canCommitMatterListAction,
+  nextSelectedMatterIdAfterListChange,
+  resolveMatterForListAction,
+  resolveOpenMatterById,
+} from '@/lib/demo/demoMattersListSelection'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
 import MatterDetailModal from '@/components/demo/MatterDetailModal'
 import type { DemoCondoDiligenceMatterStatus, DemoMatter } from '@/lib/demo/types'
@@ -49,7 +55,8 @@ function DemoMattersContent() {
   const { matters, archiveMatter, archivedMatters, getCondoDiligence, matterReviewTasks } = useDemoStore()
 
   const [hoveredMatterId, setHoveredMatterId] = useState<string | null>(null)
-  const [selectedMatter, setSelectedMatter] = useState<DemoMatter | null>(null)
+  /** Stable id only — always re-resolve from latest open matters before render/actions. */
+  const [selectedMatterId, setSelectedMatterId] = useState<string | null>(null)
   const [selectedMatterInitialTab, setSelectedMatterInitialTab] = useState<MatterDetailInitialTab | undefined>(undefined)
   const didOpenFromQueryRef = useRef(false)
   const [isNewMatterOpen, setIsNewMatterOpen] = useState(false)
@@ -70,6 +77,42 @@ function DemoMattersContent() {
     return filterMattersWithActiveCondoDiligenceSummaryReviewTasks(matters, matterReviewTasks)
   }, [matters, matterReviewTasks, openCondoReviewTasksOnly])
 
+  const selectedMatter = useMemo(
+    () => resolveOpenMatterById(matters, selectedMatterId),
+    [matters, selectedMatterId],
+  )
+
+  const openMatterDetail = (matterId: string, initialTab?: MatterDetailInitialTab) => {
+    const latest = resolveOpenMatterById(matters, matterId)
+    if (!latest) return
+    setSelectedMatterInitialTab(initialTab)
+    setSelectedMatterId(latest.id)
+  }
+
+  const clearMatterDetailSelection = () => {
+    setSelectedMatterId(null)
+    setSelectedMatterInitialTab(undefined)
+  }
+
+  const requestArchiveMatter = (matterId: string) => {
+    const beforeConfirm = resolveMatterForListAction({ matterId, openMatters: matters })
+    if (!beforeConfirm) {
+      clearMatterDetailSelection()
+      return
+    }
+    const ok = window.confirm(
+      'Archive this matter? In demo mode this only hides it for this session and resets on refresh.',
+    )
+    if (!ok) return
+    const latest = resolveMatterForListAction({ matterId, openMatters: matters })
+    if (!latest) {
+      clearMatterDetailSelection()
+      return
+    }
+    archiveMatter(latest.id)
+    if (selectedMatterId === latest.id) clearMatterDetailSelection()
+  }
+
   useEffect(() => {
     if (didOpenFromQueryRef.current) return
     if (!selectedMatterFromQuery) return
@@ -84,7 +127,7 @@ function DemoMattersContent() {
       ) ?? null
     if (!match) return
     didOpenFromQueryRef.current = true
-    setSelectedMatter(match)
+    setSelectedMatterId(match.id)
   }, [selectedMatterFromQuery, matters])
 
   useEffect(() => {
@@ -93,13 +136,17 @@ function DemoMattersContent() {
     return () => window.clearTimeout(t)
   }, [showDemoCreationDisabledBanner])
 
+  // Close modal / clear selection when the target is archived or filtered out of view.
   useEffect(() => {
-    setSelectedMatter((prev) => {
-      if (!prev) return null
-      const fresh = matters.find((m) => m.id === prev.id)
-      return fresh ?? prev
+    const nextId = nextSelectedMatterIdAfterListChange({
+      selectedMatterId,
+      openMatters: matters,
+      visibleMatters,
     })
-  }, [matters])
+    if (nextId === selectedMatterId) return
+    setSelectedMatterId(nextId)
+    if (!nextId) setSelectedMatterInitialTab(undefined)
+  }, [matters, visibleMatters, selectedMatterId])
 
   return (
     <div>
@@ -213,8 +260,7 @@ function DemoMattersContent() {
                 <tr
                   key={m.id}
                   onClick={() => {
-                    setSelectedMatterInitialTab(undefined)
-                    setSelectedMatter(m)
+                    openMatterDetail(m.id)
                   }}
                   onMouseEnter={() => setHoveredMatterId(m.id)}
                   onMouseLeave={() => setHoveredMatterId(null)}
@@ -258,8 +304,7 @@ function DemoMattersContent() {
                                 // Prefer the in-page modal for plain left-clicks; keep href for new tab / copy link.
                                 if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
                                 e.preventDefault()
-                                setSelectedMatter(m)
-                                setSelectedMatterInitialTab(undefined)
+                                openMatterDetail(m.id)
                               }}
                             >
                               {m.file_id}
@@ -372,8 +417,7 @@ function DemoMattersContent() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                setSelectedMatterInitialTab(complianceInitialTab)
-                                setSelectedMatter(m)
+                                openMatterDetail(m.id, complianceInitialTab)
                               }}
                               style={{
                                 background: '#fff',
@@ -394,8 +438,7 @@ function DemoMattersContent() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                setSelectedMatterInitialTab('Tasks')
-                                setSelectedMatter(m)
+                                openMatterDetail(m.id, 'Tasks')
                               }}
                               style={{
                                 background: '#fff',
@@ -415,9 +458,19 @@ function DemoMattersContent() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation()
-                              navigator.clipboard.writeText(`${window.location.origin}/demo/portal/${m.portal_token}`)
-                              setCopiedMatterId(m.id)
-                              setTimeout(() => setCopiedMatterId((prev) => (prev === m.id ? null : prev)), 2000)
+                              const latest = resolveMatterForListAction({
+                                matterId: m.id,
+                                openMatters: matters,
+                              })
+                              if (!latest) return
+                              navigator.clipboard.writeText(
+                                `${window.location.origin}/demo/portal/${latest.portal_token}`,
+                              )
+                              setCopiedMatterId(latest.id)
+                              setTimeout(
+                                () => setCopiedMatterId((prev) => (prev === latest.id ? null : prev)),
+                                2000,
+                              )
                             }}
                             style={{
                               background: copiedMatterId === m.id ? '#0f766e' : 'none',
@@ -434,12 +487,12 @@ function DemoMattersContent() {
                           </button>
                           <button
                             type="button"
+                            disabled={
+                              !canCommitMatterListAction({ matterId: m.id, openMatters: matters })
+                            }
                             onClick={(e) => {
                               e.stopPropagation()
-                              const ok = window.confirm(
-                                'Archive this matter? In demo mode this only hides it for this session and resets on refresh.'
-                              )
-                              if (ok) archiveMatter(m.id)
+                              requestArchiveMatter(m.id)
                             }}
                             style={{
                               background: 'none',
@@ -448,7 +501,18 @@ function DemoMattersContent() {
                               borderRadius: '6px',
                               padding: '6px 10px',
                               fontSize: '12px',
-                              cursor: 'pointer',
+                              cursor: canCommitMatterListAction({
+                                matterId: m.id,
+                                openMatters: matters,
+                              })
+                                ? 'pointer'
+                                : 'not-allowed',
+                              opacity: canCommitMatterListAction({
+                                matterId: m.id,
+                                openMatters: matters,
+                              })
+                                ? 1
+                                : 0.5,
                             }}
                           >
                             Archive
@@ -492,11 +556,16 @@ function DemoMattersContent() {
         matter={selectedMatter}
         open={selectedMatter !== null}
         initialTab={selectedMatterInitialTab}
-        onClose={() => {
-          setSelectedMatter(null)
-          setSelectedMatterInitialTab(undefined)
+        onClose={clearMatterDetailSelection}
+        onArchive={(id) => {
+          const latest = resolveMatterForListAction({ matterId: id, openMatters: matters })
+          if (!latest) {
+            clearMatterDetailSelection()
+            return
+          }
+          archiveMatter(latest.id)
+          clearMatterDetailSelection()
         }}
-        onArchive={(id) => archiveMatter(id)}
       />
     </div>
   )
