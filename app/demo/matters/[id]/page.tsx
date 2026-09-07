@@ -9,7 +9,10 @@ import { shouldNotFoundDemoMatterParam } from '@/lib/demo/demoMattersFallback'
 
 /**
  * Pre-render every seeded demo matter detail URL for static export / GitHub Pages.
- * Unknown IDs are not generated (`dynamicParams = false`) so direct loads 404 safely.
+ * Unknown IDs are not generated (`dynamicParams = false`) so direct loads hit the
+ * nearest not-found UI (`app/not-found.tsx` / segment `not-found.tsx`).
+ * When the page does run with a blank/unresolved id, `notFound()` renders the
+ * segment fallback.
  */
 export function generateStaticParams() {
   return getDemoMatterDetailStaticParams()
