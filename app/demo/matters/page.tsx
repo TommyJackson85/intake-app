@@ -11,6 +11,16 @@ import {
   resolveMatterForListAction,
   resolveOpenMatterById,
 } from '@/lib/demo/demoMattersListSelection'
+import {
+  buildDemoMattersListView,
+  createDefaultDemoMattersListQuery,
+  listDemoMatterOwners,
+  listDemoMatterPropertyTypes,
+  listDemoMatterStatuses,
+  pageAfterDemoMattersFilterChange,
+  type DemoMattersListQuery,
+  type DemoMattersListSortKey,
+} from '@/lib/demo/demoMattersListQuery'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
 import MatterDetailModal from '@/components/demo/MatterDetailModal'
 import type { DemoCondoDiligenceMatterStatus, DemoMatter } from '@/lib/demo/types'
@@ -18,7 +28,6 @@ import { condoDiligenceMatterStatusPresentation, isCondoDiligenceEligible } from
 import {
   condoDiligenceMatterDueAttentionPresentation,
   condoDiligenceMattersListReviewTaskChipPresentation,
-  filterMattersWithActiveCondoDiligenceSummaryReviewTasks,
 } from '@/lib/demo/demoMatterReviewTask'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 import { getMatterPartyDisplayRows } from '@/lib/demo/matterPartyDisplay'
@@ -62,7 +71,7 @@ function DemoMattersContent() {
   const [isNewMatterOpen, setIsNewMatterOpen] = useState(false)
   const [showDemoCreationDisabledBanner, setShowDemoCreationDisabledBanner] = useState(false)
   const [copiedMatterId, setCopiedMatterId] = useState<string | null>(null)
-  const [openCondoReviewTasksOnly, setOpenCondoReviewTasksOnly] = useState(false)
+  const [listQuery, setListQuery] = useState<DemoMattersListQuery>(() => createDefaultDemoMattersListQuery())
 
   const searchParams = useSearchParams()
   const selectedMatterFromQuery = searchParams.get('matter')
@@ -72,15 +81,45 @@ function DemoMattersContent() {
     return getNextDemoFileId(allFileIds)
   }, [matters, archivedMatters])
 
-  const visibleMatters = useMemo(() => {
-    if (!openCondoReviewTasksOnly) return matters
-    return filterMattersWithActiveCondoDiligenceSummaryReviewTasks(matters, matterReviewTasks)
-  }, [matters, matterReviewTasks, openCondoReviewTasksOnly])
+  const statusOptions = useMemo(() => listDemoMatterStatuses(matters), [matters])
+  const propertyTypeOptions = useMemo(() => listDemoMatterPropertyTypes(matters), [matters])
+  const ownerOptions = useMemo(() => listDemoMatterOwners(matters), [matters])
+
+  const listView = useMemo(
+    () =>
+      buildDemoMattersListView({
+        matters,
+        query: listQuery,
+        reviewTasks: matterReviewTasks,
+      }),
+    [matters, listQuery, matterReviewTasks],
+  )
+
+  const visibleMatters = listView.filteredMatters
+  const pageMatters = listView.pageMatters
 
   const selectedMatter = useMemo(
     () => resolveOpenMatterById(matters, selectedMatterId),
     [matters, selectedMatterId],
   )
+
+  const updateListFilters = (patch: Partial<DemoMattersListQuery>) => {
+    setListQuery((prev) => ({
+      ...prev,
+      ...patch,
+      page: pageAfterDemoMattersFilterChange(),
+    }))
+  }
+
+  const clearListFilters = () => {
+    setListQuery((prev) =>
+      createDefaultDemoMattersListQuery({
+        sortKey: prev.sortKey,
+        sortDirection: prev.sortDirection,
+        pageSize: prev.pageSize,
+      }),
+    )
+  }
 
   const openMatterDetail = (matterId: string, initialTab?: MatterDetailInitialTab) => {
     const latest = resolveOpenMatterById(matters, matterId)
@@ -148,6 +187,21 @@ function DemoMattersContent() {
     if (!nextId) setSelectedMatterInitialTab(undefined)
   }, [matters, visibleMatters, selectedMatterId])
 
+  // Keep page clamped if the filtered set shrinks under the current page.
+  useEffect(() => {
+    if (listQuery.page === listView.page) return
+    setListQuery((prev) => ({ ...prev, page: listView.page }))
+  }, [listQuery.page, listView.page])
+
+  const emptyStateMessage = (() => {
+    if (matters.length === 0) return 'No open matters.'
+    if (listQuery.openCondoReviewTasksOnly && listView.totalCount === 0 && !listView.hasActiveFilters) {
+      return 'No matters with open condo review tasks.'
+    }
+    if (listView.totalCount === 0) return 'No matters match your search or filters.'
+    return null
+  })()
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
@@ -199,11 +253,126 @@ function DemoMattersContent() {
         style={{
           display: 'flex',
           flexWrap: 'wrap',
-          alignItems: 'center',
+          alignItems: 'flex-end',
           gap: 12,
           marginBottom: 12,
         }}
       >
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 200, flex: '1 1 200px' }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#627c71' }}>Search</span>
+          <input
+            type="search"
+            value={listQuery.search}
+            onChange={(e) => updateListFilters({ search: e.target.value })}
+            placeholder="File, party, property, owner…"
+            aria-label="Search matters"
+            style={{
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid rgba(94,82,64,0.2)',
+              fontSize: 13,
+              color: '#134252',
+            }}
+          />
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#627c71' }}>Status</span>
+          <select
+            value={listQuery.status}
+            onChange={(e) => updateListFilters({ status: e.target.value })}
+            aria-label="Filter by status"
+            style={{
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid rgba(94,82,64,0.2)',
+              fontSize: 13,
+              color: '#134252',
+              background: '#fff',
+            }}
+          >
+            <option value="">All statuses</option>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#627c71' }}>Property type</span>
+          <select
+            value={listQuery.propertyType}
+            onChange={(e) => updateListFilters({ propertyType: e.target.value })}
+            aria-label="Filter by property type"
+            style={{
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid rgba(94,82,64,0.2)',
+              fontSize: 13,
+              color: '#134252',
+              background: '#fff',
+            }}
+          >
+            <option value="">All types</option>
+            {propertyTypeOptions.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#627c71' }}>Owner</span>
+          <select
+            value={listQuery.owner}
+            onChange={(e) => updateListFilters({ owner: e.target.value })}
+            aria-label="Filter by owner"
+            style={{
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid rgba(94,82,64,0.2)',
+              fontSize: 13,
+              color: '#134252',
+              background: '#fff',
+            }}
+          >
+            <option value="">All owners</option>
+            {ownerOptions.map((owner) => (
+              <option key={owner} value={owner}>
+                {owner}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#627c71' }}>Sort</span>
+          <select
+            value={`${listQuery.sortKey}:${listQuery.sortDirection}`}
+            onChange={(e) => {
+              const [sortKey, sortDirection] = e.target.value.split(':') as [
+                DemoMattersListSortKey,
+                'asc' | 'desc',
+              ]
+              setListQuery((prev) => ({ ...prev, sortKey, sortDirection }))
+            }}
+            aria-label="Sort matters"
+            style={{
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid rgba(94,82,64,0.2)',
+              fontSize: 13,
+              color: '#134252',
+              background: '#fff',
+            }}
+          >
+            <option value="file_id:asc">File (A–Z)</option>
+            <option value="file_id:desc">File (Z–A)</option>
+            <option value="closing_date:asc">Closing (earliest)</option>
+            <option value="closing_date:desc">Closing (latest)</option>
+            <option value="status:asc">Status (A–Z)</option>
+            <option value="property_type:asc">Property type (A–Z)</option>
+          </select>
+        </label>
         <label
           style={{
             display: 'inline-flex',
@@ -217,19 +386,57 @@ function DemoMattersContent() {
             padding: '8px 12px',
             borderRadius: 8,
             border: '1px solid rgba(94,82,64,0.2)',
-            background: openCondoReviewTasksOnly ? '#f0f7f8' : '#fff',
+            background: listQuery.openCondoReviewTasksOnly ? '#f0f7f8' : '#fff',
+            alignSelf: 'flex-end',
           }}
         >
           <input
             type="checkbox"
-            checked={openCondoReviewTasksOnly}
-            onChange={(e) => setOpenCondoReviewTasksOnly(e.target.checked)}
+            checked={listQuery.openCondoReviewTasksOnly}
+            onChange={(e) => updateListFilters({ openCondoReviewTasksOnly: e.target.checked })}
             aria-label="Open condo review tasks"
             style={{ width: 16, height: 16 }}
           />
           Open condo review tasks
         </label>
-        {openCondoReviewTasksOnly ? (
+        {listView.hasActiveFilters ? (
+          <button
+            type="button"
+            onClick={clearListFilters}
+            style={{
+              alignSelf: 'flex-end',
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid rgba(94,82,64,0.25)',
+              background: '#fff',
+              color: '#134252',
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            Clear filters
+          </button>
+        ) : null}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          marginBottom: 10,
+        }}
+      >
+        <span style={{ fontSize: 12, color: '#627c71', fontWeight: 700 }}>
+          {listView.totalCount} matter{listView.totalCount === 1 ? '' : 's'}
+          {listView.hasActiveFilters ? ' matching filters' : ''}
+          {listView.pageCount > 1
+            ? ` · Page ${listView.page} of ${listView.pageCount}`
+            : ''}
+        </span>
+        {listQuery.openCondoReviewTasksOnly ? (
           <span style={{ fontSize: 12, color: '#627c71', fontWeight: 700 }}>
             Showing matters with open or in-review internal Condo Diligence summary review tasks.
           </span>
@@ -237,11 +444,32 @@ function DemoMattersContent() {
       </div>
 
       <div style={{ background: 'white', borderRadius: '8px', border: '1px solid rgba(94,82,64,0.2)', overflowX: 'auto' }}>
-        {visibleMatters.length === 0 ? (
-          <div style={{ padding: 24, color: '#627c71', fontSize: 14, fontWeight: 700 }}>
-            {openCondoReviewTasksOnly
-              ? 'No matters with open condo review tasks.'
-              : 'No open matters.'}
+        {emptyStateMessage ? (
+          <div
+            role="status"
+            style={{ padding: 24, color: '#627c71', fontSize: 14, fontWeight: 700 }}
+          >
+            {emptyStateMessage}
+            {listView.hasActiveFilters ? (
+              <div style={{ marginTop: 12 }}>
+                <button
+                  type="button"
+                  onClick={clearListFilters}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(94,82,64,0.25)',
+                    background: '#fff',
+                    color: '#208096',
+                    fontWeight: 800,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Clear filters
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -256,7 +484,7 @@ function DemoMattersContent() {
               </tr>
             </thead>
             <tbody>
-              {visibleMatters.map((m) => (
+              {pageMatters.map((m) => (
                 <tr
                   key={m.id}
                   onClick={() => {
@@ -527,6 +755,72 @@ function DemoMattersContent() {
           </table>
         )}
       </div>
+
+      {listView.pageCount > 1 && !emptyStateMessage ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: 8,
+            marginTop: 12,
+            flexWrap: 'wrap',
+          }}
+        >
+          <button
+            type="button"
+            disabled={listView.page <= 1}
+            onClick={() =>
+              setListQuery((prev) => ({
+                ...prev,
+                page: Math.max(1, prev.page - 1),
+              }))
+            }
+            aria-label="Previous page"
+            style={{
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid rgba(94,82,64,0.25)',
+              background: '#fff',
+              color: '#134252',
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: listView.page <= 1 ? 'not-allowed' : 'pointer',
+              opacity: listView.page <= 1 ? 0.5 : 1,
+            }}
+          >
+            Previous
+          </button>
+          <span style={{ fontSize: 12, color: '#627c71', fontWeight: 700 }}>
+            Page {listView.page} of {listView.pageCount}
+          </span>
+          <button
+            type="button"
+            disabled={listView.page >= listView.pageCount}
+            onClick={() =>
+              setListQuery((prev) => ({
+                ...prev,
+                page: Math.min(listView.pageCount, prev.page + 1),
+              }))
+            }
+            aria-label="Next page"
+            style={{
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid rgba(94,82,64,0.25)',
+              background: '#fff',
+              color: '#134252',
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: listView.page >= listView.pageCount ? 'not-allowed' : 'pointer',
+              opacity: listView.page >= listView.pageCount ? 0.5 : 1,
+            }}
+          >
+            Next
+          </button>
+        </div>
+      ) : null}
+
       <style>{`
         @media (min-width: 1100px) {
           .condo-review-chip-compact { display: none !important; }
