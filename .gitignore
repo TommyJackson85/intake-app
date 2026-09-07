@@ -57,3 +57,9 @@ EOF
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Accidental backups / editor scratch at repo root (history retained in Git)
+*.backup
+*.bak
+/Untitled
+/--check
