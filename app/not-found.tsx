@@ -19,6 +19,7 @@ export default function RootNotFound() {
       <section
         role="status"
         aria-live="polite"
+        data-testid="demo-page-not-found"
         style={{
           background: 'white',
           border: '1px solid rgba(94,82,64,0.2)',
@@ -38,6 +39,7 @@ export default function RootNotFound() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           <Link
             href="/demo/matters"
+            data-testid="demo-matters-recovery-link"
             style={{
               display: 'inline-flex',
               background: '#208096',

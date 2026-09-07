@@ -65,6 +65,7 @@ export default function AccessibleConfirmDialog({
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         tabIndex={-1}
+        data-testid="demo-confirm-dialog"
         style={{
           width: '100%',
           maxWidth: 440,
@@ -92,6 +93,7 @@ export default function AccessibleConfirmDialog({
           <button
             type="button"
             data-a11y-confirm-cancel
+            data-testid="demo-confirm-cancel"
             onClick={onCancel}
             style={{
               padding: '8px 14px',
