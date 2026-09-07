@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
+import { getDemoMatterById } from '@/lib/demo/demoMatters'
+import { getDemoMatterDetailPath } from '@/lib/demo/demoMatterDetailRoutes'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
 import MatterDetailModal from '@/components/demo/MatterDetailModal'
 import type { DemoCondoDiligenceMatterStatus, DemoMatter } from '@/lib/demo/types'
@@ -71,7 +73,15 @@ function DemoMattersContent() {
   useEffect(() => {
     if (didOpenFromQueryRef.current) return
     if (!selectedMatterFromQuery) return
-    const match = matters.find((m) => m.file_id === selectedMatterFromQuery)
+    // Prefer live store row; fall back to canonical seed identity for list/detail alignment.
+    const canonical = getDemoMatterById(selectedMatterFromQuery)
+    const match =
+      matters.find(
+        (m) =>
+          m.file_id === selectedMatterFromQuery ||
+          m.id === selectedMatterFromQuery ||
+          (canonical != null && m.id === canonical.id),
+      ) ?? null
     if (!match) return
     didOpenFromQueryRef.current = true
     setSelectedMatter(match)
@@ -242,7 +252,7 @@ function DemoMattersContent() {
                         <td style={{ padding: '14px', color: '#134252', fontWeight: 800 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             <Link
-                              href={`/demo/matters/${encodeURIComponent(m.file_id)}`}
+                              href={getDemoMatterDetailPath(m.file_id)}
                               style={{ color: '#208096', textDecoration: 'underline' }}
                               onClick={(e) => {
                                 // Prefer the in-page modal for plain left-clicks; keep href for new tab / copy link.

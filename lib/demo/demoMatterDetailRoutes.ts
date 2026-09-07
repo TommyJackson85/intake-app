@@ -1,17 +1,18 @@
 /**
  * Demo matter detail route helpers for `/demo/matters/[id]`.
  *
- * The dynamic segment is the matter **file_id** (e.g. `FL-2026-001`), matching the
- * `?matter=` query used by the matters list modal. Seeded IDs only — no DB/API.
+ * Uses the canonical `demoMatters` fixtures so list and detail stay aligned.
+ * The dynamic segment is the matter **file_id** (e.g. `FL-2026-001`).
  */
-import { demoSeedData } from '@/lib/demo/demoData'
+import {
+  getDemoMatterById,
+  getDemoMatterFileIds,
+} from '@/lib/demo/demoMatters'
 import type { DemoMatter } from '@/lib/demo/types'
 
 /** Canonical demo matter detail path params (file_id values from seed data). */
 export function getDemoMatterDetailIds(): string[] {
-  return demoSeedData.matters
-    .map((m) => m.file_id.trim())
-    .filter((id) => id.length > 0)
+  return getDemoMatterFileIds()
 }
 
 /** App Router `generateStaticParams` payload for every seeded demo matter. */
@@ -19,18 +20,19 @@ export function getDemoMatterDetailStaticParams(): Array<{ id: string }> {
   return getDemoMatterDetailIds().map((id) => ({ id }))
 }
 
-/** Resolve a seeded matter by detail-route param (file_id, or matter id as alias). */
+/** Resolve a seeded matter by detail-route param (file_id or matter id). */
 export function findDemoMatterByDetailParam(
   id: string | null | undefined,
 ): DemoMatter | null {
-  const key = typeof id === 'string' ? id.trim() : ''
-  if (!key) return null
-  return (
-    demoSeedData.matters.find((m) => m.file_id === key || m.id === key) ?? null
-  )
+  return getDemoMatterById(id)
 }
 
 /** Matters-list deep link that opens the detail modal for a known file_id. */
 export function getDemoMatterListDeepLink(fileId: string): string {
   return `/demo/matters?matter=${encodeURIComponent(fileId.trim())}`
+}
+
+/** Detail path for a seeded matter file_id (basePath-safe via next/link). */
+export function getDemoMatterDetailPath(fileId: string): string {
+  return `/demo/matters/${encodeURIComponent(fileId.trim())}`
 }

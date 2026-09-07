@@ -8,6 +8,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { demoSeedData } from '@/lib/demo/demoData'
+import { DEMO_MATTERS } from '@/lib/demo/demoMatters'
 import type {
   DemoFinCEN,
   DemoFinCENCertRequest,
@@ -520,10 +521,14 @@ function persistIntakeLeads(leads: DemoIntakeLead[]) {
 }
 
 function cloneSeedData(): DemoSeedData {
-  if (typeof structuredClone === 'function') {
-    return structuredClone(demoSeedData)
-  }
-  return JSON.parse(JSON.stringify(demoSeedData)) as DemoSeedData
+  const seed = typeof structuredClone === 'function'
+    ? structuredClone(demoSeedData)
+    : (JSON.parse(JSON.stringify(demoSeedData)) as DemoSeedData)
+  // Always rehydrate matters from the canonical fixture module to prevent list/detail drift.
+  seed.matters = structuredClone
+    ? structuredClone(DEMO_MATTERS as DemoMatter[])
+    : (JSON.parse(JSON.stringify(DEMO_MATTERS)) as DemoMatter[])
+  return seed
 }
 
 function inferTransactionTypeFromIntake(intake: DemoIntakeSnapshot): string {
@@ -717,7 +722,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           const parsed = JSON.parse(rawMatters) as DemoMatter[]
           if (Array.isArray(parsed) && parsed.length > 0) {
             const stored = parsed.filter((m): m is DemoMatter => m != null && typeof m.id === 'string')
-            matters = mergeStoredMattersWithSeed(stored, prev.matters)
+            matters = mergeStoredMattersWithSeed(stored, [...DEMO_MATTERS])
           }
         }
         let fincenCertRequests = prev.fincenCertRequests
@@ -924,7 +929,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           } catch {
             /* keep prev */
           }
-          const matters = syncMattersWithCertRequests(mergeStoredMattersWithSeed(sanitized, prev.matters), fincenCertRequests)
+          const matters = syncMattersWithCertRequests(
+            mergeStoredMattersWithSeed(sanitized, [...DEMO_MATTERS]),
+            fincenCertRequests,
+          )
           return { ...prev, matters, fincenCertRequests }
         })
       } catch {
