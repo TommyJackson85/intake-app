@@ -1,25 +1,33 @@
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 
-import { demoSeedData } from '@/lib/demo/demoData'
+import DemoMatterDetailRedirect from '@/app/demo/matters/[id]/DemoMatterDetailRedirect'
+import {
+  findDemoMatterByDetailParam,
+  getDemoMatterDetailStaticParams,
+} from '@/lib/demo/demoMatterDetailRoutes'
 
-export default function DemoMatterByIdPage({ params }: { params: { id: string } }) {
-  const fileId = params.id
-
-  const match = demoSeedData.matters.find((m) => m.file_id === fileId)
-
-  if (match) {
-    redirect(`/demo/matters?matter=${encodeURIComponent(fileId)}`)
-  }
-
-  return (
-    <div style={{ background: 'white', border: '1px solid rgba(94,82,64,0.2)', borderRadius: '8px', padding: '20px' }}>
-      <h2 style={{ marginTop: 0 }}>Matter not found in demo</h2>
-      <p style={{ marginTop: 0, color: '#627c71' }}>That file reference doesn&apos;t exist in this demo dataset.</p>
-      <Link href="/demo/matters" style={{ color: '#208096', textDecoration: 'none', fontWeight: 800 }}>
-        Back to matters
-      </Link>
-    </div>
-  )
+/**
+ * Pre-render every seeded demo matter detail URL for static export / GitHub Pages.
+ * Unknown IDs are not generated (`dynamicParams = false`) so direct loads 404 safely.
+ */
+export function generateStaticParams() {
+  return getDemoMatterDetailStaticParams()
 }
 
+export const dynamicParams = false
+
+type DemoMatterByIdPageProps = {
+  params: Promise<{ id: string }> | { id: string }
+}
+
+export default async function DemoMatterByIdPage({ params }: DemoMatterByIdPageProps) {
+  const resolved = await Promise.resolve(params)
+  const id = typeof resolved?.id === 'string' ? resolved.id : ''
+  const matter = findDemoMatterByDetailParam(id)
+
+  if (!matter) {
+    notFound()
+  }
+
+  return <DemoMatterDetailRedirect fileId={matter.file_id} />
+}

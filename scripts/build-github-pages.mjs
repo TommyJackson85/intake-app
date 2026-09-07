@@ -36,7 +36,7 @@ const EXPORT_INCOMPATIBLE_PATHS = [
   // Dynamic App Router segments without generateStaticParams
   'app/demo/portal',
   'app/demo/intake',
-  'app/demo/matters/[id]',
+  // Matter detail is statically generated via generateStaticParams (seeded file_ids).
   'app/demo/fincen-cert',
   'app/intake',
   // Request-time proxy (Next 16 middleware replacement) — unsupported for export
@@ -95,6 +95,11 @@ function assertExportArtifacts() {
     'demo/matters/index.html',
     'demo/documents/index.html',
     'demo/post-closing-undertakings/index.html',
+    // Seeded demo matter detail pages (file_id segments)
+    'demo/matters/FL-2026-001/index.html',
+    'demo/matters/FL-2026-002/index.html',
+    'demo/matters/FL-2026-003/index.html',
+    'demo/matters/FL-2026-004/index.html',
   ]
 
   const missing = required.filter((rel) => !fs.existsSync(path.join(outDir, rel)))
@@ -110,6 +115,14 @@ function assertExportArtifacts() {
     throw new Error(
       'Homepage HTML does not reference /intake-app/_next/ assets; basePath/assetPrefix may be misconfigured.',
     )
+  }
+
+  const matterHtml = fs.readFileSync(
+    path.join(outDir, 'demo/matters/FL-2026-001/index.html'),
+    'utf8',
+  )
+  if (!matterHtml.includes('/intake-app/')) {
+    throw new Error('Demo matter detail HTML is missing /intake-app base path references.')
   }
 
   console.log('Verified static export artifacts:')
