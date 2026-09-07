@@ -23,6 +23,8 @@ import {
 } from '@/lib/demo/demoMattersListQuery'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
 import MatterDetailModal from '@/components/demo/MatterDetailModal'
+import MatterRowActionsMenu from '@/components/demo/MatterRowActionsMenu'
+import AccessibleConfirmDialog from '@/components/a11y/AccessibleConfirmDialog'
 import type { DemoCondoDiligenceMatterStatus, DemoMatter } from '@/lib/demo/types'
 import { condoDiligenceMatterStatusPresentation, isCondoDiligenceEligible } from '@/lib/demo/condoDiligence'
 import {
@@ -73,6 +75,10 @@ function DemoMattersContent() {
   const [showDemoCreationDisabledBanner, setShowDemoCreationDisabledBanner] = useState(false)
   const [copiedMatterId, setCopiedMatterId] = useState<string | null>(null)
   const [listQuery, setListQuery] = useState<DemoMattersListQuery>(() => createDefaultDemoMattersListQuery())
+  const [archiveConfirm, setArchiveConfirm] = useState<{
+    matterId: string
+    fileId: string
+  } | null>(null)
 
   const searchParams = useSearchParams()
   const selectedMatterFromQuery = searchParams.get('matter')
@@ -140,10 +146,17 @@ function DemoMattersContent() {
       clearMatterDetailSelection()
       return
     }
-    const ok = window.confirm(
-      'Archive this matter? In demo mode it stays archived in this browser after refresh. Use Reset demo data to restore fixtures.',
-    )
-    if (!ok) return
+    setArchiveConfirm({ matterId: beforeConfirm.id, fileId: beforeConfirm.file_id })
+  }
+
+  const cancelArchiveMatter = () => {
+    setArchiveConfirm(null)
+  }
+
+  const confirmArchiveMatter = () => {
+    if (!archiveConfirm) return
+    const matterId = archiveConfirm.matterId
+    setArchiveConfirm(null)
     const latest = resolveMatterForListAction({ matterId, openMatters: matters })
     if (!latest) {
       clearMatterDetailSelection()
@@ -213,7 +226,7 @@ function DemoMattersContent() {
   })()
 
   return (
-    <div>
+    <div className="demo-matters-a11y-scope">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ marginBottom: '6px', fontSize: '32px' }}>Matters</h1>
@@ -224,6 +237,7 @@ function DemoMattersContent() {
         </div>
         <button
           type="button"
+          aria-label="Create new matter"
           style={{
             background: '#208096',
             color: 'white',
@@ -453,7 +467,15 @@ function DemoMattersContent() {
         ) : null}
       </div>
 
-      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid rgba(94,82,64,0.2)', overflowX: 'auto' }}>
+      <div
+        style={{
+          position: 'relative',
+          background: 'white',
+          borderRadius: '8px',
+          border: '1px solid rgba(94,82,64,0.2)',
+          overflowX: 'auto',
+        }}
+      >
         {emptyStateMessage ? (
           <div
             role="status"
@@ -482,15 +504,45 @@ function DemoMattersContent() {
             ) : null}
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table
+            style={{ width: '100%', borderCollapse: 'collapse' }}
+            aria-label="Open demo matters"
+          >
+            <caption
+              style={{
+                position: 'absolute',
+                width: 1,
+                height: 1,
+                padding: 0,
+                margin: -1,
+                overflow: 'hidden',
+                clip: 'rect(0, 0, 0, 0)',
+                whiteSpace: 'nowrap',
+                border: 0,
+              }}
+            >
+              Open demo matters list
+            </caption>
             <thead>
               <tr style={{ background: '#fcfcf9', borderBottom: '1px solid rgba(94,82,64,0.2)' }}>
-                <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>File</th>
-                <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Parties</th>
-                <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Property</th>
-                <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Closing</th>
-                <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>Status</th>
-                <th style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }} />
+                <th scope="col" style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>
+                  File
+                </th>
+                <th scope="col" style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>
+                  Parties
+                </th>
+                <th scope="col" style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>
+                  Property
+                </th>
+                <th scope="col" style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>
+                  Closing
+                </th>
+                <th scope="col" style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>
+                  Status
+                </th>
+                <th scope="col" style={{ padding: '14px', textAlign: 'left', fontWeight: 800 }}>
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -531,25 +583,75 @@ function DemoMattersContent() {
                       : fincenNeedsAttention
                         ? 'FinCEN / AML'
                         : undefined
+                    const actionItems = [
+                      ...(complianceInitialTab
+                        ? [
+                            {
+                              id: 'review-compliance',
+                              label: 'Review compliance',
+                              onSelect: () => openMatterDetail(m.id, complianceInitialTab),
+                            },
+                          ]
+                        : []),
+                      ...(reviewTaskChip
+                        ? [
+                            {
+                              id: 'review-tasks',
+                              label: 'Review tasks',
+                              onSelect: () => openMatterDetail(m.id, 'Tasks'),
+                            },
+                          ]
+                        : []),
+                      {
+                        id: 'copy-portal',
+                        label: copiedMatterId === m.id ? 'Portal link copied' : 'Copy portal link',
+                        onSelect: () => {
+                          const latest = resolveMatterForListAction({
+                            matterId: m.id,
+                            openMatters: matters,
+                          })
+                          if (!latest) return
+                          void navigator.clipboard.writeText(
+                            `${window.location.origin}/demo/portal/${latest.portal_token}`,
+                          )
+                          setCopiedMatterId(latest.id)
+                          window.setTimeout(
+                            () => setCopiedMatterId((prev) => (prev === latest.id ? null : prev)),
+                            2000,
+                          )
+                        },
+                      },
+                      {
+                        id: 'archive',
+                        label: 'Archive',
+                        destructive: true,
+                        disabled: !canCommitMatterListAction({ matterId: m.id, openMatters: matters }),
+                        onSelect: () => requestArchiveMatter(m.id),
+                      },
+                    ]
                     return (
                       <>
                         <td style={{ padding: '14px', color: '#134252', fontWeight: 800 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             <Link
                               href={getDemoMatterDetailPath(m.file_id)}
+                              aria-label={`Open matter ${m.file_id}`}
                               style={{ color: '#208096', textDecoration: 'underline' }}
                               onClick={(e) => {
                                 // Prefer the in-page modal for plain left-clicks; keep href for new tab / copy link.
                                 if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
                                 e.preventDefault()
+                                e.stopPropagation()
                                 openMatterDetail(m.id)
                               }}
+                              onKeyDown={(e) => e.stopPropagation()}
                             >
                               {m.file_id}
                             </Link>
                             {condoChip && (
                               <span
                                 title="Condo diligence (demo)"
+                                aria-label={`Condo diligence: ${condoChip.label}`}
                                 style={{
                                   display: 'inline-block',
                                   padding: '3px 8px',
@@ -568,6 +670,7 @@ function DemoMattersContent() {
                             {fincenChip && (
                               <span
                                 title="AML / FinCEN (demo)"
+                                aria-label={fincenChip.label}
                                 style={{
                                   display: 'inline-block',
                                   padding: '3px 8px',
@@ -600,7 +703,9 @@ function DemoMattersContent() {
                                     border: `1px solid ${reviewTaskChip.border}`,
                                   }}
                                 >
-                                  <span className="condo-review-chip-compact">{reviewTaskChip.compactLabel}</span>
+                                  <span className="condo-review-chip-compact" aria-hidden="true">
+                                    {reviewTaskChip.compactLabel}
+                                  </span>
                                   <span className="condo-review-chip-full" style={{ display: 'none' }}>
                                     {reviewTaskChip.fullLabel}
                                   </span>
@@ -608,6 +713,7 @@ function DemoMattersContent() {
                                 {reviewDueAttention ? (
                                   <span
                                     title="Internal task timing only — not a statutory, legal, or closing deadline."
+                                    aria-label={reviewDueAttention.label}
                                     style={{
                                       display: 'inline-block',
                                       padding: '3px 8px',
@@ -646,115 +752,17 @@ function DemoMattersContent() {
                           <div style={{ color: '#627c71', fontSize: '12px' }}>{m.property.address}</div>
                         </td>
                         <td style={{ padding: '14px', color: '#627c71' }}>
-                          {new Date(m.key_dates.closing_date).toLocaleDateString()}
+                          <time dateTime={m.key_dates.closing_date}>
+                            {new Date(m.key_dates.closing_date).toLocaleDateString()}
+                          </time>
                         </td>
                         <td style={{ padding: '14px', color: statusColor(m.status), fontWeight: 800 }}>{m.status}</td>
                         <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
-                          {complianceInitialTab && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                openMatterDetail(m.id, complianceInitialTab)
-                              }}
-                              style={{
-                                background: '#fff',
-                                border: '1px solid rgba(94,82,64,0.3)',
-                                color: '#134252',
-                                borderRadius: '6px',
-                                padding: '6px 10px',
-                                fontSize: '12px',
-                                cursor: 'pointer',
-                                marginRight: '6px',
-                              }}
-                            >
-                              Review compliance
-                            </button>
-                          )}
-                          {reviewTaskChip && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                openMatterDetail(m.id, 'Tasks')
-                              }}
-                              style={{
-                                background: '#fff',
-                                border: '1px solid rgba(94,82,64,0.3)',
-                                color: '#134252',
-                                borderRadius: '6px',
-                                padding: '6px 10px',
-                                fontSize: '12px',
-                                cursor: 'pointer',
-                                marginRight: '6px',
-                              }}
-                            >
-                              Review tasks
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              const latest = resolveMatterForListAction({
-                                matterId: m.id,
-                                openMatters: matters,
-                              })
-                              if (!latest) return
-                              navigator.clipboard.writeText(
-                                `${window.location.origin}/demo/portal/${latest.portal_token}`,
-                              )
-                              setCopiedMatterId(latest.id)
-                              setTimeout(
-                                () => setCopiedMatterId((prev) => (prev === latest.id ? null : prev)),
-                                2000,
-                              )
-                            }}
-                            style={{
-                              background: copiedMatterId === m.id ? '#0f766e' : 'none',
-                              border: '1px solid #0f766e',
-                              color: copiedMatterId === m.id ? 'white' : '#0f766e',
-                              borderRadius: '6px',
-                              padding: '6px 10px',
-                              fontSize: '12px',
-                              cursor: 'pointer',
-                              marginRight: '6px',
-                            }}
-                          >
-                            {copiedMatterId === m.id ? 'Copied!' : 'Copy Portal Link'}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={
-                              !canCommitMatterListAction({ matterId: m.id, openMatters: matters })
-                            }
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              requestArchiveMatter(m.id)
-                            }}
-                            style={{
-                              background: 'none',
-                              border: '1px solid rgba(94,82,64,0.3)',
-                              color: '#134252',
-                              borderRadius: '6px',
-                              padding: '6px 10px',
-                              fontSize: '12px',
-                              cursor: canCommitMatterListAction({
-                                matterId: m.id,
-                                openMatters: matters,
-                              })
-                                ? 'pointer'
-                                : 'not-allowed',
-                              opacity: canCommitMatterListAction({
-                                matterId: m.id,
-                                openMatters: matters,
-                              })
-                                ? 1
-                                : 0.5,
-                            }}
-                          >
-                            Archive
-                          </button>
+                          <MatterRowActionsMenu
+                            matterId={m.id}
+                            matterFileId={m.file_id}
+                            items={actionItems}
+                          />
                         </td>
                       </>
                     )
@@ -836,6 +844,13 @@ function DemoMattersContent() {
           .condo-review-chip-compact { display: none !important; }
           .condo-review-chip-full { display: inline !important; }
         }
+        .demo-matters-a11y-scope button:focus-visible,
+        .demo-matters-a11y-scope a:focus-visible,
+        .demo-matters-a11y-scope select:focus-visible,
+        .demo-matters-a11y-scope input:focus-visible {
+          outline: 2px solid #208096;
+          outline-offset: 2px;
+        }
       `}</style>
       {archivedMatters.length > 0 && (
         <p style={{ marginTop: '10px', fontSize: '12px', color: '#627c71' }}>
@@ -845,6 +860,25 @@ function DemoMattersContent() {
           </Link>
         </p>
       )}
+
+      <AccessibleConfirmDialog
+        open={archiveConfirm != null}
+        destructive
+        title={
+          archiveConfirm
+            ? `Archive matter ${archiveConfirm.fileId}?`
+            : 'Archive matter?'
+        }
+        description={
+          archiveConfirm
+            ? `Archive ${archiveConfirm.fileId}? In demo mode it stays archived in this browser after refresh. Use Reset demo data to restore fixtures.`
+            : 'Archive this matter?'
+        }
+        confirmLabel="Archive matter"
+        cancelLabel="Cancel"
+        onConfirm={confirmArchiveMatter}
+        onCancel={cancelArchiveMatter}
+      />
 
       <NewMatterModal
         isOpen={isNewMatterOpen}

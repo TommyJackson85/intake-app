@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState , useRef} from 'react'
 import { useDemoStore } from '@/lib/demo/store'
+import { useAccessibleDialog } from '@/hooks/useAccessibleDialog'
 import type {
   DemoCondoAssociationFinancialReview,
   DemoCondoAssociationLoanStatus,
@@ -715,20 +716,13 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     }
   }, [activeTab, showCondoDiligenceTab])
 
-  useEffect(() => {
-    if (!open) return
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      document.body.style.overflow = prevOverflow
-    }
-  }, [open, onClose])
+  const { panelRef: matterDialogPanelRef } = useAccessibleDialog({
+    open,
+    onClose,
+    initialFocusSelector: '[data-matter-dialog-close]',
+    closeOnEscape: true,
+    restoreFocus: true,
+  })
 
   const tabList: MatterDetailTab[] = [
     'Overview',
@@ -764,9 +758,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Matter details"
+      role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -782,6 +774,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
       }}
     >
       <div
+        ref={matterDialogPanelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Matter details ${effectiveMatter.file_id}`}
+        tabIndex={-1}
         style={{
           width: '100%',
           maxWidth: '1024px',
@@ -793,6 +790,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
           flexDirection: 'column',
           maxHeight: '100%',
           overflow: 'hidden',
+          outline: 'none',
         }}
       >
         {/* Header */}
@@ -831,7 +829,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label="Close matter details"
+              data-matter-dialog-close
               style={{
                 background: 'none',
                 border: 'none',
