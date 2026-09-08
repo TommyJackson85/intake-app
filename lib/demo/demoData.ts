@@ -43,11 +43,17 @@ export const DEMO_MILESTONE_LOGS: DemoMilestoneLog[] = [
   { id: 'ml-002-8', matter_id: 'matter-002', status: 'closing_date_set', label: 'Closing date confirmed', logged_at: '2026-03-23T09:00:00.000Z', note: 'Closing confirmed for March 26 at Sarasota office.' },
 ]
 
+/** Stable demo intake form tokens (also listed on intake not-found recovery). */
+export const DEMO_SEED_INTAKE_TOKENS = {
+  submitted: 'demo-token-seed-001',
+  pendingClient: 'demo-token-seed-002',
+} as const
+
 export const demoSeedData: DemoSeedData = {
   intakeLeads: [
     {
       id: 'intake-lead-seed-001',
-      token: 'demo-token-seed-001',
+      token: DEMO_SEED_INTAKE_TOKENS.submitted,
       createdAt: '2026-04-02T10:00:00.000Z',
       fileReference: 'FL-2026-005',
       emailRecipientName: 'Noah Carter',
@@ -87,7 +93,7 @@ export const demoSeedData: DemoSeedData = {
     },
     {
       id: 'intake-lead-seed-002',
-      token: 'demo-token-seed-002',
+      token: DEMO_SEED_INTAKE_TOKENS.pendingClient,
       createdAt: '2026-04-08T09:15:00.000Z',
       fileReference: 'FL-2026-006',
       emailRecipientName: 'Noah Carter',

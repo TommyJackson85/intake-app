@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useState } from 'react'
+import { DEMO_SEED_INTAKE_TOKENS } from '@/lib/demo/demoData'
 import { DEMO_BUYER_TYPE_OPTIONS, DEMO_TRANSACTION_ROLE_OPTIONS } from '@/lib/demo/demoIntakeFlow'
 import type { DemoIntakeSnapshot, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
 import { useDemoStore } from '@/lib/demo/store'
@@ -63,8 +64,12 @@ export default function DemoClientIntakePage() {
   const [form, setForm] = useState<DemoIntakeSnapshot | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!lead) return
+  // Sync before paint so seeded tokens do not flash a stuck "Loading…" state.
+  useLayoutEffect(() => {
+    if (!lead) {
+      setForm(null)
+      return
+    }
     setForm(normalizeSnapshot(lead.submittedIntake ?? lead.intake))
   }, [lead])
 
@@ -99,15 +104,30 @@ export default function DemoClientIntakePage() {
 
   if (!lead) {
     return (
-      <div style={{ color: '#134252' }}>
+      <div data-testid="demo-intake-not-found" style={{ color: '#134252', maxWidth: 560 }}>
         <h1 style={{ fontSize: 24, marginBottom: 8 }}>Intake link not found</h1>
-        <p style={{ color: '#627c71' }}>
+        <p style={{ color: '#627c71', marginBottom: 12 }}>
           This demo link is invalid or was cleared. Intake leads persist in this browser after refresh — use Reset
           demo data from the demo shell if you need to restore fixtures.
         </p>
-        <Link href="/demo/intakes" style={{ color: '#208096', fontWeight: 800 }}>
-          Back to Intake / Leads
-        </Link>
+        <p style={{ color: '#627c71', marginBottom: 16, fontSize: 14 }}>
+          Seeded demo forms use stable tokens such as{' '}
+          <code style={{ fontSize: 13 }}>{DEMO_SEED_INTAKE_TOKENS.pendingClient}</code> (pending) and{' '}
+          <code style={{ fontSize: 13 }}>{DEMO_SEED_INTAKE_TOKENS.submitted}</code> (already submitted). You can also
+          copy a link from Intake / Leads.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
+          <Link
+            href={`/demo/intake/${DEMO_SEED_INTAKE_TOKENS.pendingClient}`}
+            data-testid="demo-intake-seed-pending-link"
+            style={{ color: '#208096', fontWeight: 800 }}
+          >
+            Open seeded pending intake form
+          </Link>
+          <Link href="/demo/intakes" data-testid="demo-intake-recovery-link" style={{ color: '#208096', fontWeight: 800 }}>
+            Back to Intake / Leads
+          </Link>
+        </div>
       </div>
     )
   }
@@ -167,7 +187,7 @@ export default function DemoClientIntakePage() {
     })
 
   return (
-    <div style={{ maxWidth: 560 }}>
+    <div data-testid="demo-intake-form" style={{ maxWidth: 560 }}>
       <div
         style={{
           marginBottom: 20,
