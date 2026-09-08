@@ -56,6 +56,10 @@ Seed parties use clearly fake Florida names, `+demo` / `example.com` emails, and
 
 Portal URLs follow `/demo/portal/{portal_token}` (copy from the matters list when available). Seed tokens include `demo-portal-matter-001` … `demo-portal-matter-004`.
 
+Intake form URLs follow `/demo/intake/{token}`. Seed tokens include:
+- `demo-token-seed-002` — pending client form (editable)
+- `demo-token-seed-001` — already submitted (read-only review)
+
 ---
 
 ## Feedback capture
