@@ -1,9 +1,9 @@
+/** Tailwind v3 pipeline — do not mix with @tailwindcss/postcss (v4). */
 const config = {
   plugins: {
-    "@tailwindcss/postcss": {},
-      tailwindcss: {},
-      autoprefixer: {},
+    tailwindcss: {},
+    autoprefixer: {},
   },
-};
+}
 
-export default config;
+export default config
