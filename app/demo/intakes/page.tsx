@@ -322,7 +322,11 @@ export default function DemoIntakesPage() {
         <div>
           <h1 style={{ marginBottom: '6px', fontSize: '32px' }}>Intake / Leads</h1>
           <p style={{ margin: 0, color: '#627c71' }}>
-            Demo intake leads (saved in this browser session). Open a matter or create a client from any lead. Client submissions update the row.
+            Demo intake leads (saved in this browser session). Open a matter or create a client from any lead. Client
+            submissions update the row. Seeded links use stable tokens (
+            <code style={{ fontSize: 12 }}>demo-token-seed-002</code> pending,{' '}
+            <code style={{ fontSize: 12 }}>demo-token-seed-001</code> submitted) — copy from the Intake link column or
+            open the form directly.
           </p>
         </div>
         <button

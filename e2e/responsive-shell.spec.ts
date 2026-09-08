@@ -10,11 +10,11 @@ test.describe('Demo responsive shell', () => {
     await page.goto('/demo')
 
     await expect(page.getByRole('link', { name: '⚖️ LawIntake' })).toBeVisible()
-    await expect(page.getByRole('navigation').filter({ hasText: 'Dashboard' }).first()).toBeVisible()
+    const sidebar = page.locator('aside.hidden.lg\\:flex')
+    await expect(sidebar).toBeVisible()
 
-    // Mobile bottom nav uses lg:hidden
+    // Mobile chrome must not remain visible once lg utilities apply.
     await expect(page.locator('nav.lg\\:hidden')).toBeHidden()
-    // Mobile top bar uses lg:hidden
     await expect(page.locator('header.lg\\:hidden')).toBeHidden()
   })
 
