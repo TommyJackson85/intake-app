@@ -86,6 +86,8 @@ export function MobileTopBar({ firmName, isDemo = false }: { firmName?: string; 
   return (
     <>
       <header
+        // Use Tailwind `flex` + `lg:hidden` so display is not overridden by inline styles.
+        className="flex items-center justify-between lg:hidden shadow-md"
         style={{
           position: 'fixed',
           top: 0,
@@ -93,13 +95,9 @@ export function MobileTopBar({ firmName, isDemo = false }: { firmName?: string; 
           right: 0,
           zIndex: 50,
           backgroundColor: '#0f766e',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
           padding: '12px 16px',
           color: 'white',
         }}
-        className="lg:hidden shadow-md"
       >
         {/* Burger button — left */}
         <button
