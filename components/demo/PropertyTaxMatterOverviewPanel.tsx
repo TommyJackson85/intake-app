@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import type { DemoDocumentRequest, DemoMatter } from '@/lib/demo/types'
 import {
   buildPropertyTaxMatterOverviewModel,
+  countPropertyTaxRecordedDates,
   shouldShowPropertyTaxMatterOverviewPanel,
 } from '@/lib/demo/propertyTaxIssue'
 import {
@@ -22,6 +23,7 @@ type Props = {
   staffId?: string
   onCreateDocumentRequests?: (inputs: AddDemoDocumentRequestInput[]) => void
   onGoToDocuments?: () => void
+  onViewTrackedDates?: () => void
 }
 
 /**
@@ -34,6 +36,7 @@ export default function PropertyTaxMatterOverviewPanel({
   staffId = '',
   onCreateDocumentRequests,
   onGoToDocuments,
+  onViewTrackedDates,
 }: Props) {
   if (
     !shouldShowPropertyTaxMatterOverviewPanel({
@@ -45,6 +48,7 @@ export default function PropertyTaxMatterOverviewPanel({
   }
 
   const model = buildPropertyTaxMatterOverviewModel(matter.propertyTaxIssue)
+  const recordedDateCount = countPropertyTaxRecordedDates(matter.propertyTaxIssue)
   const showSuggested = shouldShowPropertyTaxSuggestedDocuments({
     propertyAddress: matter.property.address,
     propertyTaxIssue: matter.propertyTaxIssue,
@@ -182,7 +186,7 @@ export default function PropertyTaxMatterOverviewPanel({
             <strong style={{ color: '#134252' }}>Next:</strong> {row.nextStep}
           </div>
 
-          <div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             <a
               href="#matter-property-tax-overview"
               aria-label={`Review intake details for ${row.label}`}
@@ -203,6 +207,31 @@ export default function PropertyTaxMatterOverviewPanel({
           </div>
         </div>
       ))}
+
+      {onViewTrackedDates ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <button
+            type="button"
+            data-testid="ptx-view-tracked-dates"
+            onClick={onViewTrackedDates}
+            style={{
+              background: 'white',
+              border: '1px solid rgba(94,82,64,0.25)',
+              borderRadius: 6,
+              padding: '6px 10px',
+              fontSize: 11,
+              fontWeight: 800,
+              color: '#134252',
+              cursor: 'pointer',
+            }}
+          >
+            View tracked dates
+          </button>
+          <span style={{ fontSize: 11, color: '#627c71' }}>
+            {recordedDateCount} recorded property-tax date{recordedDateCount === 1 ? '' : 's'}
+          </span>
+        </div>
+      ) : null}
 
       {showSuggested ? (
         <SuggestedPropertyTaxDocuments

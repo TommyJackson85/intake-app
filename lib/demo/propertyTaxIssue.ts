@@ -1256,6 +1256,233 @@ export function getPropertyTaxOverviewDateVerificationLabel(dated: DemoPropertyT
   return getPropertyTaxDateSourceLabel(dated.source)
 }
 
+export const PROPERTY_TAX_KEY_DATES_SECTION_TITLE = 'Florida Property Tax & Tax Deed Dates'
+
+export const PROPERTY_TAX_KEY_DATES_EMPTY_COPY =
+  'No relevant dates recorded. Request available notices and verify any reported dates for firm review.'
+
+export const PROPERTY_TAX_KEY_DATES_SAFE_FOOTER =
+  'These dates organize client-reported and firm-entered facts for internal review. They are not calculated statutory deadlines and are not legal determinations.'
+
+/** Key Dates field defs per kind (includes model-backed optional ownership estimate date). */
+export function getPropertyTaxKeyDateFieldsForKind(
+  kind: DemoPropertyTaxIssueKind,
+): DemoPropertyTaxDateFieldDef[] {
+  if (kind === 'ownership_change_tax_risk') {
+    return [
+      { key: 'closingOrTransferDate', label: 'Known closing date' },
+      { key: 'estimatedTaxBillDate', label: 'Estimated or referenced tax bill date' },
+    ]
+  }
+  return getPropertyTaxDateFieldsForKind(kind)
+}
+
+export type DemoPropertyTaxKeyDateUrgencyPill = 'Soon' | 'Passed' | null
+
+export type DemoPropertyTaxKeyDateRow = {
+  id: string
+  kind: DemoPropertyTaxIssueKind
+  kindLabel: string
+  fieldKey: string
+  label: string
+  date: string | null
+  source: DemoPropertyTaxDateSource
+  verificationLabel: string
+  statedDeadlineBanner: string | null
+  isStatedDeadline: boolean
+  urgencyPill: DemoPropertyTaxKeyDateUrgencyPill
+  /** When Soon/Passed and not firm-verified, pair with neutral verify copy. */
+  verifyAlongsideUrgency: string | null
+  nextStepHint: string
+}
+
+export type DemoPropertyTaxKeyDateGroup = {
+  kind: DemoPropertyTaxIssueKind
+  kindLabel: string
+  rows: DemoPropertyTaxKeyDateRow[]
+  emptyCopy: string | null
+}
+
+export type DemoPropertyTaxKeyDatesModel = {
+  title: string
+  groups: DemoPropertyTaxKeyDateGroup[]
+  recordedDateCount: number
+  footer: string
+}
+
+/** Visibility for the Key Dates subsection (does not mutate purchase `key_dates`). */
+export function shouldShowPropertyTaxKeyDatesSection(input: {
+  propertyAddress: string
+  propertyTaxIssue?: DemoPropertyTaxIssue | null
+}): boolean {
+  if (
+    !shouldShowPropertyTaxMatterOverviewPanel({
+      propertyAddress: input.propertyAddress,
+      propertyTaxIssue: input.propertyTaxIssue,
+    })
+  ) {
+    return false
+  }
+  const n = normalizePropertyTaxIssue(input.propertyTaxIssue)
+  if (n.kinds.length > 0) return true
+  if (n.involvement === 'unknown') return true
+  return countPropertyTaxRecordedDates(n) > 0
+}
+
+export function countPropertyTaxRecordedDates(issue: DemoPropertyTaxIssue | null | undefined): number {
+  const n = normalizePropertyTaxIssue(issue)
+  let count = 0
+  const seen = new Set<string>()
+  for (const kind of n.kinds) {
+    for (const field of getPropertyTaxKeyDateFieldsForKind(kind)) {
+      const id = `${kind}:${field.key}`
+      if (seen.has(id)) continue
+      seen.add(id)
+      const dated = readDatedFieldFromIssue(n, kind, field.key)
+      if (dated.date) count += 1
+    }
+  }
+  return count
+}
+
+/**
+ * Date-only day difference (UTC calendar), avoiding local timezone shifts on YYYY-MM-DD.
+ * Positive = target is after today; negative = passed.
+ */
+export function propertyTaxDateOnlyDiffDays(
+  targetIsoDateOnly: string | null | undefined,
+  todayIsoDateOnly: string,
+): number | null {
+  const target = parseOrNullIsoDateOnly(targetIsoDateOnly)
+  const today = parseOrNullIsoDateOnly(todayIsoDateOnly)
+  if (!target || !today) return null
+  const t = Date.parse(`${target}T00:00:00.000Z`)
+  const n = Date.parse(`${today}T00:00:00.000Z`)
+  if (!Number.isFinite(t) || !Number.isFinite(n)) return null
+  return Math.round((t - n) / (24 * 60 * 60 * 1000))
+}
+
+/**
+ * Generic Soon/Passed urgency — mirrors Matter Detail key-date visual language (≤3 days = Soon).
+ * Not a legal urgency label.
+ */
+export function getPropertyTaxKeyDateUrgencyPill(
+  dateIso: string | null,
+  todayIsoDateOnly: string,
+): DemoPropertyTaxKeyDateUrgencyPill {
+  const diff = propertyTaxDateOnlyDiffDays(dateIso, todayIsoDateOnly)
+  if (diff == null) return null
+  if (diff < 0) return 'Passed'
+  if (diff <= 3) return 'Soon'
+  return null
+}
+
+/** Key Dates verification label — never “legal deadline confirmed”. */
+export function getPropertyTaxKeyDateVerificationLabel(
+  dated: DemoPropertyTaxDatedValue,
+): string {
+  if (!dated.date) return 'Date not provided'
+  if (dated.source === 'firm_verified') return 'Firm-verified'
+  if (dated.source === 'documented') return 'Documented'
+  if (dated.source === 'client_reported') return 'Client-reported'
+  return 'Verification needed'
+}
+
+function isStatedDeadlineField(kind: DemoPropertyTaxIssueKind, fieldKey: string): boolean {
+  return kind === 'delinquent_tax_deed_surplus' && fieldKey === 'surplusNoticeDeadlineDate'
+}
+
+function readDatedFieldFromIssue(
+  issue: DemoPropertyTaxIssue,
+  kind: DemoPropertyTaxIssueKind,
+  fieldKey: string,
+): DemoPropertyTaxDatedValue {
+  const branch = issue.byKind[kind]
+  if (!branch || typeof branch !== 'object') return createDefaultPropertyTaxDatedValue()
+  const raw = (branch as Record<string, unknown>)[fieldKey]
+  if (!raw || typeof raw !== 'object') return createDefaultPropertyTaxDatedValue()
+  return createDefaultPropertyTaxDatedValue(raw as Partial<DemoPropertyTaxDatedValue>)
+}
+
+/**
+ * Build Key Dates subsection model grouped by active issue kind.
+ * Does not invent dates or mutate purchase `key_dates`.
+ */
+export function buildPropertyTaxKeyDatesModel(
+  issue: DemoPropertyTaxIssue | null | undefined,
+  todayIsoDateOnly: string,
+): DemoPropertyTaxKeyDatesModel {
+  const n = normalizePropertyTaxIssue(issue)
+  const groups: DemoPropertyTaxKeyDateGroup[] = []
+  let recordedDateCount = 0
+  const seenRowIds = new Set<string>()
+
+  for (const kind of n.kinds) {
+    const fields = getPropertyTaxKeyDateFieldsForKind(kind)
+    const rows: DemoPropertyTaxKeyDateRow[] = []
+    for (const field of fields) {
+      const rowId = `${kind}:${field.key}`
+      if (seenRowIds.has(rowId)) continue
+      seenRowIds.add(rowId)
+      const dated = readDatedFieldFromIssue(n, kind, field.key)
+      const stated = isStatedDeadlineField(kind, field.key)
+      const hasDate = Boolean(dated.date)
+      if (hasDate) recordedDateCount += 1
+      const urgencyPill = hasDate
+        ? getPropertyTaxKeyDateUrgencyPill(dated.date, todayIsoDateOnly)
+        : null
+      const needsVerify = !hasDate || propertyTaxDateNeedsVerification(dated)
+      rows.push({
+        id: rowId,
+        kind,
+        kindLabel: getPropertyTaxIssueKindLabel(kind),
+        fieldKey: field.key,
+        label: field.label,
+        date: dated.date,
+        source: dated.source,
+        verificationLabel: getPropertyTaxKeyDateVerificationLabel(dated),
+        statedDeadlineBanner: stated && hasDate ? getPropertyTaxStatedDeadlineBanner(dated) : null,
+        isStatedDeadline: stated,
+        urgencyPill,
+        verifyAlongsideUrgency:
+          urgencyPill && needsVerify && hasDate ? 'Verify date' : null,
+        nextStepHint: hasDate
+          ? needsVerify
+            ? 'Date is recorded for internal tracking; firm verification is still required.'
+            : 'Review the documented date and confirm its significance for this matter.'
+          : 'Request the relevant notice and verify the recorded date for firm review.',
+      })
+    }
+    groups.push({
+      kind,
+      kindLabel: getPropertyTaxIssueKindLabel(kind),
+      rows,
+      emptyCopy: rows.every((r) => !r.date) ? PROPERTY_TAX_KEY_DATES_EMPTY_COPY : null,
+    })
+  }
+
+  return {
+    title: PROPERTY_TAX_KEY_DATES_SECTION_TITLE,
+    groups,
+    recordedDateCount,
+    footer: PROPERTY_TAX_KEY_DATES_SAFE_FOOTER,
+  }
+}
+
+/** Format YYYY-MM-DD for display without timezone shift (UTC calendar parts). */
+export function formatPropertyTaxDateOnlyDisplay(dateIso: string | null | undefined): string {
+  const d = parseOrNullIsoDateOnly(dateIso)
+  if (!d) return 'Date not provided'
+  const [y, m, day] = d.split('-').map((p) => Number(p))
+  const dt = new Date(Date.UTC(y, m - 1, day))
+  return dt.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
 export type DemoPropertyTaxOverviewKindRow = {
   kind: DemoPropertyTaxIssueKind
   label: string
