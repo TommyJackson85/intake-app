@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tommyjackson85.github.io/intake-app/sitemap.xml

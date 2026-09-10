@@ -33,7 +33,8 @@ Environment setup and database instructions are available in
 ## GitHub Pages
 
 The marketing landing files at the repository root (`index.html`, `styles.css`, `script.js`) remain
-available for the existing Pages site. The Next.js app can also be built as a **static export** for
+available for the existing Pages site, including the static **Insights** pages under `insights/`.
+The Next.js app can also be built as a **static export** for
 project Pages under the repository base path `/intake-app`.
 
 ### Static export (route-safe for `/intake-app`)
