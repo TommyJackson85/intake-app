@@ -4,6 +4,10 @@
  */
 import type { DemoSeedData, MatterMilestoneStatus, DemoMilestoneLog } from '@/lib/demo/types'
 import { DEMO_MATTERS } from '@/lib/demo/demoMatters'
+import {
+  buildPropertyTaxDemoScenarioIntakeLeads,
+  PROPERTY_TAX_DEMO_INTAKE_TOKENS,
+} from '@/lib/demo/propertyTaxDemoScenarios'
 
 export const MILESTONE_LABELS: Record<MatterMilestoneStatus, string> = {
   instruction_received: 'Instruction received',
@@ -47,6 +51,9 @@ export const DEMO_MILESTONE_LOGS: DemoMilestoneLog[] = [
 export const DEMO_SEED_INTAKE_TOKENS = {
   submitted: 'demo-token-seed-001',
   pendingClient: 'demo-token-seed-002',
+  propertyTaxAssessmentVab: PROPERTY_TAX_DEMO_INTAKE_TOKENS.assessmentVab,
+  propertyTaxBuyerTaxEstimate: PROPERTY_TAX_DEMO_INTAKE_TOKENS.buyerTaxEstimate,
+  propertyTaxTaxDeedSurplus: PROPERTY_TAX_DEMO_INTAKE_TOKENS.taxDeedSurplus,
 } as const
 
 export const demoSeedData: DemoSeedData = {
@@ -120,6 +127,7 @@ export const demoSeedData: DemoSeedData = {
       conflict_check_completed_at: null,
       conflict_check_note: null,
     },
+    ...buildPropertyTaxDemoScenarioIntakeLeads(),
   ],
   fincenCertRequests: [],
   documentRequests: [
@@ -251,6 +259,39 @@ export const demoSeedData: DemoSeedData = {
       type: 'individual',
       linked_matter_ids: ['matter-002'],
       created_at: '2026-03-01',
+      deletedAt: null,
+    },
+    {
+      id: 'client-006',
+      full_name: 'Jordan Hale (Demo)',
+      email: 'jordan.hale+demo@example.com',
+      phone: '(352) 555-0107',
+      kyc_status: 'pending',
+      type: 'individual',
+      linked_matter_ids: ['matter-005'],
+      created_at: '2026-08-05',
+      deletedAt: null,
+    },
+    {
+      id: 'client-007',
+      full_name: 'Bayflip Holdings LLC (Demo)',
+      email: 'closings+bayflip-demo@example.com',
+      phone: '(407) 555-0142',
+      kyc_status: 'pending',
+      type: 'entity',
+      linked_matter_ids: ['matter-006'],
+      created_at: '2026-04-03',
+      deletedAt: null,
+    },
+    {
+      id: 'client-008',
+      full_name: 'Riley Quinn (Demo)',
+      email: 'riley.quinn+demo@example.com',
+      phone: '(386) 555-0166',
+      kyc_status: 'pending',
+      type: 'individual',
+      linked_matter_ids: ['matter-007'],
+      created_at: '2026-04-01',
       deletedAt: null,
     },
   ],

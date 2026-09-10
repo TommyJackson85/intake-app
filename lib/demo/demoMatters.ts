@@ -5,6 +5,7 @@
  * `/demo/matters/[id]` detail routes. Demo-only — no Supabase/DB coupling.
  */
 import type { DemoMatter } from '@/lib/demo/types'
+import { buildPropertyTaxDemoScenarioMatters } from '@/lib/demo/propertyTaxDemoScenarios'
 
 /** Typed seed collection for demo matters (stable IDs and statuses). */
 export const DEMO_MATTERS: readonly DemoMatter[] = [
@@ -316,6 +317,7 @@ export const DEMO_MATTERS: readonly DemoMatter[] = [
       { id: 'e-004-2', at: '2026-03-21 09:14', note: 'Recorded documents received from county clerk.', deletedAt: null },
     ],
   },
+  ...buildPropertyTaxDemoScenarioMatters(),
 ]
 
 /** Return the canonical demo matters collection. */

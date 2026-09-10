@@ -8,7 +8,7 @@ This package is for **internal pilot validation** of workflows that already ship
 
 **In scope**
 
-- Five representative end-to-end walkthroughs using existing `/demo` surfaces and seed data
+- Six representative end-to-end walkthroughs using existing `/demo` surfaces and seed data
 - Feedback capture forms for friction, wording, gaps, privacy, and automation candidates
 
 **Out of scope**
@@ -28,7 +28,7 @@ This package is for **internal pilot validation** of workflows that already ship
 
 ### Optional: production-style demo firm
 
-Prospective-firm “Try a demo firm” flow is documented in [demo-firm.md](./demo-firm.md) and [sudo-and-demo-concepts.md](./sudo-and-demo-concepts.md). That path is a shared sandboxed tenant (`is_demo_firm`), not developer sudo. Prefer `/demo` for these five walkthroughs so paths and seed names match this guide.
+Prospective-firm “Try a demo firm” flow is documented in [demo-firm.md](./demo-firm.md) and [sudo-and-demo-concepts.md](./sudo-and-demo-concepts.md). That path is a shared sandboxed tenant (`is_demo_firm`), not developer sudo. Prefer `/demo` for these six walkthroughs so paths and seed names match this guide.
 
 ### Access boundaries (do not blur)
 
@@ -42,7 +42,7 @@ See [sudo-and-demo-concepts.md](./sudo-and-demo-concepts.md) and [manual-sudo-an
 
 ### Sample data standards
 
-Seed parties use clearly fake Florida names, `+demo` / `example.com` emails, and file ids such as `FL-2026-001` … `FL-2026-004`. Treat everything as anonymized sample data. If anything looks like a real person or live matter, stop and report it.
+Seed parties use clearly fake Florida names, `+demo` / `example.com` emails, and file ids such as `FL-2026-001` … `FL-2026-009`. Treat everything as anonymized sample data. If anything looks like a real person or live matter, stop and report it.
 
 ### Suggested seed anchors
 
@@ -52,13 +52,22 @@ Seed parties use clearly fake Florida names, `+demo` / `example.com` emails, and
 | `FL-2026-002` — Palm Harbor Ventures LLC (cash condo / entity) | Condo Diligence, FinCEN / beneficial ownership |
 | `FL-2026-003` — Mia Delgado | Earlier-stage matter / title search |
 | `FL-2026-004` — Olivia Shaw (closed / post-closing condo) | Post-Closing Undertakings + worklist |
+| `FL-2026-007` — Jordan Hale (Demo) Assessment / VAB | Property-tax assessment / TRIM / VAB demo |
+| `FL-2026-008` — Bayflip Holdings LLC (Demo) buyer tax-estimate | Investor/LLC buyer tax-estimate risk demo |
+| `FL-2026-009` — Riley Quinn (Demo) tax-deed / surplus | Tax-deed notice + unverified stated-deadline demo |
 | Intake leads for Noah Carter | Client intake link + staff conflict screening |
+| Property-tax intake tokens `demo-token-seed-003` … `005` | Sample client intake per property-tax scenario |
 
-Portal URLs follow `/demo/portal/{portal_token}` (copy from the matters list when available). Seed tokens include `demo-portal-matter-001` … `demo-portal-matter-004`.
+Portal URLs follow `/demo/portal/{portal_token}` (copy from the matters list when available). Seed tokens include `demo-portal-matter-001` … `demo-portal-matter-007`.
 
 Intake form URLs follow `/demo/intake/{token}`. Seed tokens include:
 - `demo-token-seed-002` — pending client form (editable)
 - `demo-token-seed-001` — already submitted (read-only review)
+- `demo-token-seed-003` — Assessment / VAB pending sample
+- `demo-token-seed-004` — Buyer tax-estimate risk pending sample
+- `demo-token-seed-005` — Tax-deed / surplus pending sample
+
+Property-tax scenario cards also appear on `/demo` under **Florida Property-Tax & Tax-Deed Demo Scenarios**.
 
 ---
 
@@ -247,9 +256,98 @@ Complete one **Feedback capture** form (above) for this walkthrough.
 
 ---
 
+## Walkthrough 6 — Florida Property-Tax & Tax-Deed Intake Demo
+
+**Goal:** Show how a vague “property-tax problem” is classified into separate assessment/VAB, buyer tax-estimate, or delinquent-tax/tax-deed/surplus tracks, with staff-controlled document suggestions and date verification — without treating the UI as legal or tax advice.
+
+### Product problem
+
+A client may describe a “property-tax problem,” but the matter can involve separate assessment/VAB, buyer tax-estimate, or delinquent-tax/tax-deed/surplus workflows. Misrouting wastes time between transaction, property-tax, title, probate, and litigation teams. This demo organizes intake facts, documents, dates, and review — it does not decide rights or calculate deadlines.
+
+### Three demo scenarios (what each proves)
+
+| Scenario | Issue kind | Proves |
+|----------|------------|--------|
+| Assessment Review — Bayview Residence (`FL-2026-007`) | Assessment / exemption / classification / portability / VAB | TRIM + assessed-value facts, client-reported/documented dates, missing appraisal correspondence suggestions |
+| Investor Purchase — Post-Closing Tax Estimate Review (`FL-2026-008`) | Buyer tax-estimate risk after purchase or sale | Investor/LLC buyer, seller homestead Yes, firm-verified closing date as internal fact (not a tax prediction) |
+| Tax-Deed Notice — Potential Surplus-Proceeds Review (`FL-2026-009`) | Delinquent tax / tax certificate / tax deed / redemption / surplus proceeds | Tax-deed + surplus notice facts, documented-but-not-firm-verified notice-stated deadline wording |
+
+All names, addresses, parcel/folio numbers, notices, amounts, and case refs are **fictional demo samples**. Sample dates are demo facts — not statutory or county filing deadlines.
+
+### Entry points
+
+- Landing cards: `/demo` → **Florida Property-Tax & Tax-Deed Demo Scenarios**
+- Client intake: `/demo/intake/demo-token-seed-003` (Assessment), `…-004` (Buyer tax-estimate), `…-005` (Tax-deed / surplus)
+- Staff matters: `/demo/matters?matter=FL-2026-007` (or `008` / `009`) → **Overview** (Property Tax & Tax Deed) and **Key Dates** (Florida Property Tax & Tax Deed Dates)
+
+### Suggested path — Assessment / VAB (`FL-2026-007`)
+
+1. From `/demo`, open **Open sample client intake** or **View sample matter** for Assessment Review — Bayview Residence.
+2. Confirm involvement Yes and issue kind **Assessment / exemption / classification / portability / VAB** only.
+3. On the matter **Overview**, review the **Property Tax & Tax Deed** panel (TRIM received, assessed value, VAB unknown/not filed).
+4. Open **Key Dates** and review TRIM (client-reported) and VAB hearing (documented) with verification wording — sample dates are not legal deadlines.
+5. Review **suggested document requests** (Property Appraiser / valuation items may be preselected when unavailable/unknown); do not create unless demonstrating staff control.
+6. Note the compact next-step / attorney-review value: organize facts and verify dates — not appeal validity.
+
+### Suggested path — Buyer tax-estimate risk (`FL-2026-008`)
+
+1. Open the Investor Purchase scenario intake or matter from `/demo`.
+2. Confirm only **Buyer tax-estimate risk** is selected (no Assessment/VAB, no tax-deed kind).
+3. Review Overview: flipper/investor (or LLC) buyer use, seller homestead Yes, tax bill/TRIM available.
+4. Confirm closing/transfer date source is **firm_verified** (internal tracked fact — not a reassessment or tax-increase claim).
+5. Confirm suggested documents do not preselect items already marked available.
+6. Explain staff review value before relying on the seller’s current tax information.
+
+### Suggested path — Tax-deed / surplus (`FL-2026-009`)
+
+1. Open the Tax-Deed Notice scenario intake or matter from `/demo`.
+2. Confirm only **Delinquent tax / tax certificate / tax deed / redemption / surplus proceeds**.
+3. Review Overview: tax-deed sale + clerk surplus notice; client role former owner or heir/PR.
+4. On Overview/Key Dates, confirm tax-deed sale and surplus-notice dates are **documented**, and the notice-stated deadline shows: **“Deadline reported or documented — firm verification required.”**
+5. Review suggested documents for title/lien and probate/heirship unknowns; create only if demonstrating staff control.
+6. Emphasize attorney/staff review — the product does not determine surplus entitlement or lien priority.
+
+### Explicit product boundaries
+
+- The app does **not** give legal or tax advice.
+- The app does **not** decide whether an appeal, redemption, or surplus claim is valid.
+- The app does **not** calculate a deadline, property tax, reassessment, surplus amount, or lien priority.
+- The app does **not** file documents or contact authorities.
+- Staff must verify dates and decide whether to request documents or route attorney review.
+
+### Five-minute prospect-demo script
+
+1. **30 seconds:** Describe the intake-classification problem (one “property-tax” phrase, three different workflows).
+2. **90 seconds:** Assessment / VAB scenario — intake kind, Overview panel, dates with verification.
+3. **60 seconds:** Flipper/investor buyer tax-estimate scenario — firm-verified closing, no tax calculation claims.
+4. **90 seconds:** Tax-deed / surplus scenario — show **firm verification required** on the notice-stated deadline.
+5. **30 seconds:** Staff-controlled “Review suggested document requests” (do not auto-send).
+6. **30 seconds:** Restate product boundaries; ask for discovery feedback (questions below).
+
+### Customer-discovery questions (Florida real-estate firms)
+
+1. “How often do new clients describe a property-tax, assessment, tax-certificate, or tax-deed issue unclearly?”
+2. “Which documents do staff most often have to chase before an attorney can assess the matter?”
+3. “Which dates are most often missing, entered incorrectly, or require verification?”
+4. “Would separate intake tracks reduce misrouting between transaction, property-tax, title, probate, and litigation teams?”
+5. “Would you prefer suggested document packs, or would you want firm-specific templates and routing rules?”
+
+### What “good” looks like
+
+- Each scenario has exactly one issue kind track.
+- Sample dates read as reported/documented/firm-verified facts, not statutory deadlines.
+- Suggested document requests stay staff-controlled (no automatic create/send).
+- Tax-deed scenario visibly shows firm-verification-required wording for the notice-stated deadline.
+
+### Feedback capture
+
+Complete one **Feedback capture** form (above) for this walkthrough.
+
+---
+
 ## After the pilot session
 
-1. Consolidate completed **Feedback capture** forms from all five walkthroughs.
+1. Consolidate completed **Feedback capture** forms from all six walkthroughs.
 2. Tag each note: friction / wording / missing info / privacy / automation candidate.
 3. Separate **pilot blockers** from **nice-to-haves**.
 4. Do not invent new workflow engines or portal features from this document alone — feed validated gaps into normal product prioritization.
