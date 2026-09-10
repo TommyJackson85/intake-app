@@ -932,7 +932,395 @@ export function propertyTaxIssueForIntakeSnapshot(
 export const PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER =
   'This section helps the firm organize facts, documents, and internal review. It does not provide tax or legal advice, determine appeal rights, establish a filing deadline, determine redemption rights, rank liens, or determine entitlement to proceeds.'
 
+/** Compact Overview panel footer — organizes facts only; not legal/tax advice. */
+export const PROPERTY_TAX_MATTER_OVERVIEW_DISCLAIMER =
+  'This information organizes intake facts and review tasks for the firm. It does not provide legal or tax advice, determine filing rights or deadlines, determine redemption rights, rank liens, or determine entitlement to proceeds.'
+
 export const PROPERTY_TAX_INTAKE_SECTION_TITLE = 'Florida Property-Tax & Tax-Deed Issues'
+
+export const PROPERTY_TAX_MATTER_OVERVIEW_TITLE = 'Property Tax & Tax Deed'
 
 export const PROPERTY_TAX_INVOLVEMENT_QUESTION =
   'May this matter involve a Florida property-tax, assessment, delinquent-tax, tax certificate, tax-deed, redemption, or surplus-proceeds issue?'
+
+export type DemoPropertyTaxStatusPresentation = {
+  label: string
+  bg: string
+  color: string
+  border: string
+}
+
+/** UI badge labels for per-kind / overall status (not legal clearance). */
+export function propertyTaxIssueStatusPresentation(
+  status: DemoPropertyTaxIssueStatus,
+): DemoPropertyTaxStatusPresentation {
+  switch (status) {
+    case 'not_started':
+      return { label: 'Not started', bg: '#f5f5f5', color: '#627c71', border: 'rgba(94,82,64,0.2)' }
+    case 'needs_more_info':
+      return {
+        label: 'Information needed',
+        bg: '#fff8e6',
+        color: '#8a6d1d',
+        border: 'rgba(240,180,41,0.45)',
+      }
+    case 'in_progress':
+      return { label: 'In review', bg: '#e8f4f8', color: '#208096', border: 'rgba(32,128,150,0.35)' }
+    case 'ready_for_attorney_review':
+      return {
+        label: 'Review required',
+        bg: '#fdecea',
+        color: '#842029',
+        border: 'rgba(132,32,41,0.25)',
+      }
+    default: {
+      const _exhaustive: never = status
+      return _exhaustive
+    }
+  }
+}
+
+const STATUS_PRIORITY: readonly DemoPropertyTaxIssueStatus[] = [
+  'ready_for_attorney_review',
+  'needs_more_info',
+  'in_progress',
+  'not_started',
+]
+
+/** Aggregate status across selected kinds; Unknown with no kinds → information needed. */
+export function getOverallPropertyTaxIssueStatus(
+  issue: DemoPropertyTaxIssue | null | undefined,
+): DemoPropertyTaxIssueStatus {
+  const n = normalizePropertyTaxIssue(issue)
+  if (n.involvement === 'unknown' && n.kinds.length === 0) return 'needs_more_info'
+  if (n.involvement === 'yes' && n.kinds.length === 0) return 'needs_more_info'
+  let best: DemoPropertyTaxIssueStatus = 'not_started'
+  let bestRank = STATUS_PRIORITY.length
+  for (const kind of n.kinds) {
+    const branch = n.byKind[kind]
+    const status = branch && isPropertyTaxIssueStatus(branch.status) ? branch.status : 'not_started'
+    const rank = STATUS_PRIORITY.indexOf(status)
+    if (rank >= 0 && rank < bestRank) {
+      best = status
+      bestRank = rank
+    }
+  }
+  return best
+}
+
+/**
+ * Matter Overview panel visibility.
+ * Requires Florida address eligibility, a present propertyTaxIssue, and active/unknown involvement
+ * (with kinds and/or information-needed Unknown).
+ */
+export function shouldShowPropertyTaxMatterOverviewPanel(input: {
+  propertyAddress: string
+  propertyTaxIssue?: DemoPropertyTaxIssue | null
+}): boolean {
+  if (!shouldShowPropertyTaxIntakeSection(input.propertyAddress)) return false
+  if (!input.propertyTaxIssue) return false
+  const n = normalizePropertyTaxIssue(input.propertyTaxIssue)
+  if (n.involvement === 'no' || !isPropertyTaxBranchActive(n)) return false
+  return n.kinds.length > 0 || n.involvement === 'unknown' || n.involvement === 'yes'
+}
+
+export type DemoPropertyTaxRelevantDate = {
+  fieldKey: string
+  label: string
+  dated: DemoPropertyTaxDatedValue
+  /** True when this field is a notice-stated deadline (not a calculated statutory date). */
+  isStatedDeadline: boolean
+}
+
+/**
+ * Most relevant entered date for a kind — preference order only; not a legal deadline engine.
+ */
+export function getMostRelevantPropertyTaxDate(
+  kind: DemoPropertyTaxIssueKind,
+  issue: DemoPropertyTaxIssue | null | undefined,
+): DemoPropertyTaxRelevantDate | null {
+  const n = normalizePropertyTaxIssue(issue)
+  const preference = mostRelevantDatePreference(kind)
+  for (const field of preference) {
+    const dated = readDatedFromBranch(n, kind, field.key)
+    if (dated?.date) {
+      return {
+        fieldKey: field.key,
+        label: field.label,
+        dated,
+        isStatedDeadline: field.isStatedDeadline,
+      }
+    }
+  }
+  return null
+}
+
+function mostRelevantDatePreference(
+  kind: DemoPropertyTaxIssueKind,
+): readonly { key: string; label: string; isStatedDeadline: boolean }[] {
+  switch (kind) {
+    case 'assessment_vab':
+      return [
+        { key: 'vabHearingDate', label: 'VAB hearing date', isStatedDeadline: false },
+        { key: 'vabFilingDate', label: 'VAB petition filed date', isStatedDeadline: false },
+        { key: 'trimNoticeDate', label: 'TRIM notice date', isStatedDeadline: false },
+      ]
+    case 'ownership_change_tax_risk':
+      return [{ key: 'closingOrTransferDate', label: 'Known closing date', isStatedDeadline: false }]
+    case 'delinquent_tax_deed_surplus':
+      return [
+        {
+          key: 'surplusNoticeDeadlineDate',
+          label: 'Deadline exactly as stated in the relevant notice',
+          isStatedDeadline: true,
+        },
+        { key: 'taxDeedSaleDate', label: 'Tax-deed sale date', isStatedDeadline: false },
+        { key: 'taxDeedApplicationDate', label: 'Tax-deed application date', isStatedDeadline: false },
+        { key: 'taxCertificateDate', label: 'Tax certificate date', isStatedDeadline: false },
+        { key: 'surplusNoticeDate', label: 'Clerk surplus-notice date', isStatedDeadline: false },
+      ]
+    default: {
+      const _exhaustive: never = kind
+      return _exhaustive
+    }
+  }
+}
+
+function readDatedFromBranch(
+  issue: DemoPropertyTaxIssue,
+  kind: DemoPropertyTaxIssueKind,
+  key: string,
+): DemoPropertyTaxDatedValue | null {
+  const branch = issue.byKind[kind]
+  if (!branch || typeof branch !== 'object') return null
+  const raw = (branch as Record<string, unknown>)[key]
+  if (!raw || typeof raw !== 'object' || !('source' in raw)) return null
+  return createDefaultPropertyTaxDatedValue(raw as Partial<DemoPropertyTaxDatedValue>)
+}
+
+/** Neutral next-step copy for Overview — never filing advice or entitlement language. */
+export function getPropertyTaxKindNextStep(
+  kind: DemoPropertyTaxIssueKind,
+  issue: DemoPropertyTaxIssue | null | undefined,
+): string {
+  const relevant = getMostRelevantPropertyTaxDate(kind, issue)
+  if (relevant && propertyTaxDateNeedsVerification(relevant.dated)) {
+    return 'Verify the date stated in the notice before relying on it.'
+  }
+  switch (kind) {
+    case 'assessment_vab':
+      return 'Request available TRIM notice and Property Appraiser correspondence for attorney review.'
+    case 'ownership_change_tax_risk':
+      return 'Confirm buyer use and obtain the current tax bill or TRIM notice.'
+    case 'delinquent_tax_deed_surplus':
+      return 'Obtain the Tax Collector/Clerk notice and route the matter for attorney review.'
+    default: {
+      const _exhaustive: never = kind
+      return _exhaustive
+    }
+  }
+}
+
+function triStateLabel(value: DemoPropertyTaxTriState | boolean | null | undefined): string {
+  if (value === true || value === 'yes') return 'yes'
+  if (value === false || value === 'no') return 'no'
+  return 'unknown'
+}
+
+function assessmentIssueTypeLabel(value: DemoPropertyTaxAssessmentReportedIssueType): string {
+  switch (value) {
+    case 'assessed_value':
+      return 'assessed value'
+    case 'exemption':
+      return 'exemption'
+    case 'classification':
+      return 'classification'
+    case 'portability':
+      return 'portability'
+    case 'other':
+      return 'other'
+    case 'unknown':
+      return 'unknown'
+    default: {
+      const _exhaustive: never = value
+      return _exhaustive
+    }
+  }
+}
+
+function buyerUseLabel(value: DemoPropertyTaxBuyerIntendedUse): string {
+  switch (value) {
+    case 'owner_occupant':
+      return 'owner-occupant'
+    case 'flipper_investor':
+      return 'flipper/investor'
+    case 'rental_landlord':
+      return 'rental/landlord'
+    case 'llc_entity':
+      return 'LLC/entity'
+    case 'other':
+      return 'other'
+    case 'unknown':
+      return 'unknown'
+    default: {
+      const _exhaustive: never = value
+      return _exhaustive
+    }
+  }
+}
+
+function delinquentSituationLabel(value: DemoPropertyTaxDelinquentSituation): string {
+  switch (value) {
+    case 'unpaid_delinquent_taxes':
+      return 'delinquent taxes'
+    case 'tax_certificate':
+      return 'certificate'
+    case 'redemption':
+      return 'redemption'
+    case 'tax_deed_application':
+      return 'tax-deed application'
+    case 'tax_deed_sale':
+      return 'tax-deed sale'
+    case 'clerk_surplus_notice':
+      return 'surplus notice'
+    case 'other_unknown':
+      return 'other/unknown'
+    default: {
+      const _exhaustive: never = value
+      return _exhaustive
+    }
+  }
+}
+
+function delinquentClientRoleLabel(value: DemoPropertyTaxDelinquentClientRole): string {
+  switch (value) {
+    case 'current_owner':
+      return 'owner'
+    case 'former_owner':
+      return 'former owner'
+    case 'heir_personal_representative':
+      return 'heir/personal representative'
+    case 'buyer_investor':
+      return 'investor'
+    case 'lienholder':
+      return 'lienholder'
+    case 'tax_certificate_holder':
+      return 'certificate holder'
+    case 'other':
+      return 'other'
+    case 'unknown':
+      return 'unknown'
+    default: {
+      const _exhaustive: never = value
+      return _exhaustive
+    }
+  }
+}
+
+/** Concise factual summary lines for one kind — no predictions or entitlement language. */
+export function getPropertyTaxKindFactualSummaryLines(
+  kind: DemoPropertyTaxIssueKind,
+  issue: DemoPropertyTaxIssue | null | undefined,
+): string[] {
+  const n = normalizePropertyTaxIssue(issue)
+  if (kind === 'assessment_vab') {
+    const b = n.byKind.assessment_vab ?? createEmptyAssessmentVabIssue()
+    return [
+      `Reported issue: ${assessmentIssueTypeLabel(b.reportedIssueType)}.`,
+      `TRIM notice: ${triStateLabel(b.noticeReceived) === 'yes' ? 'received' : triStateLabel(b.noticeReceived) === 'no' ? 'not received' : 'unknown'}.`,
+      `VAB petition: ${triStateLabel(b.vabPetitionFiled) === 'yes' ? 'filed' : triStateLabel(b.vabPetitionFiled) === 'no' ? 'not filed' : 'unknown'}.`,
+    ]
+  }
+  if (kind === 'ownership_change_tax_risk') {
+    const b = n.byKind.ownership_change_tax_risk ?? createEmptyOwnershipChangeTaxRiskIssue()
+    return [
+      `Buyer use: ${buyerUseLabel(b.buyerIntendedUse)}.`,
+      `Seller homestead status: ${triStateLabel(b.sellerHomesteadStatus)}.`,
+      `Current tax bill/TRIM availability: ${triStateLabel(b.taxBillOrTrimAvailable)}.`,
+    ]
+  }
+  const b = n.byKind.delinquent_tax_deed_surplus ?? createEmptyDelinquentTaxDeedSurplusIssue()
+  const situations =
+    b.situations.length > 0
+      ? b.situations.map(delinquentSituationLabel).join(', ')
+      : 'other/unknown'
+  return [
+    `Reported situation: ${situations}.`,
+    `Client role: ${delinquentClientRoleLabel(b.clientRole)}.`,
+  ]
+}
+
+/** Overview date verification chip — never "legal deadline confirmed". */
+export function getPropertyTaxOverviewDateVerificationLabel(dated: DemoPropertyTaxDatedValue): string {
+  if (dated.source === 'firm_verified' && dated.date) return 'Firm-verified date'
+  return getPropertyTaxDateSourceLabel(dated.source)
+}
+
+export type DemoPropertyTaxOverviewKindRow = {
+  kind: DemoPropertyTaxIssueKind
+  label: string
+  status: DemoPropertyTaxIssueStatus
+  statusPresentation: DemoPropertyTaxStatusPresentation
+  summaryLines: string[]
+  relevantDate: DemoPropertyTaxRelevantDate | null
+  dateVerificationLabel: string | null
+  statedDeadlineBanner: string | null
+  nextStep: string
+}
+
+export type DemoPropertyTaxOverviewModel = {
+  title: string
+  overallStatus: DemoPropertyTaxIssueStatus
+  overallStatusPresentation: DemoPropertyTaxStatusPresentation
+  floridaCounty: string
+  parcelOrFolio: string
+  involvementUnknown: boolean
+  involvementBanner: string | null
+  kinds: DemoPropertyTaxOverviewKindRow[]
+  disclaimer: string
+}
+
+/** Build Overview panel model from a matter's property-tax branch. */
+export function buildPropertyTaxMatterOverviewModel(
+  issue: DemoPropertyTaxIssue | null | undefined,
+): DemoPropertyTaxOverviewModel {
+  const n = normalizePropertyTaxIssue(issue)
+  const overallStatus = getOverallPropertyTaxIssueStatus(n)
+  const kinds: DemoPropertyTaxOverviewKindRow[] = n.kinds.map((kind) => {
+    const branch = n.byKind[kind]
+    const status =
+      branch && isPropertyTaxIssueStatus(branch.status) ? branch.status : 'not_started'
+    const relevantDate = getMostRelevantPropertyTaxDate(kind, n)
+    const statedDeadlineBanner =
+      relevantDate?.isStatedDeadline && relevantDate.dated.date
+        ? getPropertyTaxStatedDeadlineBanner(relevantDate.dated)
+        : null
+    return {
+      kind,
+      label: getPropertyTaxIssueKindLabel(kind),
+      status,
+      statusPresentation: propertyTaxIssueStatusPresentation(status),
+      summaryLines: getPropertyTaxKindFactualSummaryLines(kind, n),
+      relevantDate,
+      dateVerificationLabel: relevantDate
+        ? getPropertyTaxOverviewDateVerificationLabel(relevantDate.dated)
+        : null,
+      statedDeadlineBanner,
+      nextStep: getPropertyTaxKindNextStep(kind, n),
+    }
+  })
+  return {
+    title: PROPERTY_TAX_MATTER_OVERVIEW_TITLE,
+    overallStatus,
+    overallStatusPresentation: propertyTaxIssueStatusPresentation(overallStatus),
+    floridaCounty: n.floridaCounty.trim(),
+    parcelOrFolio: n.parcelOrFolio.trim(),
+    involvementUnknown: n.involvement === 'unknown',
+    involvementBanner:
+      n.involvement === 'unknown'
+        ? 'Issue type has not been confirmed — information needed for attorney review.'
+        : null,
+    kinds,
+    disclaimer: PROPERTY_TAX_MATTER_OVERVIEW_DISCLAIMER,
+  }
+}

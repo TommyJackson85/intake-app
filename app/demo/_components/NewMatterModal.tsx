@@ -2,11 +2,12 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import type { DemoNewMatterInitialValues } from '@/lib/demo/demoIntakeFlow'
-import type { DemoMatter, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
+import type { DemoMatter, DemoPartyType, DemoPropertyTaxIssue, DemoTransactionRole } from '@/lib/demo/types'
 import { useDemoStore } from '@/lib/demo/store'
 import { buildEngagementLetterDraftInput } from '@/lib/demo/demoDocument'
 import { resolveEngagementLetterPreview } from '@/lib/demo/engagementLetterPreview'
 import { isCondoDiligenceEligible } from '@/lib/demo/condoDiligence'
+import { propertyTaxIssueForIntakeSnapshot } from '@/lib/demo/propertyTaxIssue'
 import { useAccessibleDialog } from '@/hooks/useAccessibleDialog'
 
 export function getNextDemoFileId(existingFileIds: string[]) {
@@ -89,6 +90,7 @@ export default function NewMatterModal({
   const [otherTitleRole, setOtherTitleRole] = useState('')
   const [titleName, setTitleName] = useState('')
   const [buyerType, setBuyerType] = useState<DemoPartyType>('individual')
+  const [propertyTaxIssue, setPropertyTaxIssue] = useState<DemoPropertyTaxIssue | undefined>(undefined)
   const [activeTab, setActiveTab] = useState<'matter' | 'starter'>('matter')
   const [createEngagementLetterDraft, setCreateEngagementLetterDraft] = useState(true)
   const [engagementClientName, setEngagementClientName] = useState('')
@@ -135,6 +137,7 @@ export default function NewMatterModal({
       setOtherTitleRole(role === 'other' ? (initialValues.partyRoleOther ?? '') : '')
       setTitleName(role === 'other' ? (initialValues.contactName ?? '') : '')
       setBuyerType(initialValues.buyerType ?? 'individual')
+      setPropertyTaxIssue(initialValues.propertyTaxIssue)
       setEngagementClientName(initialValues.buyerName || '')
       setEngagementAttorneyName(defaultAttorneyName)
       setEngagementPropertyAddress(initialValues.propertyAddress || '')
@@ -166,6 +169,7 @@ export default function NewMatterModal({
     setOtherTitleRole('')
     setTitleName('')
     setBuyerType('individual')
+    setPropertyTaxIssue(undefined)
     setEngagementClientName('')
     setEngagementAttorneyName(defaultAttorneyName)
     setEngagementPropertyAddress('')
@@ -254,6 +258,7 @@ export default function NewMatterModal({
         buyer_email: buyerEmail,
         buyer_phone: buyerPhone,
         special_notes,
+        propertyTaxIssue: propertyTaxIssueForIntakeSnapshot(propertyTaxIssue, propertyAddress),
         onCreated: (info) => {
           if (createEngagementLetterDraft) {
             const uploadedByStaffId = staff[0]?.id ?? ''

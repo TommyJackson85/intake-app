@@ -62,6 +62,7 @@ import DemoTaskChecklist from '@/components/demo/DemoTaskChecklist'
 import DemoTimelineNotes from '@/components/demo/DemoTimelineNotes'
 import { displayOrFallback, parseOtherPartyInfo } from '@/lib/demo/matterPartyDisplay'
 import DemoFinCENTab from '@/components/demo/DemoFinCENTab'
+import PropertyTaxMatterOverviewPanel from '@/components/demo/PropertyTaxMatterOverviewPanel'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 import { buildFinCENBeneficialOwnershipReviewDashboard } from '@/lib/demo/fincenBeneficialOwnership'
 import { buildFinCENReportabilityReviewDashboard, FINCEN_SECTION_IDS } from '@/lib/demo/fincenReportability'
@@ -1151,6 +1152,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                   </div>
                 </div>
               )}
+
+              {effectiveMatter ? <PropertyTaxMatterOverviewPanel matter={effectiveMatter} /> : null}
 
               
               {fincenReportabilityDashboard && (
