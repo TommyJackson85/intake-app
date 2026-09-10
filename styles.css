@@ -172,6 +172,11 @@ input {
   border-radius: 8px;
 }
 
+.nav-toggle:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
 .nav-toggle span:not(.sr-only) {
   display: block;
   height: 2px;
@@ -225,11 +230,18 @@ input {
 }
 
 .text-link span {
+  flex-shrink: 0;
   transition: transform 180ms ease;
 }
 
 .text-link:hover span {
   transform: translateX(4px);
+}
+
+.text-link:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 .hero {
@@ -1571,6 +1583,13 @@ input {
   font-size: 15px;
   line-height: 1.65;
   flex: 1;
+}
+
+.insights-card .text-link {
+  align-self: flex-start;
+  max-width: 100%;
+  flex-wrap: wrap;
+  line-height: 1.45;
 }
 
 .insights-meta {
