@@ -884,7 +884,7 @@ export function getPropertyTaxDateVerificationLabel(dated: DemoPropertyTaxDatedV
   if (dated.source === 'firm_verified' && dated.date) {
     return 'Firm-recorded date (not a legal determination)'
   }
-  return 'Verify deadline'
+  return 'Needs firm verification'
 }
 
 /**
@@ -968,7 +968,7 @@ export function propertyTaxIssueStatusPresentation(
       return { label: 'In review', bg: '#e8f4f8', color: '#208096', border: 'rgba(32,128,150,0.35)' }
     case 'ready_for_attorney_review':
       return {
-        label: 'Review required',
+        label: 'Ready for attorney review',
         bg: '#fdecea',
         color: '#842029',
         border: 'rgba(132,32,41,0.25)',
@@ -1105,7 +1105,7 @@ export function getPropertyTaxKindNextStep(
 ): string {
   const relevant = getMostRelevantPropertyTaxDate(kind, issue)
   if (relevant && propertyTaxDateNeedsVerification(relevant.dated)) {
-    return 'Verify the date stated in the notice before relying on it.'
+    return 'Verify the date stated in the notice for attorney review.'
   }
   switch (kind) {
     case 'assessment_vab':
@@ -1252,7 +1252,9 @@ export function getPropertyTaxKindFactualSummaryLines(
 
 /** Overview date verification chip — never "legal deadline confirmed". */
 export function getPropertyTaxOverviewDateVerificationLabel(dated: DemoPropertyTaxDatedValue): string {
-  if (dated.source === 'firm_verified' && dated.date) return 'Firm-verified date'
+  if (dated.source === 'firm_verified' && dated.date) {
+    return 'Firm-verified date (not a legal determination)'
+  }
   return getPropertyTaxDateSourceLabel(dated.source)
 }
 
@@ -1382,7 +1384,7 @@ export function getPropertyTaxKeyDateVerificationLabel(
   dated: DemoPropertyTaxDatedValue,
 ): string {
   if (!dated.date) return 'Date not provided'
-  if (dated.source === 'firm_verified') return 'Firm-verified'
+  if (dated.source === 'firm_verified') return 'Firm-verified (not a legal determination)'
   if (dated.source === 'documented') return 'Documented'
   if (dated.source === 'client_reported') return 'Client-reported'
   return 'Verification needed'
@@ -1449,7 +1451,7 @@ export function buildPropertyTaxKeyDatesModel(
         nextStepHint: hasDate
           ? needsVerify
             ? 'Date is recorded for internal tracking; firm verification is still required.'
-            : 'Review the documented date and confirm its significance for this matter.'
+            : 'Review the recorded date with the attorney as part of matter triage.'
           : 'Request the relevant notice and verify the recorded date for firm review.',
       })
     }

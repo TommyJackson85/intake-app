@@ -74,7 +74,7 @@ export default function PropertyTaxKeyDatesSection({
         </div>
         {onReviewIntakeDetails ? (
           <button type="button" onClick={onReviewIntakeDetails} style={secondaryBtn}>
-            Review/edit property-tax intake details
+            View Property Tax & Tax Deed overview
           </button>
         ) : null}
       </div>
@@ -166,7 +166,7 @@ export default function PropertyTaxKeyDatesSection({
                     <span style={pillStyle('#627c71', '#f5f5f5')}>{row.verificationLabel}</span>
                     {row.urgencyPill ? (
                       <span style={pillStyle(leftBorder, `${leftBorder}14`)}>
-                        {row.urgencyPill === 'Soon' ? '⚠ Soon' : '✓ Passed'}
+                        {row.urgencyPill === 'Soon' ? 'Soon (calendar)' : 'Past date'}
                       </span>
                     ) : null}
                     {row.verifyAlongsideUrgency ? (

@@ -56,7 +56,7 @@ describe('property-tax Key Dates helpers (Step 5)', () => {
     expect(model.groups.map((g) => g.kind)).toEqual(['ownership_change_tax_risk'])
     const closing = model.groups[0]?.rows.find((r) => r.fieldKey === 'closingOrTransferDate')
     expect(closing?.date).toBe('2026-11-01')
-    expect(closing?.verificationLabel).toBe('Firm-verified')
+    expect(closing?.verificationLabel).toBe('Firm-verified (not a legal determination)')
     expect(model.groups[0]?.rows.some((r) => /VAB|TRIM notice date/i.test(r.label))).toBe(false)
   })
 
@@ -115,8 +115,8 @@ describe('property-tax Key Dates helpers (Step 5)', () => {
       (r) => r.fieldKey === 'surplusNoticeDeadlineDate',
     )
     expect(row?.statedDeadlineBanner).toBeNull()
-    expect(row?.verificationLabel).toBe('Firm-verified')
-    expect(getPropertyTaxKeyDateVerificationLabel(row!)).toBe('Firm-verified')
+    expect(row?.verificationLabel).toBe('Firm-verified (not a legal determination)')
+    expect(getPropertyTaxKeyDateVerificationLabel(row!)).toBe('Firm-verified (not a legal determination)')
     expect(JSON.stringify(row)).not.toMatch(/legal deadline confirmed|legally controlling/i)
   })
 
