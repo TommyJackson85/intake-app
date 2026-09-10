@@ -1153,7 +1153,17 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                 </div>
               )}
 
-              {effectiveMatter ? <PropertyTaxMatterOverviewPanel matter={effectiveMatter} /> : null}
+              {effectiveMatter ? (
+                <PropertyTaxMatterOverviewPanel
+                  matter={effectiveMatter}
+                  documentRequests={matterDocumentRequests}
+                  staffId={requestedByStaffId}
+                  onCreateDocumentRequests={(inputs) => {
+                    for (const input of inputs) addDemoDocumentRequest(input)
+                  }}
+                  onGoToDocuments={() => setActiveTab('Documents')}
+                />
+              ) : null}
 
               
               {fincenReportabilityDashboard && (
