@@ -119,16 +119,16 @@ describe('propertyTaxIssue helpers', () => {
     expect(parseOrNullIsoDateOnly(null)).toBeNull()
   })
 
-  it('uses Verify deadline copy for unverified sources and never Deadline confirmed', () => {
+  it('uses Needs firm verification copy for unverified sources and never Deadline confirmed', () => {
     expect(
       getPropertyTaxDateVerificationLabel({ date: '2026-05-01', source: 'client_reported' }),
-    ).toBe('Verify deadline')
+    ).toBe('Needs firm verification')
     expect(getPropertyTaxDateVerificationLabel({ date: null, source: 'unknown' })).toBe(
-      'Verify deadline',
+      'Needs firm verification',
     )
     expect(
       getPropertyTaxDateVerificationLabel({ date: '2026-05-01', source: 'documented' }),
-    ).toBe('Verify deadline')
+    ).toBe('Needs firm verification')
     expect(
       getPropertyTaxDateVerificationLabel({ date: '2026-05-01', source: 'firm_verified' }),
     ).toBe('Firm-recorded date (not a legal determination)')
@@ -147,6 +147,7 @@ describe('propertyTaxIssue helpers', () => {
       getPropertyTaxDateVerificationLabel({ date: null, source: 'unknown' }),
     ]
     expect(labels.some((l) => /deadline confirmed/i.test(l))).toBe(false)
+    expect(labels.some((l) => /Verify deadline/i.test(l))).toBe(false)
   })
 
   it('builds kind-specific date field maps and document checklists', () => {

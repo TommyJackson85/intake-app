@@ -252,7 +252,7 @@ describe('property tax matter Overview helpers (Step 3)', () => {
       source: 'firm_verified',
     })
     const model = buildPropertyTaxMatterOverviewModel(matterLike.propertyTaxIssue)
-    expect(model.kinds[0]?.dateVerificationLabel).toBe('Firm-verified date')
+    expect(model.kinds[0]?.dateVerificationLabel).toBe('Firm-verified date (not a legal determination)')
     expect(model.kinds[0]?.summaryLines.join(' ')).toMatch(/flipper\/investor/i)
     expect(model.kinds[0]?.nextStep).toMatch(/Confirm buyer use/i)
   })

@@ -85,6 +85,7 @@ describe('property-tax demo scenarios (Step 6)', () => {
       expect(lead).toBeTruthy()
       expect(lead?.id).toBe(scenario.intakeLeadId)
       expect(lead?.fileReference).toBe(scenario.fileId)
+      expect(lead?.linkedMatterFileId).toBe(scenario.fileId)
       expect(lead?.intake.propertyTaxIssue).toBeTruthy()
       expect(lead?.status).toBe('pending_client')
     }
@@ -206,7 +207,7 @@ describe('property-tax demo scenarios (Step 6)', () => {
       'Deadline reported or documented — firm verification required.',
     )
     expect(model.overallStatus).toBe('ready_for_attorney_review')
-    expect(model.overallStatusPresentation.label).toBe('Review required')
+    expect(model.overallStatusPresentation.label).toBe('Ready for attorney review')
 
     const presets = buildPropertyTaxDocumentRequestPresets(issue)
     expect(presets.find((p) => p.id === 'ptx-surplus-notice')?.defaultSelected).toBe(false)

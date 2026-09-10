@@ -280,6 +280,8 @@ All names, addresses, parcel/folio numbers, notices, amounts, and case refs are 
 - Client intake: `/demo/intake/demo-token-seed-003` (Assessment), `…-004` (Buyer tax-estimate), `…-005` (Tax-deed / surplus)
 - Staff matters: `/demo/matters?matter=FL-2026-007` (or `008` / `009`) → **Overview** (Property Tax & Tax Deed) and **Key Dates** (Florida Property Tax & Tax Deed Dates)
 
+**Demo path note:** Client intake and staff matter are **paired** (same file id; intake leads are linked to the seeded matter). For a five-minute prospect demo, start from **View sample matter** on `/demo`. Opening sample client intake shows classification questions; do not create a second matter from the linked lead.
+
 ### Suggested path — Assessment / VAB (`FL-2026-007`)
 
 1. From `/demo`, open **Open sample client intake** or **View sample matter** for Assessment Review — Bayview Residence.
@@ -316,6 +318,8 @@ All names, addresses, parcel/folio numbers, notices, amounts, and case refs are 
 - Staff must verify dates and decide whether to request documents or route attorney review.
 
 ### Five-minute prospect-demo script
+
+Prefer staff-ready matters from `/demo` scenario cards (fastest path). Client intake links are optional classification demos and do not create a second matter when the lead is already linked.
 
 1. **30 seconds:** Describe the intake-classification problem (one “property-tax” phrase, three different workflows).
 2. **90 seconds:** Assessment / VAB scenario — intake kind, Overview panel, dates with verification.
