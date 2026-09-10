@@ -63,6 +63,7 @@ import DemoTimelineNotes from '@/components/demo/DemoTimelineNotes'
 import { displayOrFallback, parseOtherPartyInfo } from '@/lib/demo/matterPartyDisplay'
 import DemoFinCENTab from '@/components/demo/DemoFinCENTab'
 import PropertyTaxMatterOverviewPanel from '@/components/demo/PropertyTaxMatterOverviewPanel'
+import PropertyTaxKeyDatesSection from '@/components/demo/PropertyTaxKeyDatesSection'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 import { buildFinCENBeneficialOwnershipReviewDashboard } from '@/lib/demo/fincenBeneficialOwnership'
 import { buildFinCENReportabilityReviewDashboard, FINCEN_SECTION_IDS } from '@/lib/demo/fincenReportability'
@@ -1162,6 +1163,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                     for (const input of inputs) addDemoDocumentRequest(input)
                   }}
                   onGoToDocuments={() => setActiveTab('Documents')}
+                  onViewTrackedDates={() => setActiveTab('Key Dates')}
                 />
               ) : null}
 
@@ -3390,6 +3392,20 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                   </div>
                 )
               })}
+
+              {effectiveMatter ? (
+                <PropertyTaxKeyDatesSection
+                  matter={effectiveMatter}
+                  todayIsoDateOnly={(() => {
+                    const n = new Date()
+                    const y = n.getFullYear()
+                    const m = String(n.getMonth() + 1).padStart(2, '0')
+                    const d = String(n.getDate()).padStart(2, '0')
+                    return `${y}-${m}-${d}`
+                  })()}
+                  onReviewIntakeDetails={() => setActiveTab('Overview')}
+                />
+              ) : null}
             </div>
           )}
 
