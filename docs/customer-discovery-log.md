@@ -12,6 +12,22 @@ Do not store confidential client matter details here. Keep notes operational and
 
 ---
 
+## What to look for
+
+Look for **repeated patterns**, not isolated feature requests:
+
+- Information arriving through scattered emails and attachments
+- Missing documents becoming visible too late
+- Repeated follow-ups and duplicate document requests
+- Unclear ownership of next actions
+- Poor handoff between intake and active matter work
+- Difficulty seeing whether a file is genuinely ready
+- Condo, HOA, document, reserve, inspection, or transaction-specific information that teams repeatedly need
+
+When a conversation surfaces one of these, capture the prospect’s **exact language** in the template below. Prefer patterns heard from multiple people over one-off tool requests.
+
+---
+
 ## Conversation template
 
 Copy the block below for each conversation.
@@ -97,11 +113,21 @@ Track LinkedIn posts and other shares so follow-up conversations can be linked b
 
 ## Patterns worth watching
 
-Use this section after several conversations.
+Use this section after several conversations. Tick or note which “What to look for” patterns recur, using prospect language only.
+
+- [ ] Scattered emails / attachments as the intake system
+- [ ] Missing documents visible too late
+- [ ] Repeated follow-ups / duplicate document requests
+- [ ] Unclear ownership of next actions
+- [ ] Poor intake → active-matter handoff
+- [ ] Hard to tell if a file is genuinely ready
+- [ ] Recurring condo / HOA / reserve / inspection / transaction-specific packs
+
+Also note:
 
 - Recurring intake or document-collection problems:
 - Words prospects use to describe the pain:
 - Workarounds that keep showing up:
 - Objections or hesitation points:
 - Pilot-ready signals:
-- Ideas to ignore for now:
+- Ideas to ignore for now (isolated feature requests, legal-advice automation, etc.):
