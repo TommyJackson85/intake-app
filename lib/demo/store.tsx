@@ -273,6 +273,8 @@ type CreateDemoMatterInput = {
   buyer_email?: string
   buyer_phone?: string
   special_notes?: string
+  /** Optional Florida property-tax / tax-deed facts from intake. */
+  propertyTaxIssue?: DemoMatter['propertyTaxIssue']
   onCreated?: (r: { matterId: string; fileId: string }) => void
 }
 
@@ -1752,6 +1754,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
                 deletedAt: null,
               },
             ],
+            ...(input.propertyTaxIssue ? { propertyTaxIssue: input.propertyTaxIssue } : {}),
           }
 
           createdInfo = { matterId: nextMatter.id, fileId: nextMatter.file_id }
