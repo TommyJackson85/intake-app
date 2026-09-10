@@ -1,10 +1,22 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
-import type { DemoIntakeDemoDelivery, DemoIntakeSnapshot, DemoMatter, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
+import type {
+  DemoIntakeDemoDelivery,
+  DemoIntakeSnapshot,
+  DemoMatter,
+  DemoPartyType,
+  DemoPropertyTaxIssue,
+  DemoTransactionRole,
+} from '@/lib/demo/types'
 import { DEMO_BUYER_TYPE_OPTIONS, DEMO_TRANSACTION_ROLE_OPTIONS } from '@/lib/demo/demoIntakeFlow'
 import { useDemoStore } from '@/lib/demo/store'
 import { isCondoDiligenceEligible } from '@/lib/demo/condoDiligence'
+import {
+  createEmptyPropertyTaxIssue,
+  propertyTaxIssueForIntakeSnapshot,
+} from '@/lib/demo/propertyTaxIssue'
+import PropertyTaxIntakeSection from '@/app/demo/_components/PropertyTaxIntakeSection'
 
 type Props = {
   isOpen: boolean
@@ -28,6 +40,7 @@ type FormValues = {
   county: string
   targetClosingDate: string
   notes: string
+  propertyTaxIssue: DemoPropertyTaxIssue
 }
 
 type DemoPayload = {
@@ -57,7 +70,7 @@ const DEFAULT_EMAIL_BODY =
   'Please review the details of your upcoming property transaction and update anything that is incorrect.'
 
 type FieldRow = {
-  key: keyof Omit<FormValues, 'fileReference'>
+  key: keyof Omit<FormValues, 'fileReference' | 'propertyTaxIssue'>
   label: string
   type: 'text' | 'email' | 'tel' | 'date' | 'select' | 'textarea'
   options?: string[]
@@ -117,6 +130,10 @@ function toIntakeSnapshot(values: FormValues): DemoIntakeSnapshot {
     county: values.county,
     targetClosingDate: values.targetClosingDate,
     notes: values.notes,
+    propertyTaxIssue: propertyTaxIssueForIntakeSnapshot(
+      values.propertyTaxIssue,
+      values.propertyAddress,
+    ),
   }
 }
 
@@ -181,6 +198,7 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
     county: '',
     targetClosingDate: '',
     notes: '',
+    propertyTaxIssue: createEmptyPropertyTaxIssue(),
   })
 
   const [emailSubject, setEmailSubject] = useState(DEFAULT_EMAIL_SUBJECT)
@@ -204,6 +222,7 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
       transactionRole: 'buyer',
       transactionRoleOther: '',
       buyerType: 'individual',
+      propertyTaxIssue: createEmptyPropertyTaxIssue(),
     }))
   }, [isOpen, nextFileId])
 
@@ -643,6 +662,14 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
                       )}
                     </div>
                   ))}
+
+                  <PropertyTaxIntakeSection
+                    idPrefix="staff-intake"
+                    value={values.propertyTaxIssue}
+                    propertyAddress={values.propertyAddress}
+                    matterCounty={values.county}
+                    onChange={(next) => setLawyerValue('propertyTaxIssue', next)}
+                  />
                 </div>
               </section>
             </div>
@@ -766,6 +793,14 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
                         )}
                       </div>
                     ))}
+                    <PropertyTaxIntakeSection
+                      idPrefix="staff-intake-preview"
+                      value={values.propertyTaxIssue}
+                      propertyAddress={values.propertyAddress}
+                      matterCounty={values.county}
+                      readOnly
+                      onChange={() => {}}
+                    />
                   </div>
 
                   <button

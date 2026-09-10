@@ -157,6 +157,14 @@ export type DemoPropertyTaxIssueStatus =
   | 'ready_for_attorney_review'
 
 /** Assessment / exemption / classification / portability / VAB facts. */
+export type DemoPropertyTaxAssessmentReportedIssueType =
+  | 'assessed_value'
+  | 'exemption'
+  | 'classification'
+  | 'portability'
+  | 'other'
+  | 'unknown'
+
 export type DemoPropertyTaxAssessmentVabIssue = {
   kind: 'assessment_vab'
   status: DemoPropertyTaxIssueStatus
@@ -164,10 +172,25 @@ export type DemoPropertyTaxAssessmentVabIssue = {
   parcelOrFolio: string
   /** Whether the client reports receiving a TRIM or similar notice. */
   noticeReceived: boolean | null
+  reportedIssueType: DemoPropertyTaxAssessmentReportedIssueType
+  /** Whether a VAB petition has been filed (client/staff reported — not a filing status). */
+  vabPetitionFiled: boolean | null
   trimNoticeDate: DemoPropertyTaxDatedValue
   vabFilingDate: DemoPropertyTaxDatedValue
   vabHearingDate: DemoPropertyTaxDatedValue
+  /** Checklist item ids the client/staff marks as available (not document requests). */
+  availableDocumentIds: string[]
 }
+
+export type DemoPropertyTaxBuyerIntendedUse =
+  | 'owner_occupant'
+  | 'flipper_investor'
+  | 'rental_landlord'
+  | 'llc_entity'
+  | 'other'
+  | 'unknown'
+
+export type DemoPropertyTaxTriState = 'yes' | 'no' | 'unknown'
 
 /**
  * Ownership-change / purchase–sale tax-bill reliance facts
@@ -178,11 +201,34 @@ export type DemoPropertyTaxOwnershipChangeTaxRiskIssue = {
   status: DemoPropertyTaxIssueStatus
   notes: string
   parcelOrFolio: string
+  buyerIntendedUse: DemoPropertyTaxBuyerIntendedUse
+  sellerHomesteadStatus: DemoPropertyTaxTriState
+  taxBillOrTrimAvailable: boolean | null
   /** Client reports relying on seller’s current tax bill / estimate. */
   relyingOnSellerCurrentBill: boolean | null
   closingOrTransferDate: DemoPropertyTaxDatedValue
   estimatedTaxBillDate: DemoPropertyTaxDatedValue
+  availableDocumentIds: string[]
 }
+
+export type DemoPropertyTaxDelinquentSituation =
+  | 'unpaid_delinquent_taxes'
+  | 'tax_certificate'
+  | 'redemption'
+  | 'tax_deed_application'
+  | 'tax_deed_sale'
+  | 'clerk_surplus_notice'
+  | 'other_unknown'
+
+export type DemoPropertyTaxDelinquentClientRole =
+  | 'current_owner'
+  | 'former_owner'
+  | 'heir_personal_representative'
+  | 'buyer_investor'
+  | 'lienholder'
+  | 'tax_certificate_holder'
+  | 'other'
+  | 'unknown'
 
 /** Delinquent tax / certificate / tax deed / redemption / surplus facts. */
 export type DemoPropertyTaxDelinquentTaxDeedSurplusIssue = {
@@ -191,11 +237,15 @@ export type DemoPropertyTaxDelinquentTaxDeedSurplusIssue = {
   notes: string
   parcelOrFolio: string
   taxCertificateOrDeedCaseRef: string
+  situations: DemoPropertyTaxDelinquentSituation[]
+  clientRole: DemoPropertyTaxDelinquentClientRole
+  taxCertificateDate: DemoPropertyTaxDatedValue
   taxDeedApplicationDate: DemoPropertyTaxDatedValue
   taxDeedSaleDate: DemoPropertyTaxDatedValue
   surplusNoticeDate: DemoPropertyTaxDatedValue
   /** Deadline stated on the surplus notice (as entered — not calculated). */
   surplusNoticeDeadlineDate: DemoPropertyTaxDatedValue
+  availableDocumentIds: string[]
 }
 
 export type DemoPropertyTaxIssueByKind = {
@@ -205,16 +255,32 @@ export type DemoPropertyTaxIssueByKind = {
 }
 
 /**
+ * Parent answer for the optional Florida property-tax branch.
+ * `unknown` may persist without forcing issue-kind classification.
+ */
+export type DemoPropertyTaxInvolvementAnswer = 'yes' | 'no' | 'unknown'
+
+/**
  * Additive Florida property-tax / tax-deed branch on intake/matter.
  * Organizes facts and workflows only — not tax advice, entitlement, lien priority, or a filing service.
  */
 export type DemoPropertyTaxIssue = {
-  /** When false, branch is off; existing purchase/condo/FinCEN flows unchanged. */
+  /**
+   * When false, branch is inactive for lead/matter workflows.
+   * Derived from `involvement` (`yes`/`unknown` → true, `no` → false) on write.
+   */
   enabled: boolean
-  /** Multi-select; empty when disabled or none chosen. */
+  /** Parent Yes / No / Unknown answer. Absent on older payloads — inferred from `enabled`. */
+  involvement: DemoPropertyTaxInvolvementAnswer
+  /** Multi-select; empty when inactive or none chosen. */
   kinds: DemoPropertyTaxIssueKind[]
   /** Independent nested data/status for each selected kind. */
   byKind: DemoPropertyTaxIssueByKind
+  /** Shared factual fields (optional). Property address stays on the intake snapshot. */
+  floridaCounty: string
+  parcelOrFolio: string
+  clientIssueDescription: string
+  opposingPartyOrAgency: string
   internalNotes: string
 }
 
