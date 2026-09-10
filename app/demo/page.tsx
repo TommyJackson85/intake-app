@@ -10,6 +10,7 @@ import DemoTaskChecklist from '@/components/demo/DemoTaskChecklist'
 import DemoTimelineNotes from '@/components/demo/DemoTimelineNotes'
 import NewIntakeDemoModal from './_components/NewIntakeDemoModal'
 import SystemContractMapCard from './_components/SystemContractMapCard'
+import PropertyTaxDemoScenariosCard from './_components/PropertyTaxDemoScenariosCard'
 import { getMatterPartyDisplayRows } from '@/lib/demo/matterPartyDisplay'
 import {
   buildCondoDiligenceWorkQueueRows,
@@ -274,6 +275,8 @@ function DemoPageContent() {
           </div>
         ))}
       </div>
+
+      <PropertyTaxDemoScenariosCard />
 
       <div
         style={{
