@@ -122,6 +122,102 @@ export type DemoFinCEN = {
   retentionDeadline: string | null
 }
 
+/**
+ * Florida property-tax / tax-deed issue kinds (multi-select).
+ * A matter may involve more than one kind at once.
+ * Operational taxonomy only — not a legal determination.
+ */
+export type DemoPropertyTaxIssueKind =
+  | 'assessment_vab'
+  | 'ownership_change_tax_risk'
+  | 'delinquent_tax_deed_surplus'
+
+/** How a recorded date was obtained. Never implies the date is legally controlling. */
+export type DemoPropertyTaxDateSource =
+  | 'client_reported'
+  | 'documented'
+  | 'firm_verified'
+  | 'unknown'
+
+/**
+ * ISO date-only (`YYYY-MM-DD`) when present, plus verification/source state.
+ * Do not treat `date` as a calculated statutory deadline.
+ */
+export type DemoPropertyTaxDatedValue = {
+  /** ISO date-only `YYYY-MM-DD`, or null when unknown. */
+  date: string | null
+  source: DemoPropertyTaxDateSource
+}
+
+/** Per-kind operational status — not a clearance, entitlement, or filing status. */
+export type DemoPropertyTaxIssueStatus =
+  | 'not_started'
+  | 'in_progress'
+  | 'needs_more_info'
+  | 'ready_for_attorney_review'
+
+/** Assessment / exemption / classification / portability / VAB facts. */
+export type DemoPropertyTaxAssessmentVabIssue = {
+  kind: 'assessment_vab'
+  status: DemoPropertyTaxIssueStatus
+  notes: string
+  parcelOrFolio: string
+  /** Whether the client reports receiving a TRIM or similar notice. */
+  noticeReceived: boolean | null
+  trimNoticeDate: DemoPropertyTaxDatedValue
+  vabFilingDate: DemoPropertyTaxDatedValue
+  vabHearingDate: DemoPropertyTaxDatedValue
+}
+
+/**
+ * Ownership-change / purchase–sale tax-bill reliance facts
+ * (e.g. buyer may be relying on seller’s current bill after change of ownership).
+ */
+export type DemoPropertyTaxOwnershipChangeTaxRiskIssue = {
+  kind: 'ownership_change_tax_risk'
+  status: DemoPropertyTaxIssueStatus
+  notes: string
+  parcelOrFolio: string
+  /** Client reports relying on seller’s current tax bill / estimate. */
+  relyingOnSellerCurrentBill: boolean | null
+  closingOrTransferDate: DemoPropertyTaxDatedValue
+  estimatedTaxBillDate: DemoPropertyTaxDatedValue
+}
+
+/** Delinquent tax / certificate / tax deed / redemption / surplus facts. */
+export type DemoPropertyTaxDelinquentTaxDeedSurplusIssue = {
+  kind: 'delinquent_tax_deed_surplus'
+  status: DemoPropertyTaxIssueStatus
+  notes: string
+  parcelOrFolio: string
+  taxCertificateOrDeedCaseRef: string
+  taxDeedApplicationDate: DemoPropertyTaxDatedValue
+  taxDeedSaleDate: DemoPropertyTaxDatedValue
+  surplusNoticeDate: DemoPropertyTaxDatedValue
+  /** Deadline stated on the surplus notice (as entered — not calculated). */
+  surplusNoticeDeadlineDate: DemoPropertyTaxDatedValue
+}
+
+export type DemoPropertyTaxIssueByKind = {
+  assessment_vab?: DemoPropertyTaxAssessmentVabIssue
+  ownership_change_tax_risk?: DemoPropertyTaxOwnershipChangeTaxRiskIssue
+  delinquent_tax_deed_surplus?: DemoPropertyTaxDelinquentTaxDeedSurplusIssue
+}
+
+/**
+ * Additive Florida property-tax / tax-deed branch on intake/matter.
+ * Organizes facts and workflows only — not tax advice, entitlement, lien priority, or a filing service.
+ */
+export type DemoPropertyTaxIssue = {
+  /** When false, branch is off; existing purchase/condo/FinCEN flows unchanged. */
+  enabled: boolean
+  /** Multi-select; empty when disabled or none chosen. */
+  kinds: DemoPropertyTaxIssueKind[]
+  /** Independent nested data/status for each selected kind. */
+  byKind: DemoPropertyTaxIssueByKind
+  internalNotes: string
+}
+
 export type DemoMatter = {
   id: string
   file_id: string
@@ -162,6 +258,11 @@ export type DemoMatter = {
   referralSource: string
   specialNotes: string
   fincen?: DemoFinCEN
+  /**
+   * Optional Florida property-tax / tax-deed issue branch (additive).
+   * Absent on older persisted matters — normalize before use.
+   */
+  propertyTaxIssue?: DemoPropertyTaxIssue
 
   key_dates: {
     effective_date: string
@@ -619,6 +720,11 @@ export type DemoIntakeSnapshot = {
   notes: string
   /** Purchaser is an individual vs legal entity/trust — used for FinCEN when buyer-side. */
   buyerType?: DemoPartyType
+  /**
+   * Optional Florida property-tax / tax-deed issue branch (additive).
+   * Absent on older intake snapshots — normalize before use.
+   */
+  propertyTaxIssue?: DemoPropertyTaxIssue
 }
 
 export type DemoConflictCheckStatus = 'pending' | 'clear' | 'flagged' | 'confirmed_no_conflict'
