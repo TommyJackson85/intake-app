@@ -21,8 +21,13 @@ describe('propertyTaxIssue helpers', () => {
   it('creates a disabled empty issue by default', () => {
     const issue = createEmptyPropertyTaxIssue()
     expect(issue.enabled).toBe(false)
+    expect(issue.involvement).toBe('no')
     expect(issue.kinds).toEqual([])
     expect(issue.byKind).toEqual({})
+    expect(issue.floridaCounty).toBe('')
+    expect(issue.parcelOrFolio).toBe('')
+    expect(issue.clientIssueDescription).toBe('')
+    expect(issue.opposingPartyOrAgency).toBe('')
     expect(issue.internalNotes).toBe('')
     expect(isPropertyTaxBranchActive(issue)).toBe(false)
   })
@@ -186,7 +191,9 @@ describe('propertyTaxIssue helpers', () => {
 
   it('exposes human labels and boundary disclaimer', () => {
     expect(getPropertyTaxIssueKindLabel('assessment_vab')).toMatch(/VAB/i)
-    expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(/Not tax advice/i)
-    expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(/filing service/i)
+    expect(getPropertyTaxIssueKindLabel('ownership_change_tax_risk')).toMatch(/Buyer tax-estimate risk/i)
+    expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(/does not provide tax or legal advice/i)
+    expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(/filing deadline/i)
+    expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(/entitlement to proceeds/i)
   })
 })

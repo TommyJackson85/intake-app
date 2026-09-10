@@ -7,6 +7,12 @@ import { DEMO_SEED_INTAKE_TOKENS } from '@/lib/demo/demoData'
 import { DEMO_BUYER_TYPE_OPTIONS, DEMO_TRANSACTION_ROLE_OPTIONS } from '@/lib/demo/demoIntakeFlow'
 import type { DemoIntakeSnapshot, DemoPartyType, DemoTransactionRole } from '@/lib/demo/types'
 import { useDemoStore } from '@/lib/demo/store'
+import {
+  createEmptyPropertyTaxIssue,
+  normalizePropertyTaxIssue,
+  propertyTaxIssueForIntakeSnapshot,
+} from '@/lib/demo/propertyTaxIssue'
+import PropertyTaxIntakeSection from '@/app/demo/_components/PropertyTaxIntakeSection'
 
 function normalizeSnapshot(s: DemoIntakeSnapshot): DemoIntakeSnapshot {
   return {
@@ -14,6 +20,9 @@ function normalizeSnapshot(s: DemoIntakeSnapshot): DemoIntakeSnapshot {
     transactionRole: s.transactionRole ?? 'buyer',
     transactionRoleOther: s.transactionRoleOther ?? '',
     propertyType: s.propertyType ?? 'Single-Family Home',
+    propertyTaxIssue: s.propertyTaxIssue
+      ? normalizePropertyTaxIssue(s.propertyTaxIssue)
+      : undefined,
   }
 }
 
@@ -339,6 +348,15 @@ export default function DemoClientIntakePage() {
           )}
 
           {renderFields(tailFieldDefs)}
+
+          <PropertyTaxIntakeSection
+            idPrefix="client-intake"
+            value={form.propertyTaxIssue ?? createEmptyPropertyTaxIssue()}
+            propertyAddress={form.propertyAddress}
+            matterCounty={form.county}
+            readOnly={submitted}
+            onChange={(next) => setField('propertyTaxIssue', next)}
+          />
         </div>
 
         {submitError && (
@@ -358,7 +376,14 @@ export default function DemoClientIntakePage() {
               setSubmitError('Please select buyer type (Individual or Legal entity / trust).')
               return
             }
-            submitDemoIntakeLead(token, form)
+            const propertyTaxIssue = propertyTaxIssueForIntakeSnapshot(
+              form.propertyTaxIssue,
+              form.propertyAddress,
+            )
+            submitDemoIntakeLead(token, {
+              ...form,
+              propertyTaxIssue,
+            })
           }}
           style={{
             width: '100%',
