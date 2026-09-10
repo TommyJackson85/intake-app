@@ -247,6 +247,7 @@ function SuggestedPropertyTaxDocuments({
   const [titleEdits, setTitleEdits] = useState<Record<string, string>>({})
   const [createdTitles, setCreatedTitles] = useState<string[]>([])
   const [createError, setCreateError] = useState<string | null>(null)
+  const presetIdsKey = rows.map((r) => r.id).join('|')
 
   useEffect(() => {
     const nextSelected: Record<string, boolean> = {}
@@ -257,8 +258,24 @@ function SuggestedPropertyTaxDocuments({
     }
     setSelected(nextSelected)
     setTitleEdits(nextTitles)
-    setCreatedTitles([])
     setCreateError(null)
+    // Do not clear createdTitles here — request creation updates documentRequests and would wipe success.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed by preset id set only
+  }, [presetIdsKey])
+
+  // Keep already-requested rows deselected when open requests appear after create.
+  useEffect(() => {
+    setSelected((prev) => {
+      let changed = false
+      const next = { ...prev }
+      for (const row of rows) {
+        if (row.alreadyRequested && next[row.id]) {
+          next[row.id] = false
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
   }, [rows])
 
   const selectedCount = rows.filter((r) => selected[r.id] && !r.alreadyRequested).length
