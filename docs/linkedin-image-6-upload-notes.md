@@ -20,50 +20,38 @@ Asset page:
 
 `/insights/assets/file-ready-linkedin-graphic/`
 
-## Layout note for Image 6
-
-Use a **left-to-right navy gradient overlay** plus a light **bottom fade** so type stays
-readable while the checklist illustration remains visible on the right/lower area.
-
-## Color tokens
-
-- Dark navy overlay: `#0F2742`
-- Headline: `#FFFFFF`
-- Eyebrow label: `#A7F3D0`
-- Body lead-in: `#F3F7FA`
-- Bullet text: `#FFFFFF`
-- Optional teal accent: `#2DD4BF`
-- Optional amber accent (one small detail only): `#F59E0B`
-
 ## Recommended LinkedIn alt text
 
-Graphic for Client Intake stating: “A file is not ready because a client replied. It is ready when the team can see what was received, what is missing, who owns the next step, and what blocks the handoff.”
+Graphic for Client Intake stating: “A file is not ready because a client replied.” The image explains that a transaction team needs to see what was received, what is missing, who owns the next step, and what blocks the handoff.
 
 ## Recommended post copy
 
-A client contacting the firm is not the same as a file being ready.
+A client reply does not automatically mean a real-estate matter is ready to move forward.
 
-Those are different stages:
+A file may still have missing documents, unclear transaction information, unassigned follow-ups, or items that need internal review.
 
-- someone has made contact
-- some information has arrived
-- the matter is ready enough for a clean handoff
+A clearer intake process helps a team see:
 
-I wrote a short operational checklist for real-estate transaction teams on what “file-ready” can mean in practice — and what a checklist like this does not replace.
+-  What has been received  
+-  What is still missing  
+-  Who owns the next step  
+-  What could block the handoff  
 
-If you open matters, chase documents, or hand files to the next owner, I would value how your team draws that line today.
+I put together a practical file-ready checklist for real-estate transaction teams:
 
 https://tommyjackson85.github.io/intake-app/insights/real-estate-file-ready-checklist/
+
+For people who work in real-estate transactions: what usually has to be confirmed before your team considers a new file ready to move forward?
 
 #RealEstateLaw #LegalOperations #ClientIntake
 
 ## Before publishing
 
 - Confirm the Article 2 URL above is live.
-- Upload the finished image to a post from the founder’s personal LinkedIn profile.
+- Upload the finished image from the founder’s personal LinkedIn profile.
 - Add the recommended alt text using LinkedIn’s `Alt.text` option.
-- Open the article link in a private/incognito browser window before posting.
-- Check that the article CTA/contact link works.
+- Open the article link in a private/incognito browser before publishing.
+- Check that the article’s contact, pilot, demo, or waitlist CTA works.
 - Reply thoughtfully to relevant comments.
 - Record useful comments, direct messages, and conversations in `docs/customer-discovery-log.md`.
 
@@ -74,10 +62,11 @@ https://tommyjackson85.github.io/intake-app/insights/real-estate-file-ready-chec
 2. Open the finished SVG locally in a browser to ensure it looks right:
    `insights/assets/file-ready-linkedin-graphic/client-intake-file-ready-linkedin.svg`
    (or use the asset page at `/insights/assets/file-ready-linkedin-graphic/`).
-3. Prefer the generated PNG for LinkedIn upload — LinkedIn can accept SVG only
-   inconsistently. Use:
+3. Prefer the generated PNG for LinkedIn upload — raster images are the safest upload
+   format. Use:
    `insights/assets/file-ready-linkedin-graphic/client-intake-file-ready-linkedin.png`
 4. Upload that PNG to your LinkedIn post.
 5. Click LinkedIn’s **Alt.text** control below the uploaded image and paste the
-   recommended alt text above.
+   recommended alt text above. LinkedIn provides Alt.text for feed images to support
+   screen-reader users.
 6. Confirm the Article 2 URL in the post copy is live, then publish.
