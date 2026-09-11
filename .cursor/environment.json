@@ -1,0 +1,17 @@
+{
+  "name": "intake-app",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "next-dev",
+      "command": "npm run dev",
+      "description": "Next.js dev server (Turbopack) on http://localhost:3000. The public landing page and the in-memory /demo experience work without a live backend; set real Supabase credentials via Secrets to exercise auth and database flows."
+    }
+  ],
+  "ports": [
+    {
+      "name": "web",
+      "port": 3000
+    }
+  ]
+}
