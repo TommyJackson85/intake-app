@@ -1810,6 +1810,47 @@ input {
   text-underline-offset: 3px;
 }
 
+.article-body .table-wrap {
+  overflow-x: auto;
+  margin-top: 1.25em;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--white);
+}
+
+.article-body table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.article-body th,
+.article-body td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+
+.article-body th {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--mint-light);
+}
+
+.article-body tr:last-child td {
+  border-bottom: 0;
+}
+
+.article-body td {
+  color: #3d565b;
+}
+
 .workflow-model,
 .checklist-block {
   padding: 22px 24px;
@@ -1926,6 +1967,106 @@ input {
   color: rgba(255, 255, 255, 0.88);
   font-size: 0.9rem;
   line-height: 1.45;
+}
+
+.file-ready-visual {
+  position: relative;
+  overflow: hidden;
+  margin: 2.5rem 0;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid rgba(15, 39, 66, 0.12);
+  border-radius: 1rem;
+  color: #ffffff;
+  /* Pages-safe path (styles.css is at repo root): images/insights/... */
+  background:
+    linear-gradient(135deg, rgba(15, 39, 66, 0.88), rgba(15, 39, 66, 0.7)),
+    url("images/insights/file-ready-checklist-visual.png") center / cover no-repeat;
+}
+
+.article-body .file-ready-visual__heading {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.article-body .file-ready-visual__intro {
+  margin: 0.65em 0 0;
+  max-width: 58ch;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: clamp(0.92rem, 1.5vw, 1.02rem);
+  line-height: 1.55;
+}
+
+.article-body .file-ready-visual__list {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.65rem;
+  max-width: 34rem;
+  margin: 1.35rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.article-body .file-ready-visual__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  color: #0f2742;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 39, 66, 0.08);
+  border-radius: 0.75rem;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px rgba(6, 20, 40, 0.12);
+}
+
+.article-body .file-ready-visual__item + .file-ready-visual__item {
+  margin-top: 0;
+}
+
+.article-body .file-ready-visual__item--active {
+  background: rgba(220, 239, 233, 0.96);
+  border-color: rgba(239, 190, 98, 0.55);
+}
+
+.file-ready-visual__marker {
+  flex: 0 0 auto;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.12rem;
+  border: 2px solid rgba(15, 39, 66, 0.35);
+  border-radius: 999px;
+  background: transparent;
+}
+
+.file-ready-visual__item--active .file-ready-visual__marker {
+  border-color: #efbe62;
+  box-shadow: 0 0 0 3px rgba(239, 190, 98, 0.25);
+}
+
+.file-ready-visual__label {
+  min-width: 0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 600px) {
+  .article-body .file-ready-visual__list {
+    max-width: none;
+  }
+
+  .article-body .file-ready-visual__item {
+    font-size: 0.92rem;
+  }
 }
 
 .key-takeaway,
