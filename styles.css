@@ -1634,6 +1634,73 @@ input {
   margin-top: 18px;
 }
 
+.article-hero-top {
+  padding-top: 28px;
+  padding-bottom: 18px;
+}
+
+.article-hero {
+  position: relative;
+  display: flex;
+  align-items: end;
+  min-height: clamp(320px, 42vw, 460px);
+  overflow: hidden;
+  color: #ffffff;
+  background-color: #0a1d33;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.article-hero--email-workflow {
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(10, 29, 51, 0.96) 0%,
+      rgba(10, 29, 51, 0.78) 52%,
+      rgba(10, 29, 51, 0.3) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(10, 29, 51, 0.65) 0%,
+      rgba(10, 29, 51, 0.05) 65%
+    ),
+    url("images/insights/client-intake-email-workflow-delays.png");
+}
+
+.article-hero__content {
+  max-width: 48rem;
+  padding: clamp(1.5rem, 5vw, 4rem) 0;
+}
+
+.article-hero__eyebrow {
+  margin: 0 0 0.75rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.article-hero h1 {
+  margin: 0;
+  max-width: 16ch;
+  color: #ffffff;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 5vw, 4.25rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+
+.article-hero__subtitle {
+  margin: 1rem 0 0;
+  max-width: 36ch;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: clamp(1rem, 2.2vw, 1.2rem);
+  line-height: 1.5;
+}
+
 .breadcrumbs {
   display: flex;
   flex-wrap: wrap;
@@ -1808,6 +1875,21 @@ input {
 
   .page-hero {
     padding-top: 48px;
+  }
+
+  .article-hero-top {
+    padding-top: 20px;
+    padding-bottom: 14px;
+  }
+
+  .article-hero {
+    align-items: end;
+    min-height: clamp(320px, 70vw, 420px);
+    background-position: 72% center;
+  }
+
+  .article-hero h1 {
+    max-width: 14ch;
   }
 
   .article-body p,
