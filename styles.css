@@ -1642,9 +1642,12 @@ input {
 .article-hero {
   position: relative;
   display: flex;
-  align-items: end;
+  align-items: flex-end;
+  width: min(calc(100% - 48px), var(--container));
   min-height: clamp(320px, 42vw, 460px);
+  margin-inline: auto;
   overflow: hidden;
+  border-radius: 1rem;
   color: #ffffff;
   background-color: #0a1d33;
   background-size: cover;
@@ -1652,47 +1655,45 @@ input {
   background-repeat: no-repeat;
 }
 
-.article-hero--email-workflow {
-  background-image:
+.article-hero::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  content: "";
+  background:
     linear-gradient(
       90deg,
       rgba(10, 29, 51, 0.96) 0%,
-      rgba(10, 29, 51, 0.78) 52%,
-      rgba(10, 29, 51, 0.3) 100%
+      rgba(10, 29, 51, 0.8) 52%,
+      rgba(10, 29, 51, 0.28) 100%
     ),
     linear-gradient(
       0deg,
-      rgba(10, 29, 51, 0.65) 0%,
-      rgba(10, 29, 51, 0.05) 65%
-    ),
-    url("images/insights/client-intake-email-workflow-delays.png");
+      rgba(10, 29, 51, 0.7) 0%,
+      rgba(10, 29, 51, 0.08) 65%
+    );
+  pointer-events: none;
+}
+
+.article-hero--email-workflow {
+  background-image: url("images/insights/client-intake-email-workflow-delays.png");
 }
 
 .article-hero--file-ready-checklist {
-  background-image:
-    linear-gradient(
-      90deg,
-      rgba(10, 29, 51, 0.96) 0%,
-      rgba(10, 29, 51, 0.78) 52%,
-      rgba(10, 29, 51, 0.3) 100%
-    ),
-    linear-gradient(
-      0deg,
-      rgba(10, 29, 51, 0.65) 0%,
-      rgba(10, 29, 51, 0.05) 65%
-    ),
-    url("images/insights/real-estate-file-ready-checklist.png");
+  background-image: url("images/insights/real-estate-file-ready-checklist.png");
   background-position: right center;
 }
 
 .article-hero__content {
+  position: relative;
+  z-index: 1;
   max-width: 48rem;
-  padding: clamp(1.5rem, 5vw, 4rem) 0;
+  padding: clamp(1.5rem, 5vw, 4rem);
 }
 
 .article-hero__eyebrow {
   margin: 0 0 0.75rem;
-  color: rgba(255, 255, 255, 0.92);
+  color: #a7f3d0;
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -1701,7 +1702,7 @@ input {
 
 .article-hero h1 {
   margin: 0;
-  max-width: 16ch;
+  max-width: 17ch;
   color: #ffffff;
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(2rem, 5vw, 4.25rem);
@@ -1713,8 +1714,8 @@ input {
 .article-hero__subtitle {
   margin: 1rem 0 0;
   max-width: 36ch;
-  color: rgba(255, 255, 255, 0.88);
-  font-size: clamp(1rem, 2.2vw, 1.2rem);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: clamp(1rem, 2vw, 1.2rem);
   line-height: 1.5;
 }
 
@@ -1900,13 +1901,18 @@ input {
   }
 
   .article-hero {
-    align-items: end;
+    align-items: flex-end;
+    width: min(calc(100% - 34px), var(--container));
     min-height: clamp(320px, 70vw, 420px);
     background-position: 72% center;
   }
 
   .article-hero--file-ready-checklist {
     background-position: 78% center;
+  }
+
+  .article-hero__content {
+    padding: clamp(1.5rem, 5vw, 2.5rem) 0;
   }
 
   .article-hero h1 {
