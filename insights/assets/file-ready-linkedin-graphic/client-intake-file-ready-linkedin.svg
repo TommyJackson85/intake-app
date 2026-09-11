@@ -1,0 +1,89 @@
+<svg
+  width="1080"
+  height="1350"
+  viewBox="0 0 1080 1350"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-labelledby="linkedin-graphic-title linkedin-graphic-desc"
+>
+  <title id="linkedin-graphic-title">
+    Client Intake LinkedIn graphic: A client contacting the firm is not the same as a file being
+    ready.
+  </title>
+  <desc id="linkedin-graphic-desc">
+    Portrait social graphic for a personal LinkedIn post promoting the Insights article on a
+    file-ready checklist for real-estate transaction teams. Text sits in the open top area above
+    the checklist illustration.
+  </desc>
+
+  <defs>
+    <!-- Softens the mid-canvas so headline type stays readable above the artwork -->
+    <linearGradient id="topReadableFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F7FBFC" stop-opacity="0.55" />
+      <stop offset="38%" stop-color="#F7FBFC" stop-opacity="0.28" />
+      <stop offset="52%" stop-color="#F7FBFC" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background: Canva Image 6 (text-free). Portrait illustration with open top for type. -->
+  <image
+    href="linkedin-file-ready-background.png"
+    x="0"
+    y="0"
+    width="1080"
+    height="1350"
+    preserveAspectRatio="xMidYMid slice"
+  />
+
+  <rect x="0" y="0" width="1080" height="1350" fill="url(#topReadableFade)" />
+
+  <text
+    x="72"
+    y="120"
+    fill="#147D7A"
+    font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
+    font-size="28"
+    font-weight="800"
+    letter-spacing="0.18em"
+  >
+    CLIENT INTAKE
+  </text>
+
+  <text
+    x="72"
+    y="220"
+    fill="#0F2742"
+    font-family="Georgia, 'Times New Roman', Times, serif"
+    font-size="48"
+    font-weight="700"
+  >
+    <tspan x="72" dy="0">A client contacting</tspan>
+    <tspan x="72" dy="64">the firm is not the</tspan>
+    <tspan x="72" dy="64">same as a file</tspan>
+    <tspan x="72" dy="64">being ready.</tspan>
+  </text>
+
+  <text
+    x="72"
+    y="540"
+    fill="#163047"
+    font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
+    font-size="34"
+    font-weight="600"
+  >
+    <tspan x="72" dy="0">Contact made.</tspan>
+    <tspan x="72" dy="54">Information arrived.</tspan>
+    <tspan x="72" dy="54">Handoff clear.</tspan>
+  </text>
+
+  <text
+    x="72"
+    y="760"
+    fill="#0F2742"
+    font-family="Georgia, 'Times New Roman', Times, serif"
+    font-size="38"
+    font-weight="700"
+  >
+    Make readiness visible.
+  </text>
+</svg>
