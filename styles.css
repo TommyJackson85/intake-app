@@ -1269,6 +1269,12 @@ input {
   transform: translateY(0);
 }
 
+/* Article copy must stay readable even if reveal JS is delayed or blocked. */
+.article-body[data-reveal] {
+  opacity: 1;
+  transform: none;
+}
+
 @media (max-width: 1050px) {
   .hero-grid {
     grid-template-columns: 1fr;
@@ -1902,6 +1908,12 @@ input {
     url("images/insights/client-intake-workflow.png") center / cover no-repeat;
 }
 
+.intake-workflow--condo {
+  background:
+    linear-gradient(135deg, rgba(15, 39, 66, 0.92), rgba(15, 39, 66, 0.74)),
+    url("images/insights/condo-due-diligence-workflow.png") center / cover no-repeat;
+}
+
 .article-body .intake-workflow__heading {
   margin: 0;
   color: #ffffff;
@@ -1937,11 +1949,9 @@ input {
   color: #ffffff;
   font-size: inherit;
   line-height: 1.4;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 0.75rem;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
 }
 
 .article-body .intake-workflow__step + .intake-workflow__step {
@@ -1982,28 +1992,24 @@ input {
   border: 1px solid rgba(15, 39, 66, 0.14);
   border-radius: 1rem;
   color: #0f2742;
-  /* Pages-safe path (styles.css is at repo root): images/insights/... */
+  /* Pages-safe path (styles.css is at repo root): images/insights/...
+     Left-weighted frost keeps checklist text readable; right side stays open
+     so the secondary visual is actually visible (the prior 0.96 white layers
+     fully hid the background image). */
   background:
     linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.96),
-      rgba(244, 249, 252, 0.92)
+      100deg,
+      rgba(255, 255, 255, 0.94) 0%,
+      rgba(255, 255, 255, 0.82) 38%,
+      rgba(255, 255, 255, 0.42) 68%,
+      rgba(255, 255, 255, 0.16) 100%
     ),
-    url("images/insights/real-estate-file-ready-checklist-visual.png") center / cover no-repeat;
+    url("images/insights/real-estate-file-ready-checklist-visual.png") right center / cover no-repeat;
   box-shadow: 0 16px 40px rgba(15, 39, 66, 0.1);
 }
 
 .file-ready-checklist::before {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  content: "";
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.96) 0%,
-    rgba(255, 255, 255, 0.88) 60%,
-    rgba(255, 255, 255, 0.72) 100%
-  );
+  display: none;
 }
 
 .file-ready-checklist__content {
@@ -2165,7 +2171,8 @@ input {
   .article-hero {
     align-items: flex-end;
     width: min(calc(100% - 34px), var(--container));
-    min-height: clamp(320px, 70vw, 420px);
+    /* Keep enough room for title, but leave body text above the fold on phones */
+    min-height: clamp(240px, 58vw, 340px);
     background-position: 72% center;
   }
 
