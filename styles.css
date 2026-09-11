@@ -1684,6 +1684,11 @@ input {
   background-position: right center;
 }
 
+.article-hero--condo-due-diligence {
+  background-image: url("images/insights/condo-due-diligence-tracking.png");
+  background-position: right center;
+}
+
 .article-hero__content {
   position: relative;
   z-index: 1;
@@ -2148,6 +2153,10 @@ input {
 
   .article-hero--file-ready-checklist {
     background-position: 78% center;
+  }
+
+  .article-hero--condo-due-diligence {
+    background-position: 82% center;
   }
 
   .article-hero__content {
