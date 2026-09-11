@@ -41,6 +41,9 @@ window.addEventListener("scroll", updateHeader, { passive: true });
 if (reduceMotion || !("IntersectionObserver" in window)) {
   revealItems.forEach((item) => item.classList.add("visible"));
 } else {
+  // threshold: 0 — any visible pixel reveals. Tall nodes (e.g. full article
+  // bodies) never reached the old 0.12 ratio until hundreds of px scrolled,
+  // which left opacity:0 content looking "missing" on Insights articles.
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -50,10 +53,17 @@ if (reduceMotion || !("IntersectionObserver" in window)) {
         }
       });
     },
-    { rootMargin: "0px 0px -8% 0px", threshold: 0.12 },
+    { rootMargin: "0px 0px -4% 0px", threshold: 0 },
   );
 
-  revealItems.forEach((item) => observer.observe(item));
+  revealItems.forEach((item) => {
+    // Article body copy must never wait on scroll-triggered reveal.
+    if (item.classList.contains("article-body")) {
+      item.classList.add("visible");
+      return;
+    }
+    observer.observe(item);
+  });
 }
 
 const year = document.querySelector("#year");
