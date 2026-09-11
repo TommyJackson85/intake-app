@@ -57,16 +57,22 @@ For people who work in real-estate transactions: what usually has to be confirme
 
 ## After Cursor finishes
 
+Upload the finished PNG/JPEG version to LinkedIn if one is available; raster images are
+the safest upload format. Prefer:
+
+`insights/assets/file-ready-linkedin-graphic/client-intake-file-ready-linkedin.png`
+
+When posting, add the supplied description through LinkedIn’s **Alt.text** option, which
+LinkedIn provides for feed images to support screen-reader users.
+
 1. Confirm the Canva background is in place at
    `insights/assets/file-ready-linkedin-graphic/linkedin-file-ready-background.png`.
 2. Open the finished SVG locally in a browser to ensure it looks right:
    `insights/assets/file-ready-linkedin-graphic/client-intake-file-ready-linkedin.svg`
    (or use the asset page at `/insights/assets/file-ready-linkedin-graphic/`).
-3. Prefer the generated PNG for LinkedIn upload — raster images are the safest upload
-   format. Use:
-   `insights/assets/file-ready-linkedin-graphic/client-intake-file-ready-linkedin.png`
-4. Upload that PNG to your LinkedIn post.
-5. Click LinkedIn’s **Alt.text** control below the uploaded image and paste the
-   recommended alt text above. LinkedIn provides Alt.text for feed images to support
-   screen-reader users.
-6. Confirm the Article 2 URL in the post copy is live, then publish.
+3. Upload the PNG above to your LinkedIn post (prefer PNG/JPEG over SVG).
+4. Click LinkedIn’s **Alt.text** control below the uploaded image and paste the
+   recommended alt text from this note.
+5. Confirm the Article 2 URL in the post copy is live, then publish.
+6. Record useful comments, DMs, and conversations in `docs/customer-discovery-log.md`.
+
