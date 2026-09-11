@@ -4,17 +4,9 @@
 
 `insights/assets/email-intake-linkedin-graphic/client-intake-email-workflow-linkedin.png`
 
-Live Pages path (after publish):
+Live Pages URL (after publish):
 
 https://tommyjackson85.github.io/intake-app/insights/assets/email-intake-linkedin-graphic/client-intake-email-workflow-linkedin.png
-
-Editable SVG source:
-
-`insights/assets/email-intake-linkedin-graphic/client-intake-email-workflow-linkedin.svg`
-
-Background (Canva Image 5, no text):
-
-`insights/assets/email-intake-linkedin-graphic/linkedin-email-intake-background.png`
 
 ## Recommended LinkedIn alt text
 
@@ -38,9 +30,9 @@ For people working in real-estate transactions: where does client intake most of
 
 ## Before publishing
 
-- Confirm the article URL above is live (or replace it if the path changes).
-- Upload the finished PNG to a post from the founder’s personal LinkedIn profile.
-- Add the recommended alt text using LinkedIn’s Alt text option.
+- Confirm the Article 1 URL above is live.
+- Upload the finished image to a post from the founder’s personal LinkedIn profile.
+- Add the recommended alt text using LinkedIn’s `Alt.text` option.
 - Open the article link in a private/incognito browser window before posting.
 - Check that the article CTA/contact link works.
 - Reply thoughtfully to relevant comments.
