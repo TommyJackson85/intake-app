@@ -1893,7 +1893,11 @@ input {
   color: #0f2742;
   /* Pages-safe path (styles.css is at repo root): images/insights/... */
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(244, 249, 252, 0.92)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(244, 249, 252, 0.92)
+    ),
     url("images/insights/real-estate-file-ready-checklist-visual.png") center / cover no-repeat;
   box-shadow: 0 16px 40px rgba(15, 39, 66, 0.1);
 }
@@ -1926,12 +1930,10 @@ input {
   text-transform: uppercase;
 }
 
-.article-body .file-ready-checklist__title {
+.file-ready-checklist__title {
   margin: 0;
   color: #0f2742;
   font-size: clamp(1.5rem, 3vw, 2.15rem);
-  font-weight: 800;
-  letter-spacing: -0.02em;
   line-height: 1.15;
 }
 
@@ -1948,14 +1950,13 @@ input {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  min-width: 0;
   margin: 0;
   padding: 0.9rem;
   border: 1px solid rgba(15, 39, 66, 0.12);
   border-radius: 0.75rem;
   background: rgba(255, 255, 255, 0.78);
   color: #163047;
-  font-size: 0.95rem;
+  font-size: inherit;
   font-weight: 600;
   line-height: 1.4;
 }
@@ -1974,9 +1975,7 @@ input {
   border-radius: 999px;
   background: #d1fae5;
   color: #076b56;
-  font-size: 0.85rem;
   font-weight: 800;
-  line-height: 1;
 }
 
 .file-ready-checklist__item--attention .file-ready-checklist__marker {
@@ -1989,7 +1988,7 @@ input {
   color: #1d4ed8;
 }
 
-.article-body .file-ready-checklist__note {
+.file-ready-checklist__note {
   margin: 0;
   color: #40566b;
   font-size: 0.95rem;
