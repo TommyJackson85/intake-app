@@ -37,3 +37,19 @@ For people working in real-estate transactions: where does client intake most of
 - Check that the article CTA/contact link works.
 - Reply thoughtfully to relevant comments.
 - Record useful comments, direct messages, and conversations in `docs/customer-discovery-log.md`.
+
+## After Cursor finishes
+
+1. Confirm the Canva background is in place at
+   `insights/assets/email-intake-linkedin-graphic/linkedin-email-intake-background.png`.
+2. Open the finished SVG locally in a browser to ensure it looks right:
+   `insights/assets/email-intake-linkedin-graphic/client-intake-email-workflow-linkedin.svg`
+   (or use the asset page at `/insights/assets/email-intake-linkedin-graphic/`).
+3. Prefer the generated PNG for LinkedIn upload — LinkedIn can accept SVG only
+   inconsistently. Use:
+   `insights/assets/email-intake-linkedin-graphic/client-intake-email-workflow-linkedin.png`
+4. Upload that PNG to your LinkedIn post.
+5. Click LinkedIn’s **Alt.text** control below the uploaded image and paste the
+   recommended alt text above. LinkedIn provides an Alt.text field for feed images
+   so screen-reader users can understand the visual.
+6. Confirm the Article 1 URL in the post copy is live, then publish.
