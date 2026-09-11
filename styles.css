@@ -1883,6 +1883,92 @@ input {
   margin-top: 0.45em;
 }
 
+.intake-workflow {
+  position: relative;
+  overflow: hidden;
+  margin: 2.5rem 0;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid rgba(15, 39, 66, 0.12);
+  border-radius: 1rem;
+  color: #ffffff;
+  /* Pages-safe path (styles.css is at repo root): images/insights/... */
+  background:
+    linear-gradient(135deg, rgba(15, 39, 66, 0.92), rgba(15, 39, 66, 0.74)),
+    url("images/insights/client-intake-workflow.png") center / cover no-repeat;
+}
+
+.article-body .intake-workflow__heading {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.article-body .intake-workflow__intro {
+  margin: 0.65em 0 0;
+  max-width: 62ch;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: clamp(0.92rem, 1.5vw, 1.02rem);
+  line-height: 1.55;
+}
+
+.article-body .intake-workflow__steps {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.article-body .intake-workflow__step {
+  min-width: 0;
+  margin: 0;
+  padding: 1rem;
+  color: #ffffff;
+  font-size: inherit;
+  line-height: 1.4;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 0.75rem;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.article-body .intake-workflow__step + .intake-workflow__step {
+  margin-top: 0;
+}
+
+.intake-workflow__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.75rem;
+  border-radius: 999px;
+  background: #2dd4bf;
+  color: #0f2742;
+  font-weight: 800;
+}
+
+.intake-workflow__title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.intake-workflow__description {
+  display: block;
+  margin: 0.5rem 0 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .file-ready-visual {
   position: relative;
   overflow: hidden;
@@ -2075,6 +2161,18 @@ input {
   .article-body p,
   .article-body li {
     font-size: 16px;
+  }
+}
+
+@media (max-width: 900px) {
+  .article-body .intake-workflow__steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .article-body .intake-workflow__steps {
+    grid-template-columns: 1fr;
   }
 }
 
