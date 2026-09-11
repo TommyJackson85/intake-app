@@ -1969,103 +1969,121 @@ input {
   line-height: 1.45;
 }
 
-.file-ready-visual {
+.file-ready-checklist {
   position: relative;
   overflow: hidden;
   margin: 2.5rem 0;
-  padding: clamp(1rem, 3vw, 2rem);
-  border: 1px solid rgba(15, 39, 66, 0.12);
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  border: 1px solid rgba(15, 39, 66, 0.14);
   border-radius: 1rem;
-  color: #ffffff;
+  color: #0f2742;
   /* Pages-safe path (styles.css is at repo root): images/insights/... */
   background:
-    linear-gradient(135deg, rgba(15, 39, 66, 0.88), rgba(15, 39, 66, 0.7)),
-    url("images/insights/file-ready-checklist-visual.png") center / cover no-repeat;
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(244, 249, 252, 0.92)
+    ),
+    url("images/insights/real-estate-file-ready-checklist-visual.png") center / cover no-repeat;
+  box-shadow: 0 16px 40px rgba(15, 39, 66, 0.1);
 }
 
-.article-body .file-ready-visual__heading {
-  margin: 0;
-  color: #ffffff;
-  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
+.file-ready-checklist::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  content: "";
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(255, 255, 255, 0.88) 60%,
+    rgba(255, 255, 255, 0.72) 100%
+  );
 }
 
-.article-body .file-ready-visual__intro {
-  margin: 0.65em 0 0;
-  max-width: 58ch;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: clamp(0.92rem, 1.5vw, 1.02rem);
-  line-height: 1.55;
-}
-
-.article-body .file-ready-visual__list {
+.file-ready-checklist__content {
   position: relative;
   z-index: 1;
+  max-width: 46rem;
+}
+
+.file-ready-checklist__eyebrow {
+  margin: 0 0 0.5rem;
+  color: #147d7a;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.file-ready-checklist__title {
+  margin: 0;
+  color: #0f2742;
+  font-size: clamp(1.5rem, 3vw, 2.15rem);
+  line-height: 1.15;
+}
+
+.article-body .file-ready-checklist__items {
   display: grid;
-  gap: 0.65rem;
-  max-width: 34rem;
-  margin: 1.35rem 0 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1.5rem 0;
   padding: 0;
   list-style: none;
 }
 
-.article-body .file-ready-visual__item {
+.article-body .file-ready-checklist__item {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  min-width: 0;
   margin: 0;
-  padding: 0.85rem 1rem;
-  color: #0f2742;
-  font-size: 0.95rem;
-  line-height: 1.4;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(15, 39, 66, 0.08);
+  padding: 0.9rem;
+  border: 1px solid rgba(15, 39, 66, 0.12);
   border-radius: 0.75rem;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-  box-shadow: 0 8px 24px rgba(6, 20, 40, 0.12);
+  background: rgba(255, 255, 255, 0.78);
+  color: #163047;
+  font-size: inherit;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
-.article-body .file-ready-visual__item + .file-ready-visual__item {
+.article-body .file-ready-checklist__item + .file-ready-checklist__item {
   margin-top: 0;
 }
 
-.article-body .file-ready-visual__item--active {
-  background: rgba(220, 239, 233, 0.96);
-  border-color: rgba(239, 190, 98, 0.55);
-}
-
-.file-ready-visual__marker {
+.file-ready-checklist__marker {
   flex: 0 0 auto;
-  width: 1.15rem;
-  height: 1.15rem;
-  margin-top: 0.12rem;
-  border: 2px solid rgba(15, 39, 66, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
   border-radius: 999px;
-  background: transparent;
+  background: #d1fae5;
+  color: #076b56;
+  font-weight: 800;
 }
 
-.file-ready-visual__item--active .file-ready-visual__marker {
-  border-color: #efbe62;
-  box-shadow: 0 0 0 3px rgba(239, 190, 98, 0.25);
+.file-ready-checklist__item--attention .file-ready-checklist__marker {
+  background: #fef3c7;
+  color: #92400e;
 }
 
-.file-ready-visual__label {
-  min-width: 0;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+.file-ready-checklist__item--owner .file-ready-checklist__marker {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
-@media (max-width: 600px) {
-  .article-body .file-ready-visual__list {
-    max-width: none;
-  }
+.file-ready-checklist__note {
+  margin: 0;
+  color: #40566b;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
 
-  .article-body .file-ready-visual__item {
-    font-size: 0.92rem;
+@media (max-width: 700px) {
+  .article-body .file-ready-checklist__items {
+    grid-template-columns: 1fr;
   }
 }
 
