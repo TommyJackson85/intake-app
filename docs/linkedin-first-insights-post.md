@@ -6,6 +6,13 @@
 **Live article link:**
 https://tommyjackson85.github.io/intake-app/insights/why-email-client-intake-causes-transaction-delays/
 
+**LinkedIn graphic (portrait 1080×1350):**
+- SVG (text overlays): [`../images/social/client-intake-email-workflow-linkedin.svg`](../images/social/client-intake-email-workflow-linkedin.svg)
+- PNG export: [`../images/social/client-intake-email-workflow-linkedin.png`](../images/social/client-intake-email-workflow-linkedin.png)
+- Background (Canva Image 5, no text): [`../images/social/linkedin-email-intake-background.png`](../images/social/linkedin-email-intake-background.png)
+
+Attach the PNG (or open the SVG) when publishing Option 1. Do not edit blog pages to promote this asset.
+
 **Tracking:** Record meaningful comments, DMs, and conversations in [`customer-discovery-log.md`](./customer-discovery-log.md).  
 After ~7 days, use the patterns you recorded to choose the next article or product improvement.
 
