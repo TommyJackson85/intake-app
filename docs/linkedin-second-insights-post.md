@@ -6,6 +6,12 @@
 **Live article link:**
 https://tommyjackson85.github.io/intake-app/insights/real-estate-file-ready-checklist/
 
+**LinkedIn graphic (portrait 1080×1350):**
+- Asset page: [`../insights/assets/file-ready-linkedin-graphic/`](../insights/assets/file-ready-linkedin-graphic/)
+- SVG: [`../insights/assets/file-ready-linkedin-graphic/client-intake-file-ready-linkedin.svg`](../insights/assets/file-ready-linkedin-graphic/client-intake-file-ready-linkedin.svg)
+- PNG: [`../insights/assets/file-ready-linkedin-graphic/client-intake-file-ready-linkedin.png`](../insights/assets/file-ready-linkedin-graphic/client-intake-file-ready-linkedin.png)
+- Upload notes: [`linkedin-image-6-upload-notes.md`](./linkedin-image-6-upload-notes.md)
+
 **Related first article (optional cross-link in comments only):**
 https://tommyjackson85.github.io/intake-app/insights/why-email-client-intake-causes-transaction-delays/
 
