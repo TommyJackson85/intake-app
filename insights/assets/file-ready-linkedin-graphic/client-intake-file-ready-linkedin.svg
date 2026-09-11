@@ -7,8 +7,9 @@
   aria-labelledby="linkedin-graphic-title linkedin-graphic-desc"
 >
   <title id="linkedin-graphic-title">
-    Client Intake LinkedIn graphic: A client contacting the firm is not the same as a file being
-    ready.
+    Client Intake LinkedIn graphic: A file is not ready because a client replied. It is ready when
+    the team can see what was received, what is missing, who owns the next step, and what blocks the
+    handoff.
   </title>
   <desc id="linkedin-graphic-desc">
     Portrait social graphic for a personal LinkedIn post promoting the Insights article on a
@@ -39,7 +40,7 @@
 
   <text
     x="72"
-    y="120"
+    y="110"
     fill="#147D7A"
     font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
     font-size="28"
@@ -51,39 +52,38 @@
 
   <text
     x="72"
-    y="220"
+    y="200"
     fill="#0F2742"
     font-family="Georgia, 'Times New Roman', Times, serif"
-    font-size="48"
+    font-size="46"
     font-weight="700"
   >
-    <tspan x="72" dy="0">A client contacting</tspan>
-    <tspan x="72" dy="64">the firm is not the</tspan>
-    <tspan x="72" dy="64">same as a file</tspan>
-    <tspan x="72" dy="64">being ready.</tspan>
+    <tspan x="72" dy="0">A file is not ready</tspan>
+    <tspan x="72" dy="62">because a client replied.</tspan>
   </text>
 
   <text
     x="72"
-    y="540"
+    y="370"
+    fill="#0F2742"
+    font-family="Georgia, 'Times New Roman', Times, serif"
+    font-size="36"
+    font-weight="700"
+  >
+    It is ready when the team can see:
+  </text>
+
+  <text
+    x="72"
+    y="450"
     fill="#163047"
     font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
     font-size="34"
     font-weight="600"
   >
-    <tspan x="72" dy="0">Contact made.</tspan>
-    <tspan x="72" dy="54">Information arrived.</tspan>
-    <tspan x="72" dy="54">Handoff clear.</tspan>
-  </text>
-
-  <text
-    x="72"
-    y="760"
-    fill="#0F2742"
-    font-family="Georgia, 'Times New Roman', Times, serif"
-    font-size="38"
-    font-weight="700"
-  >
-    Make readiness visible.
+    <tspan x="72" dy="0">•  What was received</tspan>
+    <tspan x="72" dy="54">•  What is missing</tspan>
+    <tspan x="72" dy="54">•  Who owns the next step</tspan>
+    <tspan x="72" dy="54">•  What blocks the handoff</tspan>
   </text>
 </svg>

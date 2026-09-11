@@ -28,7 +28,7 @@ in the top area so the artwork remains visible.
 
 ## Recommended LinkedIn alt text
 
-Graphic for Client Intake stating: “A client contacting the firm is not the same as a file being ready.” The image highlights contact made, information arrived, and a clear handoff as steps that make readiness visible.
+Graphic for Client Intake stating: “A file is not ready because a client replied. It is ready when the team can see what was received, what is missing, who owns the next step, and what blocks the handoff.”
 
 ## Recommended post copy
 
