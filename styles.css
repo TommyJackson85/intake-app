@@ -1664,13 +1664,13 @@ input {
     linear-gradient(
       90deg,
       rgba(10, 29, 51, 0.96) 0%,
-      rgba(10, 29, 51, 0.8) 52%,
-      rgba(10, 29, 51, 0.28) 100%
+      rgba(10, 29, 51, 0.8) 54%,
+      rgba(10, 29, 51, 0.25) 100%
     ),
     linear-gradient(
       0deg,
       rgba(10, 29, 51, 0.7) 0%,
-      rgba(10, 29, 51, 0.08) 65%
+      rgba(10, 29, 51, 0.08) 66%
     );
   pointer-events: none;
 }
@@ -1681,6 +1681,11 @@ input {
 
 .article-hero--file-ready-checklist {
   background-image: url("images/insights/real-estate-file-ready-checklist.png");
+  background-position: right center;
+}
+
+.article-hero--condo-due-diligence {
+  background-image: url("images/insights/condo-due-diligence-workflow.png");
   background-position: right center;
 }
 
@@ -2166,6 +2171,10 @@ input {
 
   .article-hero--file-ready-checklist {
     background-position: 78% center;
+  }
+
+  .article-hero--condo-due-diligence {
+    background-position: 82% center;
   }
 
   .article-hero__content {
