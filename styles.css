@@ -1894,7 +1894,7 @@ input {
   /* Pages-safe path (styles.css is at repo root): images/insights/... */
   background:
     linear-gradient(135deg, rgba(15, 39, 66, 0.88), rgba(15, 39, 66, 0.7)),
-    url("images/insights/file-ready-checklist-visual.png") center / cover no-repeat;
+    url("images/insights/real-estate-file-ready-checklist-visual.png") center / cover no-repeat;
 }
 
 .article-body .file-ready-visual__heading {
