@@ -1650,7 +1650,6 @@ input {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 0;
 }
 
 .article-hero--email-workflow {
@@ -1671,14 +1670,14 @@ input {
 
 .article-hero__content {
   max-width: 48rem;
-  padding: clamp(1.5rem, 5vw, 3.5rem) 0;
+  padding: clamp(1.5rem, 5vw, 4rem) 0;
 }
 
 .article-hero__eyebrow {
   margin: 0 0 0.75rem;
   color: rgba(255, 255, 255, 0.92);
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
