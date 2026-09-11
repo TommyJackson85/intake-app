@@ -13,20 +13,19 @@
   </title>
   <desc id="linkedin-graphic-desc">
     Portrait social graphic for a personal LinkedIn post promoting the Insights article on a
-    file-ready checklist for real-estate transaction teams. Text sits in the open top area above
-    the checklist illustration.
+    file-ready checklist for real-estate transaction teams. Dark navy type panel sits above the
+    checklist illustration.
   </desc>
 
   <defs>
-    <!-- Softens the mid-canvas so headline type stays readable above the artwork -->
-    <linearGradient id="topReadableFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#F7FBFC" stop-opacity="0.55" />
-      <stop offset="38%" stop-color="#F7FBFC" stop-opacity="0.28" />
-      <stop offset="52%" stop-color="#F7FBFC" stop-opacity="0" />
+    <linearGradient id="panelFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F2742" stop-opacity="1" />
+      <stop offset="78%" stop-color="#0F2742" stop-opacity="0.96" />
+      <stop offset="100%" stop-color="#0F2742" stop-opacity="0" />
     </linearGradient>
   </defs>
 
-  <!-- Background: Canva Image 6 (text-free). Portrait illustration with open top for type. -->
+  <!-- Background: Canva Image 6 (text-free). -->
   <image
     href="linkedin-file-ready-background.png"
     x="0"
@@ -36,12 +35,13 @@
     preserveAspectRatio="xMidYMid slice"
   />
 
-  <rect x="0" y="0" width="1080" height="1350" fill="url(#topReadableFade)" />
+  <!-- Top navy overlay for type; fades so the bottom illustration stays visible -->
+  <rect x="0" y="0" width="1080" height="820" fill="url(#panelFade)" />
 
   <text
     x="72"
     y="110"
-    fill="#147D7A"
+    fill="#A7F3D0"
     font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
     font-size="28"
     font-weight="800"
@@ -53,7 +53,7 @@
   <text
     x="72"
     y="200"
-    fill="#0F2742"
+    fill="#FFFFFF"
     font-family="Georgia, 'Times New Roman', Times, serif"
     font-size="46"
     font-weight="700"
@@ -65,9 +65,9 @@
   <text
     x="72"
     y="370"
-    fill="#0F2742"
+    fill="#FFFFFF"
     font-family="Georgia, 'Times New Roman', Times, serif"
-    font-size="36"
+    font-size="34"
     font-weight="700"
   >
     It is ready when the team can see:
@@ -76,14 +76,26 @@
   <text
     x="72"
     y="450"
-    fill="#163047"
+    fill="#F3F7FA"
     font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
     font-size="34"
     font-weight="600"
   >
-    <tspan x="72" dy="0">•  What was received</tspan>
-    <tspan x="72" dy="54">•  What is missing</tspan>
-    <tspan x="72" dy="54">•  Who owns the next step</tspan>
-    <tspan x="72" dy="54">•  What blocks the handoff</tspan>
+    <tspan x="72" dy="0">
+      <tspan fill="#2DD4BF">•</tspan>
+      <tspan>  What was received</tspan>
+    </tspan>
+    <tspan x="72" dy="54">
+      <tspan fill="#F59E0B">•</tspan>
+      <tspan>  What is missing</tspan>
+    </tspan>
+    <tspan x="72" dy="54">
+      <tspan fill="#2DD4BF">•</tspan>
+      <tspan>  Who owns the next step</tspan>
+    </tspan>
+    <tspan x="72" dy="54">
+      <tspan fill="#2DD4BF">•</tspan>
+      <tspan>  What blocks the handoff</tspan>
+    </tspan>
   </text>
 </svg>

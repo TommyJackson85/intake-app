@@ -22,9 +22,18 @@ Asset page:
 
 ## Layout note for Image 6
 
-Unlike Image 5, this background keeps an open light top band for type and places the checklist
-illustration in the lower portion. Do **not** use a full-height left navy panel here — keep text
-in the top area so the artwork remains visible.
+Unlike Image 5’s full-height left navy panel, this background keeps the checklist
+illustration in the lower portion. Use a **top navy overlay** (`#0F2742`) that fades
+out so the artwork remains visible below.
+
+## Color tokens
+
+- Dark navy overlay: `#0F2742`
+- Headline: `#FFFFFF`
+- Eyebrow label: `#A7F3D0`
+- Body/bullet text: `#F3F7FA`
+- Teal accent: `#2DD4BF`
+- Amber accent (one detail only — “What is missing” bullet): `#F59E0B`
 
 ## Recommended LinkedIn alt text
 
