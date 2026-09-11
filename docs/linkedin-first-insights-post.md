@@ -7,9 +7,11 @@
 https://tommyjackson85.github.io/intake-app/insights/why-email-client-intake-causes-transaction-delays/
 
 **LinkedIn graphic (portrait 1080×1350):**
-- SVG (text overlays): [`../images/social/client-intake-email-workflow-linkedin.svg`](../images/social/client-intake-email-workflow-linkedin.svg)
-- PNG export: [`../images/social/client-intake-email-workflow-linkedin.png`](../images/social/client-intake-email-workflow-linkedin.png)
-- Background (Canva Image 5, no text): [`../images/social/linkedin-email-intake-background.png`](../images/social/linkedin-email-intake-background.png)
+- Asset page: [`../insights/assets/email-intake-linkedin-graphic/`](../insights/assets/email-intake-linkedin-graphic/)
+- SVG (text overlays): [`../insights/assets/email-intake-linkedin-graphic/client-intake-email-workflow-linkedin.svg`](../insights/assets/email-intake-linkedin-graphic/client-intake-email-workflow-linkedin.svg)
+- PNG export: [`../insights/assets/email-intake-linkedin-graphic/client-intake-email-workflow-linkedin.png`](../insights/assets/email-intake-linkedin-graphic/client-intake-email-workflow-linkedin.png)
+- Background (Canva Image 5, no text): [`../insights/assets/email-intake-linkedin-graphic/linkedin-email-intake-background.png`](../insights/assets/email-intake-linkedin-graphic/linkedin-email-intake-background.png)
+- Upload notes: [`linkedin-image-5-upload-notes.md`](./linkedin-image-5-upload-notes.md)
 
 Attach the PNG (or open the SVG) when publishing Option 1. Do not edit blog pages to promote this asset.
 
