@@ -1668,6 +1668,23 @@ input {
     url("images/insights/client-intake-email-workflow-delays.png");
 }
 
+.article-hero--file-ready-checklist {
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(10, 29, 51, 0.96) 0%,
+      rgba(10, 29, 51, 0.78) 52%,
+      rgba(10, 29, 51, 0.3) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(10, 29, 51, 0.65) 0%,
+      rgba(10, 29, 51, 0.05) 65%
+    ),
+    url("images/insights/client-intake-file-ready-checklist.png");
+  background-position: right center;
+}
+
 .article-hero__content {
   max-width: 48rem;
   padding: clamp(1.5rem, 5vw, 4rem) 0;
@@ -1886,6 +1903,10 @@ input {
     align-items: end;
     min-height: clamp(320px, 70vw, 420px);
     background-position: 72% center;
+  }
+
+  .article-hero--file-ready-checklist {
+    background-position: 78% center;
   }
 
   .article-hero h1 {
