@@ -4,28 +4,27 @@
   viewBox="0 0 1080 1350"
   xmlns="http://www.w3.org/2000/svg"
   role="img"
-  aria-labelledby="linkedin-graphic-title linkedin-graphic-desc"
+  aria-labelledby="title description"
 >
-  <title id="linkedin-graphic-title">
-    Client Intake LinkedIn graphic: A file is not ready because a client replied. It is ready when
-    the team can see what was received, what is missing, who owns the next step, and what blocks the
-    handoff.
-  </title>
-  <desc id="linkedin-graphic-desc">
-    Portrait social graphic for a personal LinkedIn post promoting the Insights article on a
-    file-ready checklist for real-estate transaction teams. Dark navy type panel sits above the
-    checklist illustration.
+  <title id="title">Client Intake file-ready workflow graphic</title>
+  <desc id="description">
+    A graphic explaining that a real-estate transaction file is ready when the team can see received
+    items, missing items, ownership of the next step, and blockers to handoff.
   </desc>
 
   <defs>
-    <linearGradient id="panelFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0F2742" stop-opacity="1" />
-      <stop offset="78%" stop-color="#0F2742" stop-opacity="0.96" />
-      <stop offset="100%" stop-color="#0F2742" stop-opacity="0" />
+    <linearGradient id="leftOverlay" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0F2742" stop-opacity="0.96" />
+      <stop offset="63%" stop-color="#0F2742" stop-opacity="0.84" />
+      <stop offset="100%" stop-color="#0F2742" stop-opacity="0.22" />
+    </linearGradient>
+
+    <linearGradient id="bottomOverlay" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F2742" stop-opacity="0" />
+      <stop offset="100%" stop-color="#0F2742" stop-opacity="0.50" />
     </linearGradient>
   </defs>
 
-  <!-- Background: Canva Image 6 (text-free). -->
   <image
     href="linkedin-file-ready-background.png"
     x="0"
@@ -35,67 +34,55 @@
     preserveAspectRatio="xMidYMid slice"
   />
 
-  <!-- Top navy overlay for type; fades so the bottom illustration stays visible -->
-  <rect x="0" y="0" width="1080" height="820" fill="url(#panelFade)" />
+  <rect width="1080" height="1350" fill="url(#leftOverlay)" />
+  <rect width="1080" height="1350" fill="url(#bottomOverlay)" />
 
   <text
-    x="72"
-    y="110"
+    x="90"
+    y="130"
     fill="#A7F3D0"
-    font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
-    font-size="28"
-    font-weight="800"
-    letter-spacing="0.18em"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="30"
+    font-weight="700"
+    letter-spacing="4"
   >
     CLIENT INTAKE
   </text>
 
   <text
-    x="72"
-    y="200"
+    x="90"
+    y="315"
     fill="#FFFFFF"
-    font-family="Georgia, 'Times New Roman', Times, serif"
-    font-size="46"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="78"
     font-weight="700"
   >
-    <tspan x="72" dy="0">A file is not ready</tspan>
-    <tspan x="72" dy="62">because a client replied.</tspan>
+    <tspan x="90" dy="0">A file is not ready</tspan>
+    <tspan x="90" dy="95">because a client replied.</tspan>
   </text>
 
   <text
-    x="72"
-    y="370"
-    fill="#FFFFFF"
-    font-family="Georgia, 'Times New Roman', Times, serif"
-    font-size="34"
-    font-weight="700"
+    x="90"
+    y="570"
+    fill="#F3F7FA"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="40"
+    font-weight="500"
   >
     It is ready when the team can see:
   </text>
 
   <text
-    x="72"
-    y="450"
-    fill="#F3F7FA"
-    font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
-    font-size="34"
+    x="90"
+    y="700"
+    fill="#FFFFFF"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="48"
     font-weight="600"
   >
-    <tspan x="72" dy="0">
-      <tspan fill="#2DD4BF">•</tspan>
-      <tspan>  What was received</tspan>
-    </tspan>
-    <tspan x="72" dy="54">
-      <tspan fill="#F59E0B">•</tspan>
-      <tspan>  What is missing</tspan>
-    </tspan>
-    <tspan x="72" dy="54">
-      <tspan fill="#2DD4BF">•</tspan>
-      <tspan>  Who owns the next step</tspan>
-    </tspan>
-    <tspan x="72" dy="54">
-      <tspan fill="#2DD4BF">•</tspan>
-      <tspan>  What blocks the handoff</tspan>
-    </tspan>
+    <tspan x="90" dy="0">-  What was received</tspan>
+    <tspan x="90" dy="78">-  What is missing</tspan>
+    <tspan x="90" dy="78">-  Who owns the next step</tspan>
+    <tspan x="90" dy="78">-  What blocks the handoff</tspan>
   </text>
 </svg>
