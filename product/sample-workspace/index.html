@@ -608,11 +608,12 @@
             data-reveal
           >
             <p class="sw-section__note">Research survey</p>
-            <h2 id="research-heading">Help shape clearer client onboarding</h2>
+            <h2 id="research-heading">Help shape clearer matter workflows</h2>
             <p>
               This short research survey is for people at Florida real-estate law firms who handle
-              new residential purchase enquiries, conflict screening inputs, engagement, and matter
-              opening. It is designed to understand where onboarding friction happens today.
+              intake, documents, follow-ups, ownership, and matter readiness. It is designed to
+              understand where operational friction happens today—across the full path from enquiry
+              to handoff, not only the first onboarding step.
             </p>
             <p>
               Please answer based on your current or recent workflow. This is research, not legal
@@ -631,8 +632,8 @@
                   <option>Attorney</option>
                   <option>Paralegal</option>
                   <option>Legal assistant</option>
-                  <option>Intake coordinator</option>
-                  <option>Firm administrator</option>
+                  <option>Intake or closing coordinator</option>
+                  <option>Practice manager</option>
                   <option>Other</option>
                 </select>
               </div>
@@ -652,23 +653,8 @@
               </div>
 
               <div class="sw-field">
-                <label for="research-volume"
-                  >3. About how many new residential purchase enquiries does your team handle in a
-                  typical month? <span class="sw-optional">(optional)</span></label
-                >
-                <select id="research-volume" name="enquiry_volume">
-                  <option value="">Select an option</option>
-                  <option>1–5</option>
-                  <option>6–15</option>
-                  <option>16–40</option>
-                  <option>41+</option>
-                  <option>Not sure</option>
-                </select>
-              </div>
-
-              <div class="sw-field">
                 <label for="research-enquiry-channel"
-                  >4. Where do new enquiries usually arrive first?
+                  >3. Where does new client or matter intake usually start?
                   <span class="sw-required">(required)</span></label
                 >
                 <select id="research-enquiry-channel" name="enquiry_channel" required>
@@ -684,52 +670,40 @@
 
               <fieldset class="sw-field">
                 <legend>
-                  5. Which tools does your team use before a matter is opened?
+                  4. Where is matter status mainly tracked today?
                   <span class="sw-required">(required)</span>
                 </legend>
                 <div class="sw-checkboxes">
-                  <label><input type="checkbox" name="intake_tracking" value="Email inboxes" required> Email inboxes</label>
-                  <label><input type="checkbox" name="intake_tracking" value="Spreadsheets"> Spreadsheets</label>
-                  <label><input type="checkbox" name="intake_tracking" value="Shared drives or folders"> Shared drives or folders</label>
-                  <label><input type="checkbox" name="intake_tracking" value="Practice-management software"> Practice-management software</label>
-                  <label><input type="checkbox" name="intake_tracking" value="CRM"> CRM</label>
-                  <label><input type="checkbox" name="intake_tracking" value="Paper or manual checklist"> Paper or manual checklist</label>
-                  <label><input type="checkbox" name="intake_tracking" value="A mix of several tools"> A mix of several tools</label>
-                  <label><input type="checkbox" name="intake_tracking" value="Other"> Other</label>
+                  <label><input type="checkbox" name="status_tracking" value="Email inboxes" required> Email inboxes</label>
+                  <label><input type="checkbox" name="status_tracking" value="Spreadsheets"> Spreadsheets</label>
+                  <label><input type="checkbox" name="status_tracking" value="Shared drives or folders"> Shared drives or folders</label>
+                  <label><input type="checkbox" name="status_tracking" value="Practice-management software"> Practice-management software</label>
+                  <label><input type="checkbox" name="status_tracking" value="CRM"> CRM</label>
+                  <label><input type="checkbox" name="status_tracking" value="Paper or manual checklist"> Paper or manual checklist</label>
+                  <label><input type="checkbox" name="status_tracking" value="A mix of several tools"> A mix of several tools</label>
+                  <label><input type="checkbox" name="status_tracking" value="Other"> Other</label>
                 </div>
               </fieldset>
 
               <div class="sw-field">
-                <label for="research-incomplete"
-                  >6. How often are initial enquiries missing information needed to start screening?
+                <label for="research-chase-method"
+                  >5. How are documents and missing items usually chased?
                   <span class="sw-required">(required)</span></label
                 >
-                <select id="research-incomplete" name="incomplete_frequency" required>
+                <select id="research-chase-method" name="chase_method" required>
                   <option value="">Select an option</option>
-                  <option>Rarely</option>
-                  <option>Sometimes</option>
-                  <option>Often</option>
-                  <option>Almost always</option>
-                </select>
-              </div>
-
-              <div class="sw-field">
-                <label for="research-chase"
-                  >7. How often does your team re-chase by phone or email for names/parties needed
-                  for conflict screening?</label
-                >
-                <select id="research-chase" name="chase_frequency">
-                  <option value="">Select an option</option>
-                  <option>Rarely</option>
-                  <option>Sometimes</option>
-                  <option>Often</option>
-                  <option>Almost always</option>
+                  <option>Email threads</option>
+                  <option>Phone</option>
+                  <option>Shared checklist</option>
+                  <option>Practice-management tasks</option>
+                  <option>A mix of methods</option>
+                  <option>Other</option>
                 </select>
               </div>
 
               <div class="sw-field">
                 <label for="research-ownership"
-                  >8. How clear is ownership of the next onboarding step today?</label
+                  >6. How clear is ownership of the next follow-up today?</label
                 >
                 <select id="research-ownership" name="ownership_clarity">
                   <option value="">Select an option</option>
@@ -740,37 +714,66 @@
               </div>
 
               <div class="sw-field">
-                <label for="research-delay"
-                  >9. Where do delays most often happen?</label
+                <label for="research-visibility"
+                  >7. How often is it hard to see blockers, owners, and next actions in one place?</label
                 >
-                <select id="research-delay" name="biggest_delay">
+                <select id="research-visibility" name="visibility_friction">
                   <option value="">Select an option</option>
-                  <option>Enquiry to internal review</option>
-                  <option>Review to engagement send</option>
-                  <option>Engagement to matter opening</option>
-                  <option>Duplicated re-entry across tools</option>
-                  <option>Other</option>
+                  <option>Rarely</option>
+                  <option>Sometimes</option>
+                  <option>Often</option>
+                  <option>Almost always</option>
+                </select>
+              </div>
+
+              <div class="sw-field">
+                <label for="research-readiness"
+                  >8. How does your team usually know a matter is ready for the next stage?
+                  <span class="sw-required">(required)</span></label
+                >
+                <textarea
+                  id="research-readiness"
+                  name="readiness_signal"
+                  rows="3"
+                  maxlength="2000"
+                  required
+                ></textarea>
+              </div>
+
+              <div class="sw-field">
+                <label for="research-specialised"
+                  >9. Do some matter types need specialised checklists (for example condo or
+                  association items)?</label
+                >
+                <select id="research-specialised" name="specialised_checklists">
+                  <option value="">Select an option</option>
+                  <option>Often</option>
+                  <option>Sometimes</option>
+                  <option>Rarely</option>
+                  <option>Not applicable</option>
+                </select>
+              </div>
+
+              <div class="sw-field">
+                <label for="research-alongside"
+                  >10. Would LawIntake need to work alongside your current practice-management
+                  system or other tools?</label
+                >
+                <select id="research-alongside" name="alongside_tools">
+                  <option value="">Select an option</option>
+                  <option>Yes, alongside existing tools</option>
+                  <option>Partially</option>
+                  <option>It could replace some tools</option>
+                  <option>Not sure</option>
                 </select>
               </div>
 
               <div class="sw-field">
                 <label for="research-useful"
-                  >10. Which part of this sample onboarding workspace was most useful or least
+                  >11. Which part of this sample matter workspace was most useful or least
                   clear?</label
                 >
                 <textarea id="research-useful" name="useful_or_unclear" rows="4" maxlength="2000"></textarea>
-              </div>
-
-              <div class="sw-field">
-                <label for="research-value"
-                  >11. Would a structured onboarding pack before matter open help your firm?</label
-                >
-                <select id="research-value" name="onboarding_pack_value">
-                  <option value="">Select an option</option>
-                  <option>Yes</option>
-                  <option>Maybe</option>
-                  <option>No</option>
-                </select>
               </div>
 
               <fieldset class="sw-field">
@@ -801,7 +804,7 @@
                 Please do not include confidential client, financial, or highly sensitive matter
                 details. This marketing page does not upload answers to a server. If you share them
                 from your clipboard or in a follow-up conversation, they are used only to understand
-                real-estate law-firm onboarding workflows and improve LawIntake. Submission of a real
+                real-estate law-firm matter workflows and improve LawIntake. Submission of a real
                 enquiry in any product would remain subject to conflict review and firm acceptance.
               </p>
 
@@ -907,7 +910,7 @@
         var DEMO_URL = "https://intake-app-dun.vercel.app/demo";
         var form = document.getElementById("research-form");
         if (!form) return;
-        var checkboxes = form.querySelectorAll('input[name="intake_tracking"]');
+        var checkboxes = form.querySelectorAll('input[name="status_tracking"]');
         function syncRequired() {
           var any = Array.prototype.some.call(checkboxes, function (box) {
             return box.checked;
@@ -923,8 +926,8 @@
 
         function fieldLabel(el) {
           if (!el) return "";
-          if (el.name === "intake_tracking") {
-            return "Which tools does your team use before a matter is opened?";
+          if (el.name === "status_tracking") {
+            return "Where is matter status mainly tracked today?";
           }
           if (el.name === "open_to_conversation") {
             return "Open to a 15-minute interview or limited pilot?";
@@ -937,7 +940,7 @@
 
         function buildAnswersText() {
           var lines = [
-            "LawIntake — sample onboarding workspace research answers",
+            "LawIntake — sample matter workspace research answers",
             "(Copied locally from the marketing page; not uploaded automatically.)",
             "",
           ];
@@ -954,14 +957,14 @@
 
           [
             "#research-firm-size",
-            "#research-volume",
             "#research-enquiry-channel",
-            "#research-incomplete",
-            "#research-chase",
+            "#research-chase-method",
             "#research-ownership",
-            "#research-delay",
+            "#research-visibility",
+            "#research-readiness",
+            "#research-specialised",
+            "#research-alongside",
             "#research-useful",
-            "#research-value",
             "#research-contact",
           ].forEach(function (sel) {
             var el = form.querySelector(sel);
