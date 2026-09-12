@@ -2244,7 +2244,7 @@ input {
   }
 }
 
-/* —— Sample Transaction Workspace (/product/sample-workspace) —— */
+/* —— Sample Client Onboarding Workspace (/product/sample-workspace) —— */
 .sample-workspace {
   padding-bottom: 72px;
 }
@@ -2504,6 +2504,10 @@ input {
   counter-reset: none;
 }
 
+.sw-flow--seven {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
 .sw-flow__step {
   position: relative;
   min-width: 0;
@@ -2693,12 +2697,19 @@ input {
   border-radius: 20px;
 }
 
+@media (max-width: 1100px) {
+  .sw-flow--seven {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 980px) {
   .sw-glance-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .sw-flow {
+  .sw-flow,
+  .sw-flow--seven {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
@@ -2707,7 +2718,8 @@ input {
   .sw-glance-grid,
   .sw-overview,
   .sw-demo-grid,
-  .sw-flow {
+  .sw-flow,
+  .sw-flow--seven {
     grid-template-columns: 1fr;
   }
 
