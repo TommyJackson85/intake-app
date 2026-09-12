@@ -120,20 +120,23 @@
             </p>
             <ul class="sw-glance-grid">
               <li class="sw-glance-card">
-                <span class="sw-glance-card__label">Onboarding stage</span>
+                <span class="sw-glance-card__label">Matter stage</span>
                 <span class="sw-status sw-status--in-progress"
-                  ><span aria-hidden="true">→</span> Pending internal review</span
+                  ><span aria-hidden="true">→</span> Intake and document collection</span
                 >
               </li>
               <li class="sw-glance-card">
-                <span class="sw-glance-card__label">Conflict-check status</span>
-                <span class="sw-status sw-status--needs-review"
-                  ><span aria-hidden="true">!</span> Pending firm review</span
+                <span class="sw-glance-card__label">Operational readiness</span>
+                <strong>68% complete</strong>
+                <span class="sw-glance-card__detail"
+                  >3 firm-configured items still require action before the next handoff. This is an
+                  operational progress indicator for the sample checklist—not a determination of legal
+                  completeness.</span
                 >
               </li>
               <li class="sw-glance-card">
-                <span class="sw-glance-card__label">Engagement status</span>
-                <strong>Not yet sent / ready to send</strong>
+                <span class="sw-glance-card__label">Documents</span>
+                <strong>7 received / 4 outstanding</strong>
               </li>
               <li class="sw-glance-card">
                 <span class="sw-glance-card__label">Next action</span>
@@ -146,7 +149,7 @@
               <li class="sw-glance-card">
                 <span class="sw-glance-card__label">Matter readiness</span>
                 <span class="sw-status sw-status--not-ready"
-                  ><span aria-hidden="true">!</span> Not ready to open</span
+                  ><span aria-hidden="true">!</span> Not ready for handoff</span
                 >
               </li>
             </ul>
@@ -155,26 +158,30 @@
           <section class="sw-section" aria-labelledby="overview-heading" data-reveal>
             <h2 id="overview-heading">Sample matter overview</h2>
             <p>
-              Sample matter: Florida residential purchase (buyer). This overview shows intake and
-              conflict-screening inputs, engagement readiness, and handoff blockers for one
-              illustrative configured workflow. The aim is not to replace the firm’s procedures—it is
-              to make status, ownership, and the next handoff easier to see.
+              Sample matter: Florida residential condominium purchase (buyer). This overview shows
+              intake context, key parties, engagement readiness, and handoff blockers for one
+              illustrative configured workflow. Condo/association checklist items appear later as
+              examples of matter-specific requirements—not as LawIntake’s sole purpose.
             </p>
             <dl class="sw-overview">
-              <div><dt>Matter type</dt><dd>Residential purchase</dd></div>
+              <div><dt>Matter type</dt><dd>Residential condominium purchase</dd></div>
               <div><dt>Jurisdiction</dt><dd>Florida</dd></div>
+              <div><dt>Property type</dt><dd>Condominium (illustrative)</dd></div>
               <div><dt>Client role</dt><dd>Buyer</dd></div>
-              <div><dt>Stage</dt><dd>New client onboarding — pending internal review</dd></div>
+              <div><dt>Client contact details</dt><dd>Captured</dd></div>
+              <div><dt>Stage</dt><dd>Intake, screening, and document collection</dd></div>
               <div><dt>Matter owner</dt><dd>Intake coordinator</dd></div>
               <div><dt>Responsible attorney</dt><dd>Assigned attorney (illustrative)</dd></div>
               <div><dt>Property address</dt><dd>Captured (fictional)</dd></div>
               <div><dt>Desired closing timeline</dt><dd>Captured</dd></div>
               <div><dt>Seller / known counterparties</dt><dd>Captured for conflict screening</dd></div>
               <div><dt>Lender details</dt><dd>Pending client confirmation</dd></div>
-              <div><dt>Client identity details</dt><dd>Requested</dd></div>
               <div>
                 <dt>Readiness blockers</dt>
-                <dd>Conflict check and engagement approval required</dd>
+                <dd>
+                  Conflict review, engagement approval, and outstanding firm-configured checklist
+                  items
+                </dd>
               </div>
             </dl>
           </section>
@@ -183,13 +190,14 @@
             <h2 id="tracker-heading">Matter checklist tracker</h2>
             <p>
               Track what has been requested, received, reviewed, or is still missing—and who owns the
-              next step. Items shown are illustrative examples. Requirements vary by firm, matter
-              type, and professional judgment, and can be adapted to your process.
+              next step. Core intake and document items sit alongside example condominium/association
+              requirements configured for this sample matter type. Your firm can adapt the checklist
+              to its own process.
             </p>
             <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="tracker-heading">
               <table>
                 <caption class="sr-only">
-                  Illustrative onboarding checklist with status, ownership, and next actions
+                  Illustrative matter checklist with status, ownership, and next actions
                 </caption>
                 <thead>
                   <tr>
@@ -211,12 +219,12 @@
                     <td>Ready</td>
                   </tr>
                   <tr>
-                    <th scope="row">Minimum screening details</th>
+                    <th scope="row">Client contact details</th>
                     <td><span class="sw-status sw-status--complete"><span aria-hidden="true">✓</span> Complete</span></td>
-                    <td>Yes</td>
+                    <td>—</td>
                     <td>Yes</td>
                     <td>Intake coordinator</td>
-                    <td>Ready for conflict pack</td>
+                    <td>Ready</td>
                   </tr>
                   <tr>
                     <th scope="row">Conflict-screening party list</th>
@@ -243,20 +251,68 @@
                     <td>Send after firm acceptance</td>
                   </tr>
                   <tr>
-                    <th scope="row">Client identity details</th>
-                    <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Requested</span></td>
+                    <th scope="row">Purchase contract</th>
+                    <td><span class="sw-status sw-status--received"><span aria-hidden="true">✓</span> Received</span></td>
                     <td>Yes</td>
-                    <td>No</td>
-                    <td>Intake coordinator</td>
-                    <td>Follow up with client</td>
+                    <td>Yes</td>
+                    <td>Real-estate paralegal</td>
+                    <td>Review details</td>
                   </tr>
                   <tr>
-                    <th scope="row">Initial supporting documents</th>
-                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Waiting on client</span></td>
+                    <th scope="row">Client identification documents</th>
+                    <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Needs review</span></td>
                     <td>Yes</td>
-                    <td>Partial</td>
+                    <td>Yes</td>
+                    <td>Intake coordinator</td>
+                    <td>Confirm completeness</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Association contact details</th>
+                    <td><span class="sw-status sw-status--complete"><span aria-hidden="true">✓</span> Complete</span></td>
+                    <td>Yes</td>
+                    <td>Yes</td>
+                    <td>Intake coordinator</td>
+                    <td>Ready</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Estoppel request</th>
+                    <td><span class="sw-status sw-status--in-progress"><span aria-hidden="true">→</span> In progress</span></td>
+                    <td>Yes</td>
+                    <td>No</td>
                     <td>Real-estate paralegal</td>
-                    <td>Chase outstanding items</td>
+                    <td>Follow up</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Condo questionnaire</th>
+                    <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Missing</span></td>
+                    <td>Yes</td>
+                    <td>No</td>
+                    <td>Real-estate paralegal</td>
+                    <td>Request from association</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Association documents</th>
+                    <td><span class="sw-status sw-status--received"><span aria-hidden="true">✓</span> Received</span></td>
+                    <td>Yes</td>
+                    <td>Yes</td>
+                    <td>Real-estate paralegal</td>
+                    <td>Review</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Reserve-related information</th>
+                    <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Needs review</span></td>
+                    <td>Yes</td>
+                    <td>Yes</td>
+                    <td>Assigned attorney</td>
+                    <td>Flag for internal review</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">SIRS / milestone-related item</th>
+                    <td><span class="sw-status sw-status--review-applicability"><span aria-hidden="true">?</span> Review applicability</span></td>
+                    <td>Depends</td>
+                    <td>Depends</td>
+                    <td>Assigned attorney</td>
+                    <td>Confirm whether required for this matter</td>
                   </tr>
                   <tr>
                     <th scope="row">Lender confirmation</th>
@@ -272,14 +328,16 @@
                     <td>—</td>
                     <td>No</td>
                     <td>Intake coordinator</td>
-                    <td>Blocked until review + engagement</td>
+                    <td>Blocked until review + outstanding items</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <p class="sw-section__note">
-              LawIntake supports workflow visibility. It does not clear conflicts, approve engagement,
-              or decide whether a firm should accept a matter.
+              Association, estoppel, questionnaire, reserves, and SIRS/milestone rows are example
+              matter-specific requirements for this fictional condo purchase. They are not mandatory
+              for every firm or every matter. LawIntake supports workflow visibility; it does not
+              clear conflicts, approve engagement, or decide legal sufficiency.
             </p>
           </section>
 
@@ -292,7 +350,7 @@
             <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="ownership-heading">
               <table>
                 <caption class="sr-only">
-                  Illustrative ownership and timing for key onboarding follow-up work items
+                  Illustrative ownership and timing for key matter follow-up work items
                 </caption>
                 <thead>
                   <tr>
@@ -319,25 +377,32 @@
                     <td>After review</td>
                   </tr>
                   <tr>
-                    <th scope="row">Client identity follow-up</th>
-                    <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Requested</span></td>
+                    <th scope="row">Client identity / ID follow-up</th>
+                    <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Needs review</span></td>
                     <td>Intake coordinator</td>
-                    <td>Collect requested identity details</td>
+                    <td>Confirm identification documents are complete</td>
                     <td>This week</td>
                   </tr>
                   <tr>
-                    <th scope="row">Initial document collection</th>
-                    <td><span class="sw-status sw-status--in-progress"><span aria-hidden="true">→</span> In progress</span></td>
+                    <th scope="row">Association / estoppel follow-up</th>
+                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Waiting on response</span></td>
                     <td>Real-estate paralegal</td>
-                    <td>Track received vs outstanding items</td>
-                    <td>Ongoing</td>
+                    <td>Chase outstanding association items</td>
+                    <td>Sample follow-up date</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Purchase contract review</th>
+                    <td><span class="sw-status sw-status--received"><span aria-hidden="true">✓</span> Ready for review</span></td>
+                    <td>Real-estate paralegal</td>
+                    <td>Review received contract</td>
+                    <td>Next internal review</td>
                   </tr>
                   <tr>
                     <th scope="row">Matter open / conveyancing handoff</th>
                     <td><span class="sw-status sw-status--not-ready"><span aria-hidden="true">!</span> Not ready</span></td>
                     <td>Intake coordinator</td>
                     <td>Open or hand off after blockers clear</td>
-                    <td>After engagement</td>
+                    <td>After engagement + outstanding items</td>
                   </tr>
                 </tbody>
               </table>
@@ -349,8 +414,7 @@
             <p>
               Early in a matter, teams often need a clearer view of what has been captured for
               internal conflict screening and whether engagement can be sent—without implying that
-              the software itself makes the legal determination. Later stages can add
-              firm-configured document and follow-up requirements for the matter type.
+              the software itself makes the legal determination.
             </p>
             <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="conflict-heading">
               <table>
@@ -409,6 +473,73 @@
             </p>
           </section>
 
+          <section class="sw-section" aria-labelledby="condo-heading" data-reveal>
+            <h2 id="condo-heading">Matter-specific requirements (condo example)</h2>
+            <p>
+              Some real-estate matters need specialised checklist items. For this fictional Florida
+              condominium purchase, the sample includes association and related follow-ups as
+              <strong>optional firm-configured examples</strong>. They illustrate how LawIntake can
+              surface matter-specific work—not a claim that every file needs these items, and not a
+              definition of the product as a condo-only diligence tool.
+            </p>
+            <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="condo-heading">
+              <table>
+                <caption class="sr-only">
+                  Illustrative condominium-related requirements with status and visible outcomes
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Example requirement</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Visible outcome</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Association information</th>
+                    <td><span class="sw-status sw-status--complete"><span aria-hidden="true">✓</span> Complete</span></td>
+                    <td>Contact and request details visible</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Estoppel</th>
+                    <td><span class="sw-status sw-status--in-progress"><span aria-hidden="true">→</span> Requested</span></td>
+                    <td>Follow-up owner and next step visible</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Condo questionnaire</th>
+                    <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Missing</span></td>
+                    <td>Listed as an outstanding item</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Association documents</th>
+                    <td><span class="sw-status sw-status--received"><span aria-hidden="true">✓</span> Received</span></td>
+                    <td>Ready for internal review</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Reserve-related information</th>
+                    <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Needs review</span></td>
+                    <td>Flagged for attorney / firm review</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">SIRS / milestone information</th>
+                    <td><span class="sw-status sw-status--review-applicability"><span aria-hidden="true">?</span> Review applicability</span></td>
+                    <td>Confirm whether required for this matter</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Key exception / blocker</th>
+                    <td><span class="sw-status sw-status--flagged"><span aria-hidden="true">!</span> Flagged</span></td>
+                    <td>Visible before handoff</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="sw-section__note">
+              Other matter types can use different firm-configured checklists. Applicability,
+              sufficiency, and next steps remain matters for firm procedure and professional
+              judgment.
+            </p>
+          </section>
+
           <section class="sw-section" aria-labelledby="workflow-heading" data-reveal>
             <h2 id="workflow-heading">From intake to matter handoff</h2>
             <ol class="sw-flow sw-flow--seven">
@@ -440,12 +571,12 @@
               <li class="sw-flow__step">
                 <span class="sw-flow__number" aria-hidden="true">6</span>
                 <h3>Details and documents</h3>
-                <p>Collect client details and initial supporting documents.</p>
+                <p>Collect client details, supporting docs, and firm-configured matter items.</p>
               </li>
               <li class="sw-flow__step">
                 <span class="sw-flow__number" aria-hidden="true">7</span>
                 <h3>Open or hand off</h3>
-                <p>Open the matter or hand off to conveyancing / closing.</p>
+                <p>Open the matter or hand off once blockers and outstanding items clear.</p>
               </li>
             </ol>
           </section>
