@@ -42,7 +42,9 @@ const hrefs = await page
   .locator('a[href*="sample-workspace"]')
   .evaluateAll((as) => as.map((a) => a.getAttribute("href")));
 log("homepage has sample-workspace links", hrefs.length > 0, hrefs.slice(0, 6).join(", "));
-const localLink = page.locator('a[href="./product/sample-workspace/"], a[href="/product/sample-workspace/"]').first();
+const localLink = page
+  .locator('a[href="./product/sample-workspace/"], a[href="/product/sample-workspace/"]')
+  .first();
 if ((await localLink.count()) > 0) {
   await localLink.click();
   await page.waitForURL(/sample-workspace/);
@@ -59,7 +61,6 @@ await mobile.screenshot({
 });
 await browser.close();
 
-// Copy screenshots into artifacts dir when available
 const artifacts = "/opt/cursor/artifacts/screenshots";
 try {
   fs.mkdirSync(artifacts, { recursive: true });
