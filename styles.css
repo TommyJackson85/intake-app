@@ -2373,6 +2373,13 @@ input {
   line-height: 1.35;
 }
 
+.sw-glance-card__detail {
+  color: #5a6f72;
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
 .sw-overview {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

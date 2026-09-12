@@ -38,8 +38,35 @@ function updateHeader() {
 updateHeader();
 window.addEventListener("scroll", updateHeader, { passive: true });
 
+function revealNode(item) {
+  item.classList.add("visible");
+}
+
+function revealHashTarget() {
+  const id = window.location.hash.slice(1);
+  if (!id) return null;
+  let target = null;
+  try {
+    target = document.getElementById(id);
+  } catch {
+    return null;
+  }
+  if (!target) return null;
+  // Transform on [data-reveal] can interfere with native hash scrolling; reveal
+  // the target (and any reveal ancestors) first, then scroll it into view.
+  if (target.hasAttribute("data-reveal")) revealNode(target);
+  target.querySelectorAll?.("[data-reveal]")?.forEach(revealNode);
+  let parent = target.parentElement;
+  while (parent) {
+    if (parent.hasAttribute?.("data-reveal")) revealNode(parent);
+    parent = parent.parentElement;
+  }
+  target.scrollIntoView({ block: "start", behavior: "auto" });
+  return target;
+}
+
 if (reduceMotion || !("IntersectionObserver" in window)) {
-  revealItems.forEach((item) => item.classList.add("visible"));
+  revealItems.forEach(revealNode);
 } else {
   // threshold: 0 — any visible pixel reveals. Tall nodes (e.g. full article
   // bodies) never reached the old 0.12 ratio until hundreds of px scrolled,
@@ -48,7 +75,7 @@ if (reduceMotion || !("IntersectionObserver" in window)) {
     (entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          entry.target.classList.add("visible");
+          revealNode(entry.target);
           observer.unobserve(entry.target);
         }
       });
@@ -59,12 +86,16 @@ if (reduceMotion || !("IntersectionObserver" in window)) {
   revealItems.forEach((item) => {
     // Article body copy must never wait on scroll-triggered reveal.
     if (item.classList.contains("article-body")) {
-      item.classList.add("visible");
+      revealNode(item);
       return;
     }
     observer.observe(item);
   });
 }
+
+// Deep links like #research-questionnaire must land on visible content.
+revealHashTarget();
+window.addEventListener("hashchange", revealHashTarget);
 
 const year = document.querySelector("#year");
 if (year) year.textContent = String(new Date().getFullYear());
