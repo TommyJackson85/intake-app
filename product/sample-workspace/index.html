@@ -124,10 +124,12 @@
               </li>
               <li class="sw-glance-card">
                 <span class="sw-glance-card__label">Next-stage readiness</span>
-                <strong>Blocked — 3 priority items require action</strong>
-                <span class="sw-glance-card__detail"
-                  >Internal conflict review, firm acceptance / engagement approval, and client ID
-                  review are outstanding.</span
+                <strong id="sw-readiness-summary"
+                  >Not marked ready for handoff — 3 priority review items remain open</strong
+                >
+                <span class="sw-glance-card__detail" id="sw-readiness-detail"
+                  >Conflict-screening review (firm-authorised reviewer), firm decision on whether to
+                  proceed, and client identification documents under firm onboarding.</span
                 >
                 <span class="sw-glance-card__detail"
                   >This is an operational indicator for the illustrative checklist, not a
@@ -136,15 +138,14 @@
               </li>
               <li class="sw-glance-card">
                 <span class="sw-glance-card__label">Checklist items</span>
-                <strong>6 complete / 10 require action</strong>
-                <span class="sw-glance-card__detail"
-                  >Counts match the illustrative checklist below (core workflow plus matter-specific
-                  condo examples).</span
+                <strong id="sw-checklist-summary">Illustrative checklist loading…</strong>
+                <span class="sw-glance-card__detail" id="sw-checklist-summary-detail"
+                  >Counts are derived from the illustrative checklist below.</span
                 >
               </li>
               <li class="sw-glance-card">
                 <span class="sw-glance-card__label">Next action</span>
-                <strong>Complete internal conflict review</strong>
+                <strong>Complete conflict-screening review — firm-authorised reviewer</strong>
               </li>
               <li class="sw-glance-card">
                 <span class="sw-glance-card__label">Assigned owner</span>
@@ -153,7 +154,7 @@
               <li class="sw-glance-card">
                 <span class="sw-glance-card__label">Matter readiness</span>
                 <span class="sw-status sw-status--not-ready"
-                  ><span aria-hidden="true">!</span> Not ready for handoff</span
+                  ><span aria-hidden="true">!</span> Not marked ready for handoff</span
                 >
               </li>
             </ul>
@@ -181,10 +182,10 @@
               <div><dt>Seller / known counterparties</dt><dd>Captured for conflict screening</dd></div>
               <div><dt>Lender details</dt><dd>Pending client confirmation</dd></div>
               <div>
-                <dt>Readiness blockers</dt>
+                <dt>Priority review items</dt>
                 <dd>
-                  Internal conflict review, firm acceptance / engagement approval, and client ID
-                  review
+                  Conflict-screening review (firm-authorised reviewer), firm decision on whether to
+                  proceed, and client identification documents under firm onboarding
                 </dd>
               </div>
             </dl>
@@ -192,10 +193,13 @@
 
           <section class="sw-section" aria-labelledby="tracker-heading" data-reveal>
             <h2 id="tracker-heading">Matter checklist tracker</h2>
-            <p>Track what has been requested, received, reviewed, or is still missing—and who owns the
+            <p>
+              Track what has been requested, received, reviewed, or is still missing—and who owns the
               next step. Core intake and matter-workflow items appear first. Condominium/association
-              rows follow as optional matter-specific examples configured for this sample. Your firm
-              can adapt the checklist to its own process.</p>
+              rows follow as optional matter-specific examples configured for this fictional sample.
+              Applicability and sufficiency remain matters for firm procedure and professional
+              judgment. Your firm can adapt the checklist to its own process.
+            </p>
             <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="tracker-heading">
               <table>
                 <caption class="sr-only">
@@ -211,8 +215,8 @@
                     <th scope="col">Next action</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr>
+                <tbody id="sw-checklist-body">
+                  <tr data-scope="core" data-status="complete">
                     <th scope="row">New enquiry intake</th>
                     <td><span class="sw-status sw-status--complete"><span aria-hidden="true">✓</span> Complete</span></td>
                     <td>—</td>
@@ -220,7 +224,7 @@
                     <td>Intake coordinator</td>
                     <td>Ready</td>
                   </tr>
-                  <tr>
+                  <tr data-scope="core" data-status="complete">
                     <th scope="row">Client contact details</th>
                     <td><span class="sw-status sw-status--complete"><span aria-hidden="true">✓</span> Complete</span></td>
                     <td>—</td>
@@ -228,7 +232,7 @@
                     <td>Intake coordinator</td>
                     <td>Ready</td>
                   </tr>
-                  <tr>
+                  <tr data-scope="core" data-status="received">
                     <th scope="row">Conflict-screening party list</th>
                     <td><span class="sw-status sw-status--received"><span aria-hidden="true">✓</span> Received</span></td>
                     <td>Yes</td>
@@ -236,31 +240,31 @@
                     <td>Intake coordinator</td>
                     <td>Ready for firm review</td>
                   </tr>
-                  <tr>
-                    <th scope="row">Internal conflict review</th>
+                  <tr data-scope="core" data-status="needs-review">
+                    <th scope="row">Conflict-screening review — firm-authorised reviewer</th>
                     <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Pending review</span></td>
                     <td>Yes</td>
                     <td>Yes</td>
                     <td>Assigned attorney</td>
-                    <td>Review summary — firm decides</td>
+                    <td>Review screening summary — firm decides next step</td>
                   </tr>
-                  <tr>
-                    <th scope="row">Firm acceptance decision</th>
+                  <tr data-scope="core" data-status="missing">
+                    <th scope="row">Firm decision on whether to proceed</th>
                     <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Not decided</span></td>
                     <td>—</td>
                     <td>No</td>
                     <td>Assigned attorney</td>
-                    <td>Decide whether to proceed</td>
+                    <td>Firm reviewer decides whether to proceed</td>
                   </tr>
-                  <tr>
+                  <tr data-scope="core" data-status="waiting">
                     <th scope="row">Engagement / onboarding letter</th>
-                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Draft ready — awaiting firm acceptance</span></td>
+                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Draft ready — awaiting firm decision</span></td>
                     <td>—</td>
                     <td>No</td>
                     <td>Intake coordinator</td>
-                    <td>Send after the firm decides to proceed</td>
+                    <td>Send only after the firm decides to proceed</td>
                   </tr>
-                  <tr>
+                  <tr data-scope="core" data-status="received">
                     <th scope="row">Purchase contract</th>
                     <td><span class="sw-status sw-status--received"><span aria-hidden="true">✓</span> Received</span></td>
                     <td>Yes</td>
@@ -268,15 +272,15 @@
                     <td>Real-estate paralegal</td>
                     <td>Review details</td>
                   </tr>
-                  <tr>
+                  <tr data-scope="core" data-status="needs-review">
                     <th scope="row">Client identification documents</th>
                     <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Needs review</span></td>
                     <td>Yes</td>
                     <td>Yes</td>
                     <td>Intake coordinator</td>
-                    <td>Confirm completeness</td>
+                    <td>Review documents requested under firm onboarding procedure</td>
                   </tr>
-                  <tr>
+                  <tr data-scope="core" data-status="missing">
                     <th scope="row">Lender confirmation</th>
                     <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Pending</span></td>
                     <td>Yes</td>
@@ -284,21 +288,21 @@
                     <td>Client / intake coordinator</td>
                     <td>Confirm when known</td>
                   </tr>
-                  <tr>
+                  <tr data-scope="core" data-status="not-ready">
                     <th scope="row">Matter open / handoff pack</th>
-                    <td><span class="sw-status sw-status--not-ready"><span aria-hidden="true">!</span> Not ready</span></td>
+                    <td><span class="sw-status sw-status--not-ready"><span aria-hidden="true">!</span> Not marked ready for handoff in this sample workflow</span></td>
                     <td>—</td>
                     <td>No</td>
                     <td>Intake coordinator</td>
-                    <td>Blocked until review + outstanding items</td>
+                    <td>Open or hand off when the responsible firm reviewer marks the configured items ready</td>
                   </tr>
                   <tr class="sw-table-divider">
                     <th scope="colgroup" colspan="6">
-                      Matter-specific condominium requirements — configured for this illustrative
-                      sample
+                      Matter-specific condominium examples — configured for this fictional sample;
+                      not required for every firm, property, or transaction
                     </th>
                   </tr>
-                  <tr>
+                  <tr data-scope="condo" data-status="complete">
                     <th scope="row">Association contact details</th>
                     <td><span class="sw-status sw-status--complete"><span aria-hidden="true">✓</span> Complete</span></td>
                     <td>Yes</td>
@@ -306,7 +310,7 @@
                     <td>Intake coordinator</td>
                     <td>Ready</td>
                   </tr>
-                  <tr>
+                  <tr data-scope="condo" data-status="in-progress">
                     <th scope="row">Estoppel request</th>
                     <td><span class="sw-status sw-status--in-progress"><span aria-hidden="true">→</span> In progress</span></td>
                     <td>Yes</td>
@@ -314,7 +318,7 @@
                     <td>Real-estate paralegal</td>
                     <td>Follow up</td>
                   </tr>
-                  <tr>
+                  <tr data-scope="condo" data-status="missing">
                     <th scope="row">Condo questionnaire</th>
                     <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Missing</span></td>
                     <td>Yes</td>
@@ -322,7 +326,7 @@
                     <td>Real-estate paralegal</td>
                     <td>Request from association</td>
                   </tr>
-                  <tr>
+                  <tr data-scope="condo" data-status="received">
                     <th scope="row">Association documents</th>
                     <td><span class="sw-status sw-status--received"><span aria-hidden="true">✓</span> Received</span></td>
                     <td>Yes</td>
@@ -330,7 +334,7 @@
                     <td>Real-estate paralegal</td>
                     <td>Review</td>
                   </tr>
-                  <tr>
+                  <tr data-scope="condo" data-status="needs-review">
                     <th scope="row">Reserve-related information</th>
                     <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Needs review</span></td>
                     <td>Yes</td>
@@ -338,20 +342,27 @@
                     <td>Assigned attorney</td>
                     <td>Flag for internal review</td>
                   </tr>
-                  <tr>
-                    <th scope="row">SIRS / milestone-related item</th>
+                  <tr data-scope="condo" data-status="review-applicability">
+                    <th scope="row">SIRS / milestone inspection — firm review of applicability</th>
                     <td><span class="sw-status sw-status--review-applicability"><span aria-hidden="true">?</span> Review applicability</span></td>
                     <td>Depends</td>
                     <td>Depends</td>
                     <td>Assigned attorney</td>
-                    <td>Confirm whether required for this matter</td>
+                    <td>Confirm whether this item is relevant to this matter</td>
                   </tr></tbody>
               </table>
             </div>
             <p class="sw-section__note">
-              Association, estoppel, questionnaire, reserves, and SIRS/milestone rows are example
-              matter-specific requirements for this fictional condominium purchase. They are not
-              mandatory for every firm or transaction.
+              Association, estoppel, questionnaire, reserves, and SIRS/milestone rows are optional
+              matter-specific examples for this fictional condominium purchase. They are not mandatory
+              for every firm, property, building, or transaction. The firm determines applicability and
+              sufficiency under its procedures and professional judgment. The SIRS/milestone row is an
+              applicability review, not a completeness or deadline determination.
+            </p>
+            <p class="sw-section__note">
+              Client identification documents in this sample reflect a configured firm onboarding
+              process. They are not a determination of legal, AML, title, lender, or
+              identity-verification requirements for every Florida real-estate matter.
             </p>
           </section>
 
@@ -359,7 +370,8 @@
             <h2 id="ownership-heading">Ownership and next steps</h2>
             <p>
               The goal is to avoid unclear “pending” work by showing the next action, its owner, and
-              whether it blocks the next handoff or matter opening.
+              whether the firm has marked the sample workflow ready for the next handoff or matter
+              opening.
             </p>
             <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="ownership-heading">
               <table>
@@ -377,24 +389,24 @@
                 </thead>
                 <tbody>
                   <tr>
-                    <th scope="row">Conflict-check summary review</th>
+                    <th scope="row">Conflict-screening review</th>
                     <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Pending review</span></td>
                     <td>Assigned attorney</td>
-                    <td>Review parties and decide whether to proceed</td>
+                    <td>Firm-authorised reviewer reviews parties and decides next step</td>
                     <td>Today</td>
                   </tr>
                   <tr>
                     <th scope="row">Engagement send</th>
-                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Awaiting firm acceptance</span></td>
+                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Awaiting firm decision</span></td>
                     <td>Intake coordinator</td>
-                    <td>Send engagement after firm decision</td>
+                    <td>Send engagement only after the firm decides to proceed</td>
                     <td>After review</td>
                   </tr>
                   <tr>
-                    <th scope="row">Client identity / ID follow-up</th>
+                    <th scope="row">Client identification follow-up</th>
                     <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Needs review</span></td>
                     <td>Intake coordinator</td>
-                    <td>Confirm identification documents are complete</td>
+                    <td>Review documents requested under firm onboarding procedure</td>
                     <td>This week</td>
                   </tr>
                   <tr>
@@ -413,10 +425,10 @@
                   </tr>
                   <tr>
                     <th scope="row">Matter open / conveyancing handoff</th>
-                    <td><span class="sw-status sw-status--not-ready"><span aria-hidden="true">!</span> Not ready</span></td>
+                    <td><span class="sw-status sw-status--not-ready"><span aria-hidden="true">!</span> Not marked ready in this sample workflow</span></td>
                     <td>Intake coordinator</td>
-                    <td>Open or hand off after blockers clear</td>
-                    <td>After engagement + outstanding items</td>
+                    <td>Open or hand off when the responsible firm reviewer marks the configured items ready</td>
+                    <td>After firm decision + configured outstanding items</td>
                   </tr>
                 </tbody>
               </table>
@@ -426,8 +438,7 @@
           <section class="sw-section" aria-labelledby="conflict-heading" data-reveal>
             <h2 id="conflict-heading">Conflict-check and engagement summary</h2>
             <p>
-              Firm review is required. LawIntake organises screening information and status; it does
-              not determine conflicts or decide whether the firm proceeds.
+              Firm review is required. LawIntake organises screening information and status; it does not determine whether a conflict exists, and it does not decide whether the firm proceeds.
             </p>
             <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="conflict-heading">
               <table>
@@ -458,24 +469,24 @@
                     <td>Included in screening pack</td>
                   </tr>
                   <tr>
-                    <th scope="row">Conflict-check submission</th>
+                    <th scope="row">Conflict-screening review</th>
                     <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Pending firm review</span></td>
-                    <td>Awaiting attorney or intake decision</td>
+                    <td>Awaiting firm-authorised reviewer</td>
                   </tr>
                   <tr>
-                    <th scope="row">Firm acceptance to proceed</th>
+                    <th scope="row">Firm decision on whether to proceed</th>
                     <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Not decided</span></td>
-                    <td>Blocks engagement send</td>
+                    <td>Awaiting firm decision before engagement is sent</td>
                   </tr>
                   <tr>
                     <th scope="row">Engagement / onboarding letter</th>
-                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Draft ready — awaiting firm acceptance</span></td>
+                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Draft ready — awaiting firm decision</span></td>
                     <td>Send only after the firm decides to proceed</td>
                   </tr>
                   <tr>
                     <th scope="row">Matter open readiness</th>
-                    <td><span class="sw-status sw-status--not-ready"><span aria-hidden="true">!</span> Not ready</span></td>
-                    <td>Conflict check + engagement approval required</td>
+                    <td><span class="sw-status sw-status--not-ready"><span aria-hidden="true">!</span> Not marked ready in this sample workflow</span></td>
+                    <td>Handoff is not marked ready while configured review items remain open</td>
                   </tr>
                 </tbody>
               </table>
@@ -489,10 +500,12 @@
           <section class="sw-section" aria-labelledby="condo-heading" data-reveal>
             <h2 id="condo-heading">Matter-specific requirements (condo example)</h2>
             <p>
-              This is an optional matter-specific example. Applicability, sufficiency, and next steps
-              remain matters for firm procedure and professional judgment. For this fictional Florida
-              condominium purchase, association and related follow-ups are shown as
-              <strong>optional firm-configured examples</strong>—not as LawIntake’s sole purpose.
+              This is an optional matter-specific example configured for a fictional condominium
+              purchase. Association, estoppel, questionnaire, reserve, and SIRS/milestone items are
+              examples—not mandatory for every firm, property, building, or transaction. Applicability,
+              sufficiency, and next steps remain matters for firm procedure and professional judgment.
+              They are shown as <strong>optional firm-configured examples</strong>, not as LawIntake’s
+              sole purpose.
             </p>
             <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="condo-heading">
               <table>
@@ -533,14 +546,14 @@
                     <td>Flagged for attorney / firm review</td>
                   </tr>
                   <tr>
-                    <th scope="row">SIRS / milestone information</th>
+                    <th scope="row">SIRS / milestone inspection — firm review of applicability</th>
                     <td><span class="sw-status sw-status--review-applicability"><span aria-hidden="true">?</span> Review applicability</span></td>
-                    <td>Confirm whether required for this matter</td>
+                    <td>Confirm whether this item is relevant to this matter. Shown as a condominium example; the firm determines relevance to the building, transaction, available records, and its procedure.</td>
                   </tr>
                   <tr>
-                    <th scope="row">Key exception / blocker</th>
+                    <th scope="row">Key exception / follow-up flag</th>
                     <td><span class="sw-status sw-status--flagged"><span aria-hidden="true">!</span> Flagged</span></td>
-                    <td>Visible before handoff</td>
+                    <td>Visible before handoff in this sample workflow</td>
                   </tr>
                 </tbody>
               </table>
@@ -583,7 +596,7 @@
               <li class="sw-flow__step">
                 <span class="sw-flow__number" aria-hidden="true">7</span>
                 <h3>Open or hand off</h3>
-                <p>Open the matter or hand off once blockers and outstanding items clear.</p>
+                <p>Open the matter or hand off when the responsible firm reviewer marks the configured items ready.</p>
               </li>
             </ol>
           </section>
@@ -598,7 +611,7 @@
                 Document collection, follow-ups, and outstanding items with visible ownership.
               </li>
               <li>
-                Blockers and readiness signals before the next handoff—not a claim of legal
+                Open items and readiness signals before the next handoff—not a claim of legal
                 completeness.
               </li>
               <li>
@@ -621,6 +634,12 @@
               follow-ups, ownership, and matter handoffs. This is research, not legal advice. Please
               do not enter client, property, financial, confidential, or privileged information.
             </p>
+                        <p class="sw-privacy">
+              Responses stay on this device unless you choose to copy or share them. There is no
+              research inbox on this page. Do not enter confidential information. LawIntake does not
+              receive, store, analyse, or respond to these answers automatically.
+            </p>
+
 
             <form id="research-form" class="sw-form" novalidate>
               <fieldset class="sw-field">
@@ -668,21 +687,28 @@
                 </div>
               </fieldset>
 
-              <fieldset class="sw-field">
-                <legend>
-                  3. Which part of moving a new real-estate matter forward causes the most follow-up
-                  or uncertainty? <span class="sw-required">(required)</span>
+              <fieldset class="sw-field" id="research-friction-fieldset">
+                <legend id="research-friction-legend">
+                  3. Which parts of moving a new real-estate matter forward cause the most follow-up
+                  or uncertainty? Select up to two.
+                  <span class="sw-required">(required)</span>
                 </legend>
-                <div class="sw-radios">
-                  <label><input type="radio" name="friction" value="Collecting initial client and matter information" required> Collecting initial client and matter information</label>
-                  <label><input type="radio" name="friction" value="Chasing documents or signatures"> Chasing documents or signatures</label>
-                  <label><input type="radio" name="friction" value="Knowing who owns the next action"> Knowing who owns the next action</label>
-                  <label><input type="radio" name="friction" value="Preparing a file for internal review"> Preparing a file for internal review</label>
-                  <label><input type="radio" name="friction" value="Knowing whether the matter is ready for the next handoff"> Knowing whether the matter is ready for the next handoff</label>
-                  <label><input type="radio" name="friction" value="Tracking matter-specific requirements when relevant"> Tracking matter-specific requirements when relevant</label>
-                  <label><input type="radio" name="friction" value="None of these"> None of these</label>
-                  <label><input type="radio" name="friction" value="Other"> Other</label>
+                <p class="sw-field-help" id="research-friction-help">
+                  Choose one or two options. “We do not experience meaningful follow-up uncertainty”
+                  cannot be combined with other options.
+                </p>
+                <div class="sw-checkboxes" role="group" aria-labelledby="research-friction-legend" aria-describedby="research-friction-help research-friction-error">
+                  <label><input type="checkbox" name="friction" value="Collecting initial client, property, and matter information"> Collecting initial client, property, and matter information</label>
+                  <label><input type="checkbox" name="friction" value="Gathering party names for conflict screening"> Gathering party names for conflict screening</label>
+                  <label><input type="checkbox" name="friction" value="Chasing contracts, IDs, signatures, lender information, or other documents"> Chasing contracts, IDs, signatures, lender information, or other documents</label>
+                  <label><input type="checkbox" name="friction" value="Knowing who owns the next action"> Knowing who owns the next action</label>
+                  <label><input type="checkbox" name="friction" value="Preparing a file for attorney or internal review"> Preparing a file for attorney or internal review</label>
+                  <label><input type="checkbox" name="friction" value="Knowing whether the matter is ready for engagement, opening, or handoff"> Knowing whether the matter is ready for engagement, opening, or handoff</label>
+                  <label><input type="checkbox" name="friction" value="Tracking transaction-specific diligence, such as condo or association items"> Tracking transaction-specific diligence, such as condo or association items</label>
+                  <label><input type="checkbox" name="friction" value="We do not experience meaningful follow-up uncertainty" data-friction-none> We do not experience meaningful follow-up uncertainty</label>
+                  <label><input type="checkbox" name="friction" value="Other" data-friction-other> Other</label>
                 </div>
+                <p id="research-friction-error" class="sw-field-error" hidden role="alert"></p>
                 <div class="sw-field sw-field--conditional" id="research-friction-other-wrap" hidden>
                   <label for="research-friction-other"
                     >Please describe the main friction point
@@ -694,14 +720,48 @@
 
               <fieldset class="sw-field">
                 <legend>
-                  4. Would you be open to a 15-minute research conversation about your current
-                  workflow? <span class="sw-required">(required)</span>
+                  4. How often do incomplete information, missing documents, unclear ownership, or
+                  unclear handoffs slow a new real-estate matter?
+                  <span class="sw-required">(required)</span>
                 </legend>
                 <div class="sw-radios">
-                  <label><input type="radio" name="open_to_conversation" value="Yes" required> Yes</label>
+                  <label><input type="radio" name="frequency" value="Most new matters" required> Most new matters</label>
+                  <label><input type="radio" name="frequency" value="Several times a week"> Several times a week</label>
+                  <label><input type="radio" name="frequency" value="Several times a month"> Several times a month</label>
+                  <label><input type="radio" name="frequency" value="Occasionally"> Occasionally</label>
+                  <label><input type="radio" name="frequency" value="Rarely"> Rarely</label>
+                  <label><input type="radio" name="frequency" value="Not sure"> Not sure</label>
+                </div>
+              </fieldset>
+
+              <div class="sw-field">
+                <label for="research-comment"
+                  >5. Thinking of a recent new matter, what information, document, owner, or handoff
+                  step was hardest to see or chase?
+                  <span class="sw-optional">(optional)</span></label
+                >
+                <textarea id="research-comment" name="comment" rows="3" maxlength="2000"></textarea>
+                <p class="sw-field-help">
+                  Please keep your answer general. Do not include client names, property addresses,
+                  financial details, confidential information, or privileged information.
+                </p>
+              </div>
+
+              <fieldset class="sw-field">
+                <legend>
+                  Optional: Would you be open to a short, no-obligation research conversation about
+                  your current workflow?
+                  <span class="sw-optional">(optional)</span>
+                </legend>
+                <div class="sw-radios">
+                  <label><input type="radio" name="open_to_conversation" value="Yes"> Yes</label>
                   <label><input type="radio" name="open_to_conversation" value="Maybe"> Maybe</label>
                   <label><input type="radio" name="open_to_conversation" value="Not right now"> Not right now</label>
                 </div>
+                <p class="sw-field-help">
+                  If you choose Yes or Maybe, you may optionally add a contact detail below. Answers
+                  still stay on this device unless you copy or share them.
+                </p>
                 <div class="sw-field sw-field--conditional" id="research-contact-wrap" hidden>
                   <label for="research-contact"
                     >Work email or LinkedIn profile URL
@@ -717,27 +777,14 @@
                   >
                   <p class="sw-field-help">
                     Only share contact details you are comfortable providing. Do not include client
-                    or matter information.
+                    or matter information. You control whether these notes are copied or shared.
                   </p>
                 </div>
               </fieldset>
 
-              <div class="sw-field">
-                <label for="research-comment"
-                  >What is one thing you wish was easier to see or follow up on when a new
-                  real-estate matter comes in?
-                  <span class="sw-optional">(optional)</span></label
-                >
-                <textarea id="research-comment" name="comment" rows="3" maxlength="2000"></textarea>
-                <p class="sw-field-help">
-                  Please keep your answer general. Do not include client, property, financial,
-                  confidential, or privileged information.
-                </p>
-              </div>
-
               <p class="sw-privacy">
-                Responses stay on this device unless you choose to copy or share them. Please do not
-                include confidential information.
+                Responses stay on this device unless you choose to copy or share them. There is no
+                research inbox on this page. Do not enter confidential information.
               </p>
 
               <p id="research-submit-notice" class="sw-form-notice" tabindex="-1" role="status">
@@ -795,9 +842,10 @@
               shown. This page is for operational and informational purposes only. It is not legal
               advice, does not create an attorney-client relationship, and does not determine
               conflicts or legal completeness. LawIntake supports workflow visibility; it does not
-              replace firm procedures or professional judgment. Do not enter confidential information
-              in the research questionnaire. Survey answers stay on your device until you choose to
-              copy or share them.
+              replace firm procedures or professional judgment. Checklist counts and readiness labels
+              are operational indicators for this fictional sample, not compliance scores or legal
+              determinations. Do not enter confidential information in the research questionnaire.
+              Survey answers stay on your device until you choose to copy or share them.
             </p>
           </div>
         </div>
@@ -835,13 +883,136 @@
     <script src="../../script.js"></script>
     <script>
       (function () {
+        var COMPLETE_STATUSES = { complete: true, received: true };
+        var ACTION_STATUSES = {
+          "needs-review": true,
+          missing: true,
+          waiting: true,
+          "not-ready": true,
+          "in-progress": true,
+        };
+
+        function refreshChecklistSummary() {
+          var rows = document.querySelectorAll("#sw-checklist-body tr[data-status]");
+          if (!rows.length) return;
+          var complete = 0;
+          var action = 0;
+          var applicability = 0;
+          var coreComplete = 0;
+          var coreAction = 0;
+          var condoComplete = 0;
+          var condoAction = 0;
+          rows.forEach(function (row) {
+            var status = row.getAttribute("data-status") || "";
+            var scope = row.getAttribute("data-scope") || "core";
+            if (status === "review-applicability") {
+              applicability += 1;
+              return;
+            }
+            if (COMPLETE_STATUSES[status]) {
+              complete += 1;
+              if (scope === "condo") condoComplete += 1;
+              else coreComplete += 1;
+              return;
+            }
+            if (ACTION_STATUSES[status]) {
+              action += 1;
+              if (scope === "condo") condoAction += 1;
+              else coreAction += 1;
+            }
+          });
+
+          var summary = document.getElementById("sw-checklist-summary");
+          var detail = document.getElementById("sw-checklist-summary-detail");
+          if (summary) {
+            summary.textContent =
+              complete +
+              " complete / " +
+              action +
+              " require action" +
+              (applicability
+                ? " · " + applicability + " applicability review"
+                : "");
+          }
+          if (detail) {
+            detail.textContent =
+              "Derived from this illustrative checklist. Core workflow: " +
+              coreComplete +
+              " complete / " +
+              coreAction +
+              " require action. Condo examples: " +
+              condoComplete +
+              " complete / " +
+              condoAction +
+              " require action" +
+              (applicability
+                ? ". Applicability-review rows are listed separately and are not counted as complete or as standard open actions."
+                : ".");
+          }
+        }
+
+        refreshChecklistSummary();
+
         var DEMO_URL = "https://intake-app-dun.vercel.app/demo";
+        var NONE_FRICTION = "We do not experience meaningful follow-up uncertainty";
         var form = document.getElementById("research-form");
         if (!form) return;
 
         function setHidden(el, hidden) {
           if (!el) return;
           el.hidden = !!hidden;
+        }
+
+        function frictionBoxes() {
+          return Array.prototype.slice.call(form.querySelectorAll('input[name="friction"]'));
+        }
+
+        function selectedFriction() {
+          return frictionBoxes().filter(function (box) {
+            return box.checked;
+          });
+        }
+
+        function setFrictionError(message) {
+          var el = document.getElementById("research-friction-error");
+          if (!el) return;
+          if (message) {
+            el.hidden = false;
+            el.textContent = message;
+          } else {
+            el.hidden = true;
+            el.textContent = "";
+          }
+        }
+
+        function syncFrictionRules(changed) {
+          var boxes = frictionBoxes();
+          var noneBox = form.querySelector('input[name="friction"][data-friction-none]');
+          var otherBox = form.querySelector('input[name="friction"][data-friction-other]');
+          var selected = selectedFriction();
+
+          if (changed && changed.hasAttribute("data-friction-none") && changed.checked) {
+            boxes.forEach(function (box) {
+              if (box !== changed) box.checked = false;
+            });
+            setFrictionError("");
+          } else if (changed && changed.checked && noneBox && noneBox.checked && changed !== noneBox) {
+            noneBox.checked = false;
+          }
+
+          selected = selectedFriction();
+          if (selected.length > 2) {
+            if (changed) changed.checked = false;
+            setFrictionError("Please select up to two options.");
+            selected = selectedFriction();
+          } else if (selected.length > 0) {
+            setFrictionError("");
+          }
+
+          setHidden(
+            document.getElementById("research-friction-other-wrap"),
+            !(otherBox && otherBox.checked)
+          );
         }
 
         function syncConditionals() {
@@ -854,12 +1025,6 @@
             !(tracking && tracking.value === "Other")
           );
 
-          var friction = form.querySelector('input[name="friction"]:checked');
-          setHidden(
-            document.getElementById("research-friction-other-wrap"),
-            !(friction && friction.value === "Other")
-          );
-
           var conversation = form.querySelector('input[name="open_to_conversation"]:checked');
           var showContact =
             conversation && (conversation.value === "Yes" || conversation.value === "Maybe");
@@ -867,8 +1032,13 @@
         }
 
         form.addEventListener("change", function (event) {
-          if (event.target && event.target.name) syncConditionals();
+          if (!event.target || !event.target.name) return;
+          if (event.target.name === "friction") {
+            syncFrictionRules(event.target);
+          }
+          syncConditionals();
         });
+        syncFrictionRules(null);
         syncConditionals();
 
         function selectedValue(name) {
@@ -884,6 +1054,23 @@
           return detail ? "Other — " + detail : "Other";
         }
 
+        function frictionSummary() {
+          var selected = selectedFriction().map(function (box) {
+            return box.value;
+          });
+          if (!selected.length) return "";
+          var otherDetail = "";
+          if (selected.indexOf("Other") !== -1) {
+            var other = form.querySelector("#research-friction-other");
+            otherDetail = other && other.value.trim();
+            selected = selected.map(function (value) {
+              if (value !== "Other") return value;
+              return otherDetail ? "Other — " + otherDetail : "Other";
+            });
+          }
+          return selected.join("; ");
+        }
+
         function buildAnswersText() {
           var lines = ["LawIntake workflow pulse check"];
           var role = withOther(selectedValue("role"), "#research-role-other");
@@ -892,12 +1079,20 @@
           var tracking = withOther(selectedValue("status_tracking"), "#research-tracking-other");
           if (tracking) lines.push("Current intake tracking: " + tracking);
 
-          var friction = withOther(selectedValue("friction"), "#research-friction-other");
+          var friction = frictionSummary();
           if (friction) lines.push("Main follow-up / uncertainty: " + friction);
+
+          var frequency = selectedValue("frequency");
+          if (frequency) lines.push("How often this slows a new matter: " + frequency);
+
+          var comment = form.querySelector("#research-comment");
+          if (comment && comment.value.trim()) {
+            lines.push("Hardest to see or chase: " + comment.value.trim());
+          }
 
           var conversation = selectedValue("open_to_conversation");
           if (conversation) {
-            lines.push("Open to a 15-minute research conversation: " + conversation);
+            lines.push("Open to a short research conversation: " + conversation);
           }
 
           var contact = form.querySelector("#research-contact");
@@ -907,11 +1102,6 @@
             (conversation === "Yes" || conversation === "Maybe")
           ) {
             lines.push("Contact: " + contact.value.trim());
-          }
-
-          var comment = form.querySelector("#research-comment");
-          if (comment && comment.value.trim()) {
-            lines.push("Additional comment: " + comment.value.trim());
           }
 
           return lines.join("\n");
@@ -948,13 +1138,19 @@
             form.reportValidity();
             return;
           }
+          if (!selectedFriction().length) {
+            setFrictionError("Please select at least one option (up to two).");
+            var firstFriction = form.querySelector('input[name="friction"]');
+            if (firstFriction) firstFriction.focus();
+            return;
+          }
 
           var summary = buildAnswersText();
           var finish = function (copied) {
             setNotice(
               copied
-                ? "Your answers were copied to the clipboard. The demo is opening so you can continue the conversation — paste the notes if you want to share them."
-                : "Clipboard copy was unavailable in this browser. The demo is opening so you can continue — your answers remain visible on this page to copy manually.",
+                ? "Your answers were copied to the clipboard. The demo is opening so you can continue the conversation — paste the notes if you want to share them. Answers are not sent to LawIntake automatically."
+                : "Clipboard copy was unavailable in this browser. The demo is opening so you can continue — your answers remain visible on this page to copy manually. Answers are not sent to LawIntake automatically.",
               true
             );
             openDemo();
@@ -977,4 +1173,5 @@
       })();
     </script>
   </body>
+
 </html>

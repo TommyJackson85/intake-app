@@ -2479,6 +2479,14 @@ input {
   line-height: 1.45;
 }
 
+.sw-field-error {
+  margin: 0.55rem 0 0;
+  color: #9f1239;
+  font-size: 0.9rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
 .sw-field--conditional {
   margin-top: 0.85rem;
   padding-top: 0.85rem;
@@ -2506,6 +2514,11 @@ input {
 
 .sw-table-wrap .sw-status {
   white-space: normal;
+}
+
+.sw-glance-card .sw-status {
+  white-space: normal;
+  max-width: 100%;
 }
 
 .sw-status--complete,
