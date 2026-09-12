@@ -607,25 +607,41 @@
 
               <p class="sw-privacy">
                 Please do not include confidential client, property, financial, or transaction
-                information. Responses are used only to understand real-estate transaction intake
-                workflows and improve Client Intake.
+                information. This page does not upload answers to a server. If you share them from
+                your clipboard or in a follow-up conversation, they are used only to understand
+                real-estate transaction intake workflows and improve Client Intake.
               </p>
 
               <p id="research-submit-notice" class="sw-form-notice" tabindex="-1" role="status">
-                This marketing page does not send questionnaire answers to a research inbox. To
-                continue the conversation, use Explore the demo below or the Discuss your workflow
-                links on this page.
+                There is no research inbox on this static marketing page. Use
+                <strong>Copy answers &amp; open demo</strong> to keep your responses on your device
+                and continue in the working demo, or open the demo directly below.
               </p>
 
-              <button class="button" type="button" id="research-submit">
-                Share research feedback
-              </button>
+              <div class="sw-form-actions">
+                <button class="button" type="button" id="research-submit">
+                  Copy answers &amp; open demo
+                </button>
+                <a
+                  class="button button-secondary"
+                  id="research-demo-cta"
+                  href="https://intake-app-dun.vercel.app/demo"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Explore the demo <span aria-hidden="true">↗</span>
+                </a>
+              </div>
             </form>
 
             <p class="sw-secondary-contact">
-              Prefer a short conversation?
-              <a class="text-link" href="https://intake-app-dun.vercel.app/demo"
-                >Explore the demo <span aria-hidden="true">↗</span></a
+              Prefer to skip the questionnaire?
+              <a
+                class="text-link"
+                href="https://intake-app-dun.vercel.app/demo"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Open the demo <span aria-hidden="true">↗</span></a
               >
             </p>
           </section>
@@ -688,6 +704,7 @@
     <script src="../../script.js"></script>
     <script>
       (function () {
+        var DEMO_URL = "https://intake-app-dun.vercel.app/demo";
         var form = document.getElementById("research-form");
         if (!form) return;
         var checkboxes = form.querySelectorAll('input[name="intake_tracking"]');
@@ -703,8 +720,67 @@
           box.addEventListener("change", syncRequired);
         });
         syncRequired();
-        // type="button" avoids a no-handler GET navigation if script.js loads but this
-        // handler fails, or if the user activates the control before the listener attaches.
+
+        function fieldLabel(el) {
+          if (!el) return "";
+          if (el.name === "intake_tracking") {
+            return "How does your team currently track new-matter intake?";
+          }
+          if (el.name === "open_to_conversation") {
+            return "Open to a 15-minute research conversation?";
+          }
+          var label = form.querySelector('label[for="' + el.id + '"]');
+          if (label) return label.textContent.replace(/\s+/g, " ").trim();
+          var legend = el.closest("fieldset") && el.closest("fieldset").querySelector("legend");
+          return legend ? legend.textContent.replace(/\s+/g, " ").trim() : el.name;
+        }
+
+        function buildAnswersText() {
+          var lines = [
+            "Client Intake — sample workspace research answers",
+            "(Copied locally from the marketing page; not uploaded automatically.)",
+            "",
+          ];
+          var role = form.querySelector("#research-role");
+          if (role && role.value) lines.push(fieldLabel(role) + "\n" + role.value);
+
+          var tracked = [];
+          Array.prototype.forEach.call(checkboxes, function (box) {
+            if (box.checked) tracked.push(box.value);
+          });
+          if (tracked.length) {
+            lines.push("", fieldLabel(checkboxes[0]) + "\n" + tracked.join("; "));
+          }
+
+          ["#research-last-matter", "#research-follow-up", "#research-ready", "#research-owner", "#research-useful", "#research-condo", "#research-contact"].forEach(function (sel) {
+            var el = form.querySelector(sel);
+            if (!el || !String(el.value || "").trim()) return;
+            lines.push("", fieldLabel(el) + "\n" + String(el.value).trim());
+          });
+
+          var conversation = form.querySelector('input[name="open_to_conversation"]:checked');
+          if (conversation) {
+            lines.push("", fieldLabel(conversation) + "\n" + conversation.value);
+          }
+
+          lines.push("", "Next step: " + DEMO_URL);
+          return lines.join("\n");
+        }
+
+        function setNotice(message, emphasize) {
+          var notice = document.getElementById("research-submit-notice");
+          if (!notice) return;
+          notice.textContent = message;
+          notice.classList.toggle("is-emphasized", !!emphasize);
+          notice.focus();
+        }
+
+        function openDemo() {
+          var opened = window.open(DEMO_URL, "_blank", "noopener,noreferrer");
+          if (!opened) window.location.assign(DEMO_URL);
+        }
+
+        // type="button" avoids a no-handler GET navigation if this listener fails to attach.
         var submitBtn = document.getElementById("research-submit");
         if (!submitBtn) return;
         submitBtn.addEventListener("click", function () {
@@ -712,11 +788,31 @@
             form.reportValidity();
             return;
           }
-          var notice = document.getElementById("research-submit-notice");
-          if (notice) {
-            notice.classList.add("is-emphasized");
-            notice.focus();
+
+          var summary = buildAnswersText();
+          var finish = function (copied) {
+            setNotice(
+              copied
+                ? "Your answers were copied to the clipboard. The demo is opening so you can continue the conversation — paste the notes if you want to share them."
+                : "Clipboard copy was unavailable in this browser. The demo is opening so you can continue — your answers remain visible on this page to copy manually.",
+              true
+            );
+            openDemo();
+          };
+
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(summary).then(
+              function () {
+                finish(true);
+              },
+              function () {
+                finish(false);
+              }
+            );
+            return;
           }
+
+          finish(false);
         });
       })();
     </script>
