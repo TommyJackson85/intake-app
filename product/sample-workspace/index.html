@@ -95,17 +95,14 @@
             </p>
             <div class="sw-notice" role="note">
               <strong>Illustrative sample only.</strong>
-              No real client, firm, property, or confidential data is shown. Viewing this page or
-              completing the research survey does not create an attorney-client relationship and does
-              not provide legal advice. LawIntake is intended to support operational workflow
-              visibility; it does not perform conflict determinations or compliance decisions.
-              Proceeding on a live matter is always subject to the firm’s conflict review,
-              acceptance, procedures, and professional judgment.
+              No real client, firm, property, or confidential data is shown. LawIntake supports
+              operational workflow visibility; it does not provide legal advice, make conflict or
+              compliance decisions, or replace firm procedures and professional judgment.
             </div>
             <div class="sw-hero__actions">
-              <a class="button" href="#research-questionnaire">Take the research survey</a>
-              <a class="text-link" href="https://intake-app-dun.vercel.app/demo"
-                >Explore the demo <span aria-hidden="true">↗</span></a
+              <a class="button" href="https://intake-app-dun.vercel.app/demo">Explore the demo</a>
+              <a class="text-link" href="#research-questionnaire"
+                >Share 60-second feedback <span aria-hidden="true">→</span></a
               >
             </div>
           </div>
@@ -126,21 +123,28 @@
                 >
               </li>
               <li class="sw-glance-card">
-                <span class="sw-glance-card__label">Operational readiness</span>
-                <strong>68% complete</strong>
+                <span class="sw-glance-card__label">Next-stage readiness</span>
+                <strong>Blocked — 3 priority items require action</strong>
                 <span class="sw-glance-card__detail"
-                  >3 firm-configured items still require action before the next handoff. This is an
-                  operational progress indicator for the sample checklist—not a determination of legal
-                  completeness.</span
+                  >Internal conflict review, firm acceptance / engagement approval, and client ID
+                  review are outstanding.</span
+                >
+                <span class="sw-glance-card__detail"
+                  >This is an operational indicator for the illustrative checklist, not a
+                  determination of legal completeness.</span
                 >
               </li>
               <li class="sw-glance-card">
-                <span class="sw-glance-card__label">Documents</span>
-                <strong>7 received / 4 outstanding</strong>
+                <span class="sw-glance-card__label">Checklist items</span>
+                <strong>6 complete / 10 require action</strong>
+                <span class="sw-glance-card__detail"
+                  >Counts match the illustrative checklist below (core workflow plus matter-specific
+                  condo examples).</span
+                >
               </li>
               <li class="sw-glance-card">
                 <span class="sw-glance-card__label">Next action</span>
-                <strong>Review conflict-check summary</strong>
+                <strong>Complete internal conflict review</strong>
               </li>
               <li class="sw-glance-card">
                 <span class="sw-glance-card__label">Assigned owner</span>
@@ -179,8 +183,8 @@
               <div>
                 <dt>Readiness blockers</dt>
                 <dd>
-                  Conflict review, engagement approval, and outstanding firm-configured checklist
-                  items
+                  Internal conflict review, firm acceptance / engagement approval, and client ID
+                  review
                 </dd>
               </div>
             </dl>
@@ -188,12 +192,10 @@
 
           <section class="sw-section" aria-labelledby="tracker-heading" data-reveal>
             <h2 id="tracker-heading">Matter checklist tracker</h2>
-            <p>
-              Track what has been requested, received, reviewed, or is still missing—and who owns the
-              next step. Core intake and document items sit alongside example condominium/association
-              requirements configured for this sample matter type. Your firm can adapt the checklist
-              to its own process.
-            </p>
+            <p>Track what has been requested, received, reviewed, or is still missing—and who owns the
+              next step. Core intake and matter-workflow items appear first. Condominium/association
+              rows follow as optional matter-specific examples configured for this sample. Your firm
+              can adapt the checklist to its own process.</p>
             <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="tracker-heading">
               <table>
                 <caption class="sr-only">
@@ -232,10 +234,10 @@
                     <td>Yes</td>
                     <td>Yes</td>
                     <td>Intake coordinator</td>
-                    <td>Submit for firm review</td>
+                    <td>Ready for firm review</td>
                   </tr>
                   <tr>
-                    <th scope="row">Conflict-check firm review</th>
+                    <th scope="row">Internal conflict review</th>
                     <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Pending review</span></td>
                     <td>Yes</td>
                     <td>Yes</td>
@@ -243,12 +245,20 @@
                     <td>Review summary — firm decides</td>
                   </tr>
                   <tr>
+                    <th scope="row">Firm acceptance decision</th>
+                    <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Not decided</span></td>
+                    <td>—</td>
+                    <td>No</td>
+                    <td>Assigned attorney</td>
+                    <td>Decide whether to proceed</td>
+                  </tr>
+                  <tr>
                     <th scope="row">Engagement / onboarding letter</th>
-                    <td><span class="sw-status sw-status--in-progress"><span aria-hidden="true">→</span> Ready to send</span></td>
+                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Draft ready — awaiting firm acceptance</span></td>
                     <td>—</td>
                     <td>No</td>
                     <td>Intake coordinator</td>
-                    <td>Send after firm acceptance</td>
+                    <td>Send after the firm decides to proceed</td>
                   </tr>
                   <tr>
                     <th scope="row">Purchase contract</th>
@@ -265,6 +275,28 @@
                     <td>Yes</td>
                     <td>Intake coordinator</td>
                     <td>Confirm completeness</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Lender confirmation</th>
+                    <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Pending</span></td>
+                    <td>Yes</td>
+                    <td>No</td>
+                    <td>Client / intake coordinator</td>
+                    <td>Confirm when known</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Matter open / handoff pack</th>
+                    <td><span class="sw-status sw-status--not-ready"><span aria-hidden="true">!</span> Not ready</span></td>
+                    <td>—</td>
+                    <td>No</td>
+                    <td>Intake coordinator</td>
+                    <td>Blocked until review + outstanding items</td>
+                  </tr>
+                  <tr class="sw-table-divider">
+                    <th scope="colgroup" colspan="6">
+                      Matter-specific condominium requirements — configured for this illustrative
+                      sample
+                    </th>
                   </tr>
                   <tr>
                     <th scope="row">Association contact details</th>
@@ -313,31 +345,13 @@
                     <td>Depends</td>
                     <td>Assigned attorney</td>
                     <td>Confirm whether required for this matter</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Lender confirmation</th>
-                    <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Pending</span></td>
-                    <td>Yes</td>
-                    <td>No</td>
-                    <td>Client / intake coordinator</td>
-                    <td>Confirm when known</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Matter open / handoff pack</th>
-                    <td><span class="sw-status sw-status--not-ready"><span aria-hidden="true">!</span> Not ready</span></td>
-                    <td>—</td>
-                    <td>No</td>
-                    <td>Intake coordinator</td>
-                    <td>Blocked until review + outstanding items</td>
-                  </tr>
-                </tbody>
+                  </tr></tbody>
               </table>
             </div>
             <p class="sw-section__note">
               Association, estoppel, questionnaire, reserves, and SIRS/milestone rows are example
-              matter-specific requirements for this fictional condo purchase. They are not mandatory
-              for every firm or every matter. LawIntake supports workflow visibility; it does not
-              clear conflicts, approve engagement, or decide legal sufficiency.
+              matter-specific requirements for this fictional condominium purchase. They are not
+              mandatory for every firm or transaction.
             </p>
           </section>
 
@@ -371,9 +385,9 @@
                   </tr>
                   <tr>
                     <th scope="row">Engagement send</th>
-                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Waiting on acceptance</span></td>
+                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Awaiting firm acceptance</span></td>
                     <td>Intake coordinator</td>
-                    <td>Send engagement after firm acceptance</td>
+                    <td>Send engagement after firm decision</td>
                     <td>After review</td>
                   </tr>
                   <tr>
@@ -412,9 +426,8 @@
           <section class="sw-section" aria-labelledby="conflict-heading" data-reveal>
             <h2 id="conflict-heading">Conflict-check and engagement summary</h2>
             <p>
-              Early in a matter, teams often need a clearer view of what has been captured for
-              internal conflict screening and whether engagement can be sent—without implying that
-              the software itself makes the legal determination.
+              Firm review is required. LawIntake organises screening information and status; it does
+              not determine conflicts or decide whether the firm proceeds.
             </p>
             <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="conflict-heading">
               <table>
@@ -455,9 +468,9 @@
                     <td>Blocks engagement send</td>
                   </tr>
                   <tr>
-                    <th scope="row">Engagement / onboarding items</th>
-                    <td><span class="sw-status sw-status--in-progress"><span aria-hidden="true">→</span> Ready to send</span></td>
-                    <td>Queued until acceptance</td>
+                    <th scope="row">Engagement / onboarding letter</th>
+                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Draft ready — awaiting firm acceptance</span></td>
+                    <td>Send only after the firm decides to proceed</td>
                   </tr>
                   <tr>
                     <th scope="row">Matter open readiness</th>
@@ -469,18 +482,17 @@
             </div>
             <p class="sw-section__note">
               Safe screening fields only are shown. Do not treat this sample as a complete conflict
-              checklist. Firms apply their own current procedures and professional judgment.
+              checklist.
             </p>
           </section>
 
           <section class="sw-section" aria-labelledby="condo-heading" data-reveal>
             <h2 id="condo-heading">Matter-specific requirements (condo example)</h2>
             <p>
-              Some real-estate matters need specialised checklist items. For this fictional Florida
-              condominium purchase, the sample includes association and related follow-ups as
-              <strong>optional firm-configured examples</strong>. They illustrate how LawIntake can
-              surface matter-specific work—not a claim that every file needs these items, and not a
-              definition of the product as a condo-only diligence tool.
+              This is an optional matter-specific example. Applicability, sufficiency, and next steps
+              remain matters for firm procedure and professional judgment. For this fictional Florida
+              condominium purchase, association and related follow-ups are shown as
+              <strong>optional firm-configured examples</strong>—not as LawIntake’s sole purpose.
             </p>
             <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="condo-heading">
               <table>
@@ -533,11 +545,6 @@
                 </tbody>
               </table>
             </div>
-            <p class="sw-section__note">
-              Other matter types can use different firm-configured checklists. Applicability,
-              sufficiency, and next steps remain matters for firm procedure and professional
-              judgment.
-            </p>
           </section>
 
           <section class="sw-section" aria-labelledby="workflow-heading" data-reveal>
@@ -607,205 +614,130 @@
             aria-labelledby="research-heading"
             data-reveal
           >
-            <p class="sw-section__note">Research survey</p>
-            <h2 id="research-heading">Help shape clearer matter workflows</h2>
+            <p class="sw-section__note">Research pulse check</p>
+            <h2 id="research-heading">Help shape LawIntake — 60 seconds</h2>
             <p>
-              This short research survey is for people at Florida real-estate law firms who handle
-              intake, documents, follow-ups, ownership, and matter readiness. It is designed to
-              understand where operational friction happens today—across the full path from enquiry
-              to handoff, not only the first onboarding step.
-            </p>
-            <p>
-              Please answer based on your current or recent workflow. This is research, not legal
-              advice. Completing the survey does not create an attorney-client relationship. Do not
-              submit confidential or highly sensitive client details.
+              I’m researching how Florida real-estate law firms organise client intake, documents,
+              follow-ups, ownership, and matter handoffs. This is research, not legal advice. Please
+              do not enter client, property, financial, confidential, or privileged information.
             </p>
 
             <form id="research-form" class="sw-form" novalidate>
-              <div class="sw-field">
-                <label for="research-role"
-                  >1. What is your role at the firm?
-                  <span class="sw-required">(required)</span></label
-                >
-                <select id="research-role" name="role" required>
-                  <option value="">Select a role</option>
-                  <option>Attorney</option>
-                  <option>Paralegal</option>
-                  <option>Legal assistant</option>
-                  <option>Intake or closing coordinator</option>
-                  <option>Practice manager</option>
-                  <option>Other</option>
-                </select>
-              </div>
-
-              <div class="sw-field">
-                <label for="research-firm-size"
-                  >2. What best describes your firm?
-                  <span class="sw-optional">(optional)</span></label
-                >
-                <select id="research-firm-size" name="firm_size">
-                  <option value="">Select an option</option>
-                  <option>Solo practice</option>
-                  <option>Small firm (2–10 legal professionals)</option>
-                  <option>Mid-size firm</option>
-                  <option>Other / prefer not to say</option>
-                </select>
-              </div>
-
-              <div class="sw-field">
-                <label for="research-enquiry-channel"
-                  >3. Where does new client or matter intake usually start?
-                  <span class="sw-required">(required)</span></label
-                >
-                <select id="research-enquiry-channel" name="enquiry_channel" required>
-                  <option value="">Select an option</option>
-                  <option>Email</option>
-                  <option>Phone</option>
-                  <option>Web form</option>
-                  <option>Practice-management system</option>
-                  <option>A mix of channels</option>
-                  <option>Other</option>
-                </select>
-              </div>
+              <fieldset class="sw-field">
+                <legend>
+                  1. What is your role at a Florida real-estate law firm or transaction team?
+                  <span class="sw-required">(required)</span>
+                </legend>
+                <div class="sw-radios">
+                  <label><input type="radio" name="role" value="Attorney / partner" required> Attorney / partner</label>
+                  <label><input type="radio" name="role" value="Paralegal"> Paralegal</label>
+                  <label><input type="radio" name="role" value="Legal assistant or secretary"> Legal assistant or secretary</label>
+                  <label><input type="radio" name="role" value="Closing coordinator"> Closing coordinator</label>
+                  <label><input type="radio" name="role" value="Practice or office manager"> Practice or office manager</label>
+                  <label><input type="radio" name="role" value="Intake staff"> Intake staff</label>
+                  <label><input type="radio" name="role" value="Other"> Other</label>
+                </div>
+                <div class="sw-field sw-field--conditional" id="research-role-other-wrap" hidden>
+                  <label for="research-role-other"
+                    >Please describe your role <span class="sw-optional">(optional)</span></label
+                  >
+                  <input id="research-role-other" name="role_other" type="text" maxlength="200" autocomplete="off">
+                </div>
+              </fieldset>
 
               <fieldset class="sw-field">
                 <legend>
-                  4. Where is matter status mainly tracked today?
+                  2. Where is a new real-estate matter’s status mainly tracked today?
                   <span class="sw-required">(required)</span>
                 </legend>
-                <div class="sw-checkboxes">
-                  <label><input type="checkbox" name="status_tracking" value="Email inboxes" required> Email inboxes</label>
-                  <label><input type="checkbox" name="status_tracking" value="Spreadsheets"> Spreadsheets</label>
-                  <label><input type="checkbox" name="status_tracking" value="Shared drives or folders"> Shared drives or folders</label>
-                  <label><input type="checkbox" name="status_tracking" value="Practice-management software"> Practice-management software</label>
-                  <label><input type="checkbox" name="status_tracking" value="CRM"> CRM</label>
-                  <label><input type="checkbox" name="status_tracking" value="Paper or manual checklist"> Paper or manual checklist</label>
-                  <label><input type="checkbox" name="status_tracking" value="A mix of several tools"> A mix of several tools</label>
-                  <label><input type="checkbox" name="status_tracking" value="Other"> Other</label>
+                <div class="sw-radios">
+                  <label><input type="radio" name="status_tracking" value="Email or shared inbox" required> Email or shared inbox</label>
+                  <label><input type="radio" name="status_tracking" value="Practice-management software"> Practice-management software</label>
+                  <label><input type="radio" name="status_tracking" value="Spreadsheet or checklist"> Spreadsheet or checklist</label>
+                  <label><input type="radio" name="status_tracking" value="Shared drive / document system"> Shared drive / document system</label>
+                  <label><input type="radio" name="status_tracking" value="CRM"> CRM</label>
+                  <label><input type="radio" name="status_tracking" value="A mix of several tools"> A mix of several tools</label>
+                  <label><input type="radio" name="status_tracking" value="Other"> Other</label>
+                </div>
+                <div class="sw-field sw-field--conditional" id="research-tracking-other-wrap" hidden>
+                  <label for="research-tracking-other"
+                    >Please describe the main tool or process
+                    <span class="sw-optional">(optional)</span></label
+                  >
+                  <input id="research-tracking-other" name="status_tracking_other" type="text" maxlength="200" autocomplete="off">
                 </div>
               </fieldset>
-
-              <div class="sw-field">
-                <label for="research-chase-method"
-                  >5. How are documents and missing items usually chased?
-                  <span class="sw-required">(required)</span></label
-                >
-                <select id="research-chase-method" name="chase_method" required>
-                  <option value="">Select an option</option>
-                  <option>Email threads</option>
-                  <option>Phone</option>
-                  <option>Shared checklist</option>
-                  <option>Practice-management tasks</option>
-                  <option>A mix of methods</option>
-                  <option>Other</option>
-                </select>
-              </div>
-
-              <div class="sw-field">
-                <label for="research-ownership"
-                  >6. How clear is ownership of the next follow-up today?</label
-                >
-                <select id="research-ownership" name="ownership_clarity">
-                  <option value="">Select an option</option>
-                  <option>Usually clear</option>
-                  <option>Shared / depends on the matter</option>
-                  <option>Often unclear</option>
-                </select>
-              </div>
-
-              <div class="sw-field">
-                <label for="research-visibility"
-                  >7. How often is it hard to see blockers, owners, and next actions in one place?</label
-                >
-                <select id="research-visibility" name="visibility_friction">
-                  <option value="">Select an option</option>
-                  <option>Rarely</option>
-                  <option>Sometimes</option>
-                  <option>Often</option>
-                  <option>Almost always</option>
-                </select>
-              </div>
-
-              <div class="sw-field">
-                <label for="research-readiness"
-                  >8. How does your team usually know a matter is ready for the next stage?
-                  <span class="sw-required">(required)</span></label
-                >
-                <textarea
-                  id="research-readiness"
-                  name="readiness_signal"
-                  rows="3"
-                  maxlength="2000"
-                  required
-                ></textarea>
-              </div>
-
-              <div class="sw-field">
-                <label for="research-specialised"
-                  >9. Do some matter types need specialised checklists (for example condo or
-                  association items)?</label
-                >
-                <select id="research-specialised" name="specialised_checklists">
-                  <option value="">Select an option</option>
-                  <option>Often</option>
-                  <option>Sometimes</option>
-                  <option>Rarely</option>
-                  <option>Not applicable</option>
-                </select>
-              </div>
-
-              <div class="sw-field">
-                <label for="research-alongside"
-                  >10. Would LawIntake need to work alongside your current practice-management
-                  system or other tools?</label
-                >
-                <select id="research-alongside" name="alongside_tools">
-                  <option value="">Select an option</option>
-                  <option>Yes, alongside existing tools</option>
-                  <option>Partially</option>
-                  <option>It could replace some tools</option>
-                  <option>Not sure</option>
-                </select>
-              </div>
-
-              <div class="sw-field">
-                <label for="research-useful"
-                  >11. Which part of this sample matter workspace was most useful or least
-                  clear?</label
-                >
-                <textarea id="research-useful" name="useful_or_unclear" rows="4" maxlength="2000"></textarea>
-              </div>
 
               <fieldset class="sw-field">
-                <legend>12. Would you be open to a 15-minute interview or limited pilot?</legend>
+                <legend>
+                  3. Which part of moving a new real-estate matter forward causes the most follow-up
+                  or uncertainty? <span class="sw-required">(required)</span>
+                </legend>
                 <div class="sw-radios">
-                  <label><input type="radio" name="open_to_conversation" value="Yes"> Yes</label>
-                  <label><input type="radio" name="open_to_conversation" value="No"> No</label>
-                  <label><input type="radio" name="open_to_conversation" value="Maybe later"> Maybe later</label>
+                  <label><input type="radio" name="friction" value="Collecting initial client and matter information" required> Collecting initial client and matter information</label>
+                  <label><input type="radio" name="friction" value="Chasing documents or signatures"> Chasing documents or signatures</label>
+                  <label><input type="radio" name="friction" value="Knowing who owns the next action"> Knowing who owns the next action</label>
+                  <label><input type="radio" name="friction" value="Preparing a file for internal review"> Preparing a file for internal review</label>
+                  <label><input type="radio" name="friction" value="Knowing whether the matter is ready for the next handoff"> Knowing whether the matter is ready for the next handoff</label>
+                  <label><input type="radio" name="friction" value="Tracking matter-specific requirements when relevant"> Tracking matter-specific requirements when relevant</label>
+                  <label><input type="radio" name="friction" value="None of these"> None of these</label>
+                  <label><input type="radio" name="friction" value="Other"> Other</label>
+                </div>
+                <div class="sw-field sw-field--conditional" id="research-friction-other-wrap" hidden>
+                  <label for="research-friction-other"
+                    >Please describe the main friction point
+                    <span class="sw-optional">(optional)</span></label
+                  >
+                  <input id="research-friction-other" name="friction_other" type="text" maxlength="200" autocomplete="off">
+                </div>
+              </fieldset>
+
+              <fieldset class="sw-field">
+                <legend>
+                  4. Would you be open to a 15-minute research conversation about your current
+                  workflow? <span class="sw-required">(required)</span>
+                </legend>
+                <div class="sw-radios">
+                  <label><input type="radio" name="open_to_conversation" value="Yes" required> Yes</label>
+                  <label><input type="radio" name="open_to_conversation" value="Maybe"> Maybe</label>
+                  <label><input type="radio" name="open_to_conversation" value="Not right now"> Not right now</label>
+                </div>
+                <div class="sw-field sw-field--conditional" id="research-contact-wrap" hidden>
+                  <label for="research-contact"
+                    >Work email or LinkedIn profile URL
+                    <span class="sw-optional">(optional)</span></label
+                  >
+                  <input
+                    id="research-contact"
+                    name="contact"
+                    type="text"
+                    maxlength="320"
+                    autocomplete="off"
+                    inputmode="email"
+                  >
+                  <p class="sw-field-help">
+                    Only share contact details you are comfortable providing. Do not include client
+                    or matter information.
+                  </p>
                 </div>
               </fieldset>
 
               <div class="sw-field">
-                <label for="research-contact"
-                  >If yes, what is the best work email or LinkedIn profile URL?
+                <label for="research-comment"
+                  >What is one thing you wish was easier to see or follow up on when a new
+                  real-estate matter comes in?
                   <span class="sw-optional">(optional)</span></label
                 >
-                <input
-                  id="research-contact"
-                  name="contact"
-                  type="text"
-                  maxlength="320"
-                  autocomplete="off"
-                  inputmode="email"
-                >
+                <textarea id="research-comment" name="comment" rows="3" maxlength="2000"></textarea>
+                <p class="sw-field-help">
+                  Please keep your answer general. Do not include client, property, financial,
+                  confidential, or privileged information.
+                </p>
               </div>
 
               <p class="sw-privacy">
-                Please do not include confidential client, financial, or highly sensitive matter
-                details. This marketing page does not upload answers to a server. If you share them
-                from your clipboard or in a follow-up conversation, they are used only to understand
-                real-estate law-firm matter workflows and improve LawIntake. Submission of a real
-                enquiry in any product would remain subject to conflict review and firm acceptance.
+                Responses stay on this device unless you choose to copy or share them. Please do not
+                include confidential information.
               </p>
 
               <p id="research-submit-notice" class="sw-form-notice" tabindex="-1" role="status">
@@ -843,17 +775,16 @@
           </section>
 
           <section class="sw-section sw-final-cta" aria-labelledby="final-cta-heading" data-reveal>
-            <h2 id="final-cta-heading">Does this reflect how your team tracks matters?</h2>
+            <h2 id="final-cta-heading">Does this reflect a workflow challenge your team faces?</h2>
             <p>
-              Does this look like a clearer way to see intake, documents, follow-ups, ownership, and
-              matter readiness? LawIntake is being explored as operational workflow support for
-              Florida real-estate law firms—alongside existing procedures and practice-management
-              systems, not as a replacement for professional judgment. Feedback from people who do
-              this work is more valuable than assumptions.
+              Explore the fictional workflow, or share 60-second feedback to help shape LawIntake for
+              Florida real-estate law firms.
             </p>
             <div class="sw-hero__actions">
-              <a class="button" href="#research-questionnaire">Take the research survey</a>
-              <a class="text-link" href="../../insights/">View Insights <span aria-hidden="true">→</span></a>
+              <a class="button" href="https://intake-app-dun.vercel.app/demo">Explore the demo</a>
+              <a class="text-link" href="#research-questionnaire"
+                >Share 60-second feedback <span aria-hidden="true">→</span></a
+              >
             </div>
           </section>
 
@@ -863,12 +794,10 @@
               Illustrative sample only. No real client, firm, property, or confidential data is
               shown. This page is for operational and informational purposes only. It is not legal
               advice, does not create an attorney-client relationship, and does not determine
-              conflicts or legal completeness. Firms configure their own procedures and apply
-              professional judgment. Checklist items and statuses shown are examples and are not
-              identical for every firm or transaction. LawIntake is intended to support workflow
-              visibility; it does not make legal or compliance decisions. Do not enter confidential
-              information in the research questionnaire. Survey answers stay on your device until you
-              choose to copy or share them.
+              conflicts or legal completeness. LawIntake supports workflow visibility; it does not
+              replace firm procedures or professional judgment. Do not enter confidential information
+              in the research questionnaire. Survey answers stay on your device until you choose to
+              copy or share them.
             </p>
           </div>
         </div>
@@ -890,7 +819,7 @@
         </div>
         <div class="footer-links">
           <a href="./">Sample matter workspace</a>
-          <a href="#research-questionnaire">Research survey</a>
+          <a href="#research-questionnaire">60-second feedback</a>
           <a href="../../insights/">Insights</a>
           <a href="https://intake-app-dun.vercel.app/demo">Demo</a>
           <a href="https://intake-app-dun.vercel.app/privacy">Privacy</a>
@@ -903,81 +832,88 @@
         <span>Built for focused legal work.</span>
       </div>
     </footer>
-
     <script src="../../script.js"></script>
     <script>
       (function () {
         var DEMO_URL = "https://intake-app-dun.vercel.app/demo";
         var form = document.getElementById("research-form");
         if (!form) return;
-        var checkboxes = form.querySelectorAll('input[name="status_tracking"]');
-        function syncRequired() {
-          var any = Array.prototype.some.call(checkboxes, function (box) {
-            return box.checked;
-          });
-          Array.prototype.forEach.call(checkboxes, function (box) {
-            box.required = !any;
-          });
-        }
-        Array.prototype.forEach.call(checkboxes, function (box) {
-          box.addEventListener("change", syncRequired);
-        });
-        syncRequired();
 
-        function fieldLabel(el) {
-          if (!el) return "";
-          if (el.name === "status_tracking") {
-            return "Where is matter status mainly tracked today?";
-          }
-          if (el.name === "open_to_conversation") {
-            return "Open to a 15-minute interview or limited pilot?";
-          }
-          var label = form.querySelector('label[for="' + el.id + '"]');
-          if (label) return label.textContent.replace(/\s+/g, " ").trim();
-          var legend = el.closest("fieldset") && el.closest("fieldset").querySelector("legend");
-          return legend ? legend.textContent.replace(/\s+/g, " ").trim() : el.name;
+        function setHidden(el, hidden) {
+          if (!el) return;
+          el.hidden = !!hidden;
+        }
+
+        function syncConditionals() {
+          var role = form.querySelector('input[name="role"]:checked');
+          setHidden(document.getElementById("research-role-other-wrap"), !(role && role.value === "Other"));
+
+          var tracking = form.querySelector('input[name="status_tracking"]:checked');
+          setHidden(
+            document.getElementById("research-tracking-other-wrap"),
+            !(tracking && tracking.value === "Other")
+          );
+
+          var friction = form.querySelector('input[name="friction"]:checked');
+          setHidden(
+            document.getElementById("research-friction-other-wrap"),
+            !(friction && friction.value === "Other")
+          );
+
+          var conversation = form.querySelector('input[name="open_to_conversation"]:checked');
+          var showContact =
+            conversation && (conversation.value === "Yes" || conversation.value === "Maybe");
+          setHidden(document.getElementById("research-contact-wrap"), !showContact);
+        }
+
+        form.addEventListener("change", function (event) {
+          if (event.target && event.target.name) syncConditionals();
+        });
+        syncConditionals();
+
+        function selectedValue(name) {
+          var el = form.querySelector('input[name="' + name + '"]:checked');
+          return el ? el.value : "";
+        }
+
+        function withOther(base, otherId) {
+          if (!base) return "";
+          if (base !== "Other") return base;
+          var other = form.querySelector(otherId);
+          var detail = other && other.value.trim();
+          return detail ? "Other — " + detail : "Other";
         }
 
         function buildAnswersText() {
-          var lines = [
-            "LawIntake — sample matter workspace research answers",
-            "(Copied locally from the marketing page; not uploaded automatically.)",
-            "",
-          ];
-          var role = form.querySelector("#research-role");
-          if (role && role.value) lines.push(fieldLabel(role) + "\n" + role.value);
+          var lines = ["LawIntake workflow pulse check"];
+          var role = withOther(selectedValue("role"), "#research-role-other");
+          if (role) lines.push("", "Role: " + role);
 
-          var tracked = [];
-          Array.prototype.forEach.call(checkboxes, function (box) {
-            if (box.checked) tracked.push(box.value);
-          });
-          if (tracked.length) {
-            lines.push("", fieldLabel(checkboxes[0]) + "\n" + tracked.join("; "));
-          }
+          var tracking = withOther(selectedValue("status_tracking"), "#research-tracking-other");
+          if (tracking) lines.push("Current intake tracking: " + tracking);
 
-          [
-            "#research-firm-size",
-            "#research-enquiry-channel",
-            "#research-chase-method",
-            "#research-ownership",
-            "#research-visibility",
-            "#research-readiness",
-            "#research-specialised",
-            "#research-alongside",
-            "#research-useful",
-            "#research-contact",
-          ].forEach(function (sel) {
-            var el = form.querySelector(sel);
-            if (!el || !String(el.value || "").trim()) return;
-            lines.push("", fieldLabel(el) + "\n" + String(el.value).trim());
-          });
+          var friction = withOther(selectedValue("friction"), "#research-friction-other");
+          if (friction) lines.push("Main follow-up / uncertainty: " + friction);
 
-          var conversation = form.querySelector('input[name="open_to_conversation"]:checked');
+          var conversation = selectedValue("open_to_conversation");
           if (conversation) {
-            lines.push("", fieldLabel(conversation) + "\n" + conversation.value);
+            lines.push("Open to a 15-minute research conversation: " + conversation);
           }
 
-          lines.push("", "Next step: " + DEMO_URL);
+          var contact = form.querySelector("#research-contact");
+          if (
+            contact &&
+            contact.value.trim() &&
+            (conversation === "Yes" || conversation === "Maybe")
+          ) {
+            lines.push("Contact: " + contact.value.trim());
+          }
+
+          var comment = form.querySelector("#research-comment");
+          if (comment && comment.value.trim()) {
+            lines.push("Additional comment: " + comment.value.trim());
+          }
+
           return lines.join("\n");
         }
 
@@ -1005,7 +941,6 @@
           window.location.assign(DEMO_URL);
         }
 
-        // type="button" avoids a no-handler GET navigation if this listener fails to attach.
         var submitBtn = document.getElementById("research-submit");
         if (!submitBtn) return;
         submitBtn.addEventListener("click", function () {

@@ -2459,6 +2459,38 @@ input {
   border-bottom: 0;
 }
 
+.sw-table-wrap tbody tr.sw-table-divider th,
+.sw-table-wrap tbody tr.sw-table-divider td {
+  padding: 0.95rem 1rem;
+  background: #eef4f2;
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 650;
+  line-height: 1.4;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: normal;
+}
+
+.sw-field-help {
+  margin: 0.45rem 0 0;
+  color: #5a6f72;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.sw-field--conditional {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--line);
+}
+
+/* .sw-field uses display:grid, which would override the UA [hidden] rule. */
+.sw-field[hidden],
+.sw-field--conditional[hidden] {
+  display: none !important;
+}
+
 .sw-status {
   display: inline-flex;
   align-items: center;
@@ -2470,6 +2502,10 @@ input {
   font-weight: 750;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+.sw-table-wrap .sw-status {
+  white-space: normal;
 }
 
 .sw-status--complete,
