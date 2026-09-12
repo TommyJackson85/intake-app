@@ -33,9 +33,8 @@ await page.screenshot({
   fullPage: false,
 });
 await page.locator("#research-questionnaire").scrollIntoViewIfNeeded();
-await page.screenshot({
+await page.locator("#research-questionnaire").screenshot({
   path: `${out}/sample-workspace-desktop-survey.png`,
-  fullPage: false,
 });
 
 await page.goto(base + "/", { waitUntil: "networkidle" });
