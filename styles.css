@@ -346,6 +346,13 @@ input {
   align-items: center;
 }
 
+.hero-cta-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
 .hero-points {
   display: flex;
   flex-wrap: wrap;
@@ -1440,6 +1447,11 @@ input {
 
   .hero-actions {
     gap: 20px;
+  }
+
+  .hero-cta-stack {
+    width: 100%;
+    align-items: stretch;
   }
 
   .hero-actions .text-link {
