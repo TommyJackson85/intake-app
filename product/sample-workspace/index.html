@@ -990,8 +990,19 @@
         }
 
         function openDemo() {
-          var opened = window.open(DEMO_URL, "_blank", "noopener,noreferrer");
-          if (!opened) window.location.assign(DEMO_URL);
+          // Do not pass "noopener" as a window.open feature: modern browsers then
+          // return null even when the tab opens, which falsely triggers the
+          // same-tab fallback and navigates away from the survey.
+          var opened = window.open(DEMO_URL, "_blank");
+          if (opened) {
+            try {
+              opened.opener = null;
+            } catch (err) {
+              /* ignore */
+            }
+            return;
+          }
+          window.location.assign(DEMO_URL);
         }
 
         // type="button" avoids a no-handler GET navigation if this listener fails to attach.
