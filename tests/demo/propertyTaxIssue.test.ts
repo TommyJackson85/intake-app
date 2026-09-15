@@ -193,6 +193,10 @@ describe('propertyTaxIssue helpers', () => {
   it('exposes human labels and boundary disclaimer', () => {
     expect(getPropertyTaxIssueKindLabel('assessment_vab')).toMatch(/VAB/i)
     expect(getPropertyTaxIssueKindLabel('ownership_change_tax_risk')).toMatch(/Buyer tax-estimate risk/i)
+    expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(/staff or lawyer review/i)
+    expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(
+      /Dates and requirements should be verified before action is taken/i,
+    )
     expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(/does not provide tax or legal advice/i)
     expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(/filing deadline/i)
     expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(/entitlement to proceeds/i)
