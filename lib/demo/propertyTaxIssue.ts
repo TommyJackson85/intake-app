@@ -1230,7 +1230,7 @@ export function getPropertyTaxKindFactualSummaryLines(
     return [
       `Reported issue: ${assessmentIssueTypeLabel(b.reportedIssueType)}.`,
       ...(taxYear
-        ? [`Tax year (as reported): ${taxYear}.`]
+        ? [`Tax year: ${taxYear}.`]
         : []),
       `TRIM notice: ${triStateLabel(b.noticeReceived) === 'yes' ? 'received' : triStateLabel(b.noticeReceived) === 'no' ? 'not received' : 'unknown'}.`,
       `VAB petition: ${triStateLabel(b.vabPetitionFiled) === 'yes' ? 'filed' : triStateLabel(b.vabPetitionFiled) === 'no' ? 'not filed' : 'unknown'}.`,
