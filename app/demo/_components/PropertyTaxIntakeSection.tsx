@@ -97,6 +97,7 @@ function DatedValueControl({
   onChange,
   readOnly,
   showDeadlineBanner,
+  hint,
 }: {
   id: string
   label: string
@@ -104,6 +105,7 @@ function DatedValueControl({
   onChange: (next: DemoPropertyTaxDatedValue) => void
   readOnly?: boolean
   showDeadlineBanner?: boolean
+  hint?: string
 }) {
   const banner = showDeadlineBanner ? getPropertyTaxStatedDeadlineBanner(value) : null
   return (
@@ -145,6 +147,9 @@ function DatedValueControl({
           ))}
         </select>
       </div>
+      {hint ? (
+        <p style={{ margin: '6px 0 0', fontSize: 12, color: '#627c71', lineHeight: 1.4 }}>{hint}</p>
+      ) : null}
       {banner ? (
         <p style={{ margin: '6px 0 0', fontSize: 12, color: '#627c71', lineHeight: 1.4 }}>{banner}</p>
       ) : null}
