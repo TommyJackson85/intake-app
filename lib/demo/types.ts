@@ -181,6 +181,20 @@ export type DemoPropertyTaxAssessmentVabIssue = {
   reportedIssueType: DemoPropertyTaxAssessmentReportedIssueType
   /** Whether a VAB petition has been filed (client/staff reported — not a filing status). */
   vabPetitionFiled: boolean | null
+  /**
+   * Notice mailing or issue date as entered for staff or lawyer review.
+   * Not a statutory deadline and not inferred automatically.
+   */
+  noticeMailingDate: DemoPropertyTaxDatedValue
+  /**
+   * Notice received date as entered for staff or lawyer review.
+   * Not a statutory deadline and not inferred automatically.
+   */
+  noticeReceivedDate: DemoPropertyTaxDatedValue
+  /**
+   * Legacy single TRIM/notice date. Prefer `noticeMailingDate` / `noticeReceivedDate`.
+   * Still normalized for older persisted rows and mirrored from mailing when set.
+   */
   trimNoticeDate: DemoPropertyTaxDatedValue
   vabFilingDate: DemoPropertyTaxDatedValue
   vabHearingDate: DemoPropertyTaxDatedValue

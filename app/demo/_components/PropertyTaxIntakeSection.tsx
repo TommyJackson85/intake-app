@@ -97,6 +97,7 @@ function DatedValueControl({
   onChange,
   readOnly,
   showDeadlineBanner,
+  hint,
 }: {
   id: string
   label: string
@@ -104,6 +105,7 @@ function DatedValueControl({
   onChange: (next: DemoPropertyTaxDatedValue) => void
   readOnly?: boolean
   showDeadlineBanner?: boolean
+  hint?: string
 }) {
   const banner = showDeadlineBanner ? getPropertyTaxStatedDeadlineBanner(value) : null
   return (
@@ -145,6 +147,9 @@ function DatedValueControl({
           ))}
         </select>
       </div>
+      {hint ? (
+        <p style={{ margin: '6px 0 0', fontSize: 12, color: '#627c71', lineHeight: 1.4 }}>{hint}</p>
+      ) : null}
       {banner ? (
         <p style={{ margin: '6px 0 0', fontSize: 12, color: '#627c71', lineHeight: 1.4 }}>{banner}</p>
       ) : null}
@@ -426,6 +431,10 @@ export default function PropertyTaxIntakeSection({
                   )
                 }
               />
+              <p style={{ margin: 0, fontSize: 12, color: '#627c71', lineHeight: 1.4 }}>
+                Dates are collected for staff or lawyer review and should be verified before action is
+                taken.
+              </p>
               {getPropertyTaxDateFieldsForKind('assessment_vab').map((field) => (
                 <DatedValueControl
                   key={field.key}
@@ -433,6 +442,13 @@ export default function PropertyTaxIntakeSection({
                   label={field.label}
                   value={readDatedField(assessment, field.key)}
                   readOnly={readOnly}
+                  hint={
+                    field.key === 'noticeMailingDate'
+                      ? 'Optional — enter the date shown on the notice or correspondence.'
+                      : field.key === 'noticeReceivedDate'
+                        ? 'Optional — enter the date the client reports receiving the notice.'
+                        : undefined
+                  }
                   onChange={(next) =>
                     emit(patchPropertyTaxDatedField(issue, 'assessment_vab', field.key, next))
                   }

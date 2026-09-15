@@ -82,6 +82,15 @@ function emptyDated(overrides?: Partial<DemoPropertyTaxDatedValue>): DemoPropert
 export function createEmptyAssessmentVabIssue(
   overrides: Partial<Omit<DemoPropertyTaxAssessmentVabIssue, 'kind'>> = {},
 ): DemoPropertyTaxAssessmentVabIssue {
+  const trimNoticeDate = emptyDated(overrides.trimNoticeDate)
+  const noticeMailingDateRaw = emptyDated(overrides.noticeMailingDate)
+  const noticeReceivedDate = emptyDated(overrides.noticeReceivedDate)
+  // Legacy rows stored a single TRIM date — promote into mailing/issue when mailing is unset.
+  const noticeMailingDate =
+    noticeMailingDateRaw.date || !trimNoticeDate.date ? noticeMailingDateRaw : trimNoticeDate
+  // Keep trimNoticeDate aligned with mailing for older readers/tests.
+  const trimSynced = noticeMailingDate.date ? noticeMailingDate : trimNoticeDate
+
   return {
     kind: 'assessment_vab',
     status: isPropertyTaxIssueStatus(overrides.status) ? overrides.status : 'not_started',
@@ -93,7 +102,9 @@ export function createEmptyAssessmentVabIssue(
       ? overrides.reportedIssueType
       : 'unknown',
     vabPetitionFiled: normalizeNullableBoolean(overrides.vabPetitionFiled),
-    trimNoticeDate: emptyDated(overrides.trimNoticeDate),
+    noticeMailingDate,
+    noticeReceivedDate,
+    trimNoticeDate: trimSynced,
     vabFilingDate: emptyDated(overrides.vabFilingDate),
     vabHearingDate: emptyDated(overrides.vabHearingDate),
     availableDocumentIds: normalizeStringIdList(overrides.availableDocumentIds),
@@ -700,7 +711,8 @@ export function getPropertyTaxDateFieldsForKind(kind: DemoPropertyTaxIssueKind):
   switch (kind) {
     case 'assessment_vab':
       return [
-        { key: 'trimNoticeDate', label: 'TRIM notice date' },
+        { key: 'noticeMailingDate', label: 'Notice mailing or issue date' },
+        { key: 'noticeReceivedDate', label: 'Notice received date' },
         { key: 'vabFilingDate', label: 'VAB petition filed date' },
         { key: 'vabHearingDate', label: 'VAB hearing date' },
       ]
@@ -1064,6 +1076,8 @@ function mostRelevantDatePreference(
       return [
         { key: 'vabHearingDate', label: 'VAB hearing date', isStatedDeadline: false },
         { key: 'vabFilingDate', label: 'VAB petition filed date', isStatedDeadline: false },
+        { key: 'noticeReceivedDate', label: 'Notice received date', isStatedDeadline: false },
+        { key: 'noticeMailingDate', label: 'Notice mailing or issue date', isStatedDeadline: false },
         { key: 'trimNoticeDate', label: 'TRIM notice date', isStatedDeadline: false },
       ]
     case 'ownership_change_tax_risk':
@@ -1227,12 +1241,14 @@ export function getPropertyTaxKindFactualSummaryLines(
   if (kind === 'assessment_vab') {
     const b = n.byKind.assessment_vab ?? createEmptyAssessmentVabIssue()
     const taxYear = b.taxYear.trim()
+    const mailing = b.noticeMailingDate.date
+    const received = b.noticeReceivedDate.date
     return [
       `Reported issue: ${assessmentIssueTypeLabel(b.reportedIssueType)}.`,
-      ...(taxYear
-        ? [`Tax year: ${taxYear}.`]
-        : []),
+      ...(taxYear ? [`Tax year: ${taxYear}.`] : []),
       `TRIM notice: ${triStateLabel(b.noticeReceived) === 'yes' ? 'received' : triStateLabel(b.noticeReceived) === 'no' ? 'not received' : 'unknown'}.`,
+      ...(mailing ? [`Notice mailed/issued: ${mailing}.`] : []),
+      ...(received ? [`Notice received: ${received}.`] : []),
       `VAB petition: ${triStateLabel(b.vabPetitionFiled) === 'yes' ? 'filed' : triStateLabel(b.vabPetitionFiled) === 'no' ? 'not filed' : 'unknown'}.`,
     ]
   }
