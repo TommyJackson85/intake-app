@@ -392,7 +392,7 @@ export default function PropertyTaxIntakeSection({
               </div>
               <div>
                 <label htmlFor={`${idPrefix}-ptx-tax-year`} style={labelStyle}>
-                  Tax year (optional)
+                  Tax year
                 </label>
                 <input
                   id={`${idPrefix}-ptx-tax-year`}
@@ -408,7 +408,7 @@ export default function PropertyTaxIntakeSection({
                   style={{ ...fieldStyle, background: readOnly ? '#f4f4f0' : 'white' }}
                 />
                 <div style={{ marginTop: 4, fontSize: 12, color: '#627c71', lineHeight: 1.4 }}>
-                  As reported for firm review — not a filing-year determination or deadline calculation.
+                  Optional — enter the tax year shown on the notice or correspondence.
                 </div>
               </div>
               <TriStateRadios
