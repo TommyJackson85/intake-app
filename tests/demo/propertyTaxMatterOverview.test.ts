@@ -190,11 +190,21 @@ describe('property tax matter Overview helpers (Step 3)', () => {
       noticeReceived: true,
       reportedIssueType: 'assessed_value',
       vabPetitionFiled: false,
+      taxYear: '2026',
     })
     const lines = getPropertyTaxKindFactualSummaryLines('assessment_vab', issue).join(' ')
     expect(lines).toMatch(/assessed value/i)
+    expect(lines).toMatch(/Tax year \(as reported\): 2026/i)
     expect(lines).toMatch(/TRIM notice: received/i)
     expect(lines).not.toMatch(/tax-deed|surplus|certificate holder/i)
+    expect(lines).not.toMatch(/filing-year determination|statutory deadline|eligible/i)
+  })
+
+  it('omits tax year from Assessment/VAB summary when blank', () => {
+    let issue = togglePropertyTaxIssueKind(null, 'assessment_vab', true)
+    issue = patchPropertyTaxAssessmentBranch(issue, { taxYear: '   ' })
+    const lines = getPropertyTaxKindFactualSummaryLines('assessment_vab', issue).join(' ')
+    expect(lines).not.toMatch(/Tax year/i)
   })
 
   it('tax-deed row summaries exclude VAB/assessment language', () => {

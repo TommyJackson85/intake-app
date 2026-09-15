@@ -136,6 +136,7 @@ export function buildAssessmentVabDemoPropertyTaxIssue(): DemoPropertyTaxIssue {
         status: 'needs_more_info',
         notes: 'TRIM available; Property Appraiser correspondence and valuation support still unknown/unavailable.',
         parcelOrFolio: 'DEMO-FOLIO-1001-BV',
+        taxYear: '2026',
         noticeReceived: true,
         reportedIssueType: 'assessed_value',
         vabPetitionFiled: null,

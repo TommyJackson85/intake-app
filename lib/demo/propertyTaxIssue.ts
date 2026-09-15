@@ -87,6 +87,7 @@ export function createEmptyAssessmentVabIssue(
     status: isPropertyTaxIssueStatus(overrides.status) ? overrides.status : 'not_started',
     notes: typeof overrides.notes === 'string' ? overrides.notes : '',
     parcelOrFolio: typeof overrides.parcelOrFolio === 'string' ? overrides.parcelOrFolio : '',
+    taxYear: typeof overrides.taxYear === 'string' ? overrides.taxYear : '',
     noticeReceived: normalizeNullableBoolean(overrides.noticeReceived),
     reportedIssueType: isAssessmentReportedIssueType(overrides.reportedIssueType)
       ? overrides.reportedIssueType
@@ -1225,8 +1226,12 @@ export function getPropertyTaxKindFactualSummaryLines(
   const n = normalizePropertyTaxIssue(issue)
   if (kind === 'assessment_vab') {
     const b = n.byKind.assessment_vab ?? createEmptyAssessmentVabIssue()
+    const taxYear = b.taxYear.trim()
     return [
       `Reported issue: ${assessmentIssueTypeLabel(b.reportedIssueType)}.`,
+      ...(taxYear
+        ? [`Tax year (as reported): ${taxYear}.`]
+        : []),
       `TRIM notice: ${triStateLabel(b.noticeReceived) === 'yes' ? 'received' : triStateLabel(b.noticeReceived) === 'no' ? 'not received' : 'unknown'}.`,
       `VAB petition: ${triStateLabel(b.vabPetitionFiled) === 'yes' ? 'filed' : triStateLabel(b.vabPetitionFiled) === 'no' ? 'not filed' : 'unknown'}.`,
     ]
