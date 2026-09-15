@@ -156,12 +156,13 @@ export type DemoPropertyTaxIssueStatus =
   | 'needs_more_info'
   | 'ready_for_attorney_review'
 
-/** Assessment / exemption / classification / portability / VAB facts. */
+/** Assessment / exemption / classification / portability / deferral / VAB facts. */
 export type DemoPropertyTaxAssessmentReportedIssueType =
   | 'assessed_value'
   | 'exemption'
   | 'classification'
   | 'portability'
+  | 'deferral'
   | 'other'
   | 'unknown'
 

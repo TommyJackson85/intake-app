@@ -1,17 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import {
+  PROPERTY_TAX_ASSESSMENT_REPORTED_ISSUE_OPTIONS,
   PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER,
   createEmptyPropertyTaxIssue,
   getPropertyTaxDateFieldsForKind,
   getPropertyTaxDateVerificationLabel,
   getPropertyTaxDocumentChecklist,
   getPropertyTaxIssueKindLabel,
+  getPropertyTaxKindFactualSummaryLines,
   hasPropertyTaxIssueKind,
+  isAssessmentReportedIssueType,
   isIsoDateOnly,
   isPropertyTaxBranchActive,
   isPropertyTaxDateWithinSoftUrgencyWindow,
   normalizePropertyTaxIssue,
   parseOrNullIsoDateOnly,
+  patchPropertyTaxAssessmentBranch,
   propertyTaxDateNeedsVerification,
   setPropertyTaxIssueEnabled,
   togglePropertyTaxIssueKind,
@@ -192,9 +196,29 @@ describe('propertyTaxIssue helpers', () => {
 
   it('exposes human labels and boundary disclaimer', () => {
     expect(getPropertyTaxIssueKindLabel('assessment_vab')).toMatch(/VAB/i)
+    expect(getPropertyTaxIssueKindLabel('assessment_vab')).toMatch(/deferral/i)
     expect(getPropertyTaxIssueKindLabel('ownership_change_tax_risk')).toMatch(/Buyer tax-estimate risk/i)
     expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(/does not provide tax or legal advice/i)
     expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(/filing deadline/i)
     expect(PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER).toMatch(/entitlement to proceeds/i)
+  })
+
+  it('accepts tax deferral as an optional assessment reported-issue type without eligibility claims', () => {
+    expect(isAssessmentReportedIssueType('deferral')).toBe(true)
+    expect(PROPERTY_TAX_ASSESSMENT_REPORTED_ISSUE_OPTIONS.some((o) => o.value === 'deferral')).toBe(
+      true,
+    )
+    expect(
+      PROPERTY_TAX_ASSESSMENT_REPORTED_ISSUE_OPTIONS.find((o) => o.value === 'deferral')?.label,
+    ).toBe('Tax deferral')
+
+    let issue = togglePropertyTaxIssueKind(null, 'assessment_vab', true)
+    issue = patchPropertyTaxAssessmentBranch(issue, { reportedIssueType: 'deferral' })
+    const normalized = normalizePropertyTaxIssue(issue)
+
+    expect(normalized.byKind.assessment_vab?.reportedIssueType).toBe('deferral')
+    const summary = getPropertyTaxKindFactualSummaryLines('assessment_vab', normalized).join(' ')
+    expect(summary).toMatch(/Reported issue: tax deferral/i)
+    expect(summary).not.toMatch(/eligible|valid case|file a petition|statutory deadline/i)
   })
 })
