@@ -432,9 +432,8 @@ export default function PropertyTaxIntakeSection({
                 }
               />
               <p style={{ margin: 0, fontSize: 12, color: '#627c71', lineHeight: 1.4 }}>
-                Optional — enter the date shown on the notice or correspondence. Information is
-                collected for staff or lawyer review. Dates and requirements should be verified before
-                action is taken.
+                Dates are collected for staff or lawyer review and should be verified before action is
+                taken.
               </p>
               {getPropertyTaxDateFieldsForKind('assessment_vab').map((field) => (
                 <DatedValueControl
@@ -443,6 +442,13 @@ export default function PropertyTaxIntakeSection({
                   label={field.label}
                   value={readDatedField(assessment, field.key)}
                   readOnly={readOnly}
+                  hint={
+                    field.key === 'noticeMailingDate'
+                      ? 'Optional — enter the date shown on the notice or correspondence.'
+                      : field.key === 'noticeReceivedDate'
+                        ? 'Optional — enter the date the client reports receiving the notice.'
+                        : undefined
+                  }
                   onChange={(next) =>
                     emit(patchPropertyTaxDatedField(issue, 'assessment_vab', field.key, next))
                   }
