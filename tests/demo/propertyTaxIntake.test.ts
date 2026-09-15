@@ -184,6 +184,7 @@ describe('property tax intake (Step 2) visibility and state', () => {
       noticeReceived: true,
       reportedIssueType: 'exemption',
       vabPetitionFiled: false,
+      taxYear: '2025',
     })
 
     issue = togglePropertyTaxIssueKind(issue, 'ownership_change_tax_risk', true)
@@ -203,6 +204,7 @@ describe('property tax intake (Step 2) visibility and state', () => {
 
     const snap = propertyTaxIssueForIntakeSnapshot(issue, '22 Bay St, Tampa, FL 33602')
     expect(snap?.byKind.assessment_vab?.reportedIssueType).toBe('exemption')
+    expect(snap?.byKind.assessment_vab?.taxYear).toBe('2025')
     expect(snap?.byKind.ownership_change_tax_risk?.buyerIntendedUse).toBe('owner_occupant')
     expect(snap?.byKind.delinquent_tax_deed_surplus?.situations).toEqual([
       'tax_deed_sale',
@@ -211,5 +213,34 @@ describe('property tax intake (Step 2) visibility and state', () => {
     expect(
       getPropertyTaxStatedDeadlineBanner(snap!.byKind.delinquent_tax_deed_surplus!.surplusNoticeDeadlineDate),
     ).toMatch(/firm verification required/i)
+  })
+
+  it('defaults missing assessment taxYear to empty string on normalize', () => {
+    const legacy = normalizePropertyTaxIssue({
+      enabled: true,
+      involvement: 'yes',
+      kinds: ['assessment_vab'],
+      byKind: {
+        assessment_vab: {
+          kind: 'assessment_vab',
+          status: 'not_started',
+          notes: '',
+          parcelOrFolio: '',
+          noticeReceived: null,
+          reportedIssueType: 'unknown',
+          vabPetitionFiled: null,
+          trimNoticeDate: { date: null, source: 'unknown' },
+          vabFilingDate: { date: null, source: 'unknown' },
+          vabHearingDate: { date: null, source: 'unknown' },
+          availableDocumentIds: [],
+        },
+      },
+      floridaCounty: '',
+      parcelOrFolio: '',
+      clientIssueDescription: '',
+      opposingPartyOrAgency: '',
+      internalNotes: '',
+    })
+    expect(legacy.byKind.assessment_vab?.taxYear).toBe('')
   })
 })

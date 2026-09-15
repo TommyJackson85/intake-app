@@ -136,6 +136,7 @@ describe('property-tax demo scenarios (Step 6)', () => {
     const branch = issue.byKind.assessment_vab!
     expect(branch.noticeReceived).toBe(true)
     expect(branch.reportedIssueType).toBe('assessed_value')
+    expect(branch.taxYear).toBe('2026')
     expect(branch.vabPetitionFiled).toBeNull()
     expect(branch.trimNoticeDate).toEqual({ date: '2026-08-18', source: 'client_reported' })
     expect(branch.vabHearingDate.source).toMatch(/documented|client_reported/)

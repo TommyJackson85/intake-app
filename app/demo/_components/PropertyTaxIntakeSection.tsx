@@ -390,6 +390,27 @@ export default function PropertyTaxIntakeSection({
                   ))}
                 </select>
               </div>
+              <div>
+                <label htmlFor={`${idPrefix}-ptx-tax-year`} style={labelStyle}>
+                  Tax year (optional)
+                </label>
+                <input
+                  id={`${idPrefix}-ptx-tax-year`}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="e.g. 2026"
+                  value={assessment.taxYear}
+                  disabled={readOnly}
+                  onChange={(e) =>
+                    emit(patchPropertyTaxAssessmentBranch(issue, { taxYear: e.target.value }))
+                  }
+                  style={{ ...fieldStyle, background: readOnly ? '#f4f4f0' : 'white' }}
+                />
+                <div style={{ marginTop: 4, fontSize: 12, color: '#627c71', lineHeight: 1.4 }}>
+                  As reported for firm review — not a filing-year determination or deadline calculation.
+                </div>
+              </div>
               <TriStateRadios
                 name={`${idPrefix}-ptx-vab-filed`}
                 legend="Has a VAB petition been filed?"
