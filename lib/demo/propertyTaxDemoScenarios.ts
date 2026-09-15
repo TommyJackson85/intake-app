@@ -133,7 +133,7 @@ export function buildAssessmentVabDemoPropertyTaxIssue(): DemoPropertyTaxIssue {
       'Demo next step: Request available assessment records and verify reported dates for attorney review. Not a validity determination.',
     byKind: {
       assessment_vab: createEmptyAssessmentVabIssue({
-        status: 'needs_more_info',
+        status: 'needs_property_tax_specialist_review',
         notes: 'TRIM available; Property Appraiser correspondence and valuation support still unknown/unavailable.',
         parcelOrFolio: 'DEMO-FOLIO-1001-BV',
         taxYear: '2026',
