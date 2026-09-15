@@ -711,7 +711,7 @@ export function getPropertyTaxDateFieldsForKind(kind: DemoPropertyTaxIssueKind):
   switch (kind) {
     case 'assessment_vab':
       return [
-        { key: 'noticeMailingDate', label: 'Notice mailing/issue date' },
+        { key: 'noticeMailingDate', label: 'Notice mailing or issue date' },
         { key: 'noticeReceivedDate', label: 'Notice received date' },
         { key: 'vabFilingDate', label: 'VAB petition filed date' },
         { key: 'vabHearingDate', label: 'VAB hearing date' },
@@ -1077,7 +1077,7 @@ function mostRelevantDatePreference(
         { key: 'vabHearingDate', label: 'VAB hearing date', isStatedDeadline: false },
         { key: 'vabFilingDate', label: 'VAB petition filed date', isStatedDeadline: false },
         { key: 'noticeReceivedDate', label: 'Notice received date', isStatedDeadline: false },
-        { key: 'noticeMailingDate', label: 'Notice mailing/issue date', isStatedDeadline: false },
+        { key: 'noticeMailingDate', label: 'Notice mailing or issue date', isStatedDeadline: false },
         { key: 'trimNoticeDate', label: 'TRIM notice date', isStatedDeadline: false },
       ]
     case 'ownership_change_tax_risk':
@@ -1247,7 +1247,7 @@ export function getPropertyTaxKindFactualSummaryLines(
       `Reported issue: ${assessmentIssueTypeLabel(b.reportedIssueType)}.`,
       ...(taxYear ? [`Tax year: ${taxYear}.`] : []),
       `TRIM notice: ${triStateLabel(b.noticeReceived) === 'yes' ? 'received' : triStateLabel(b.noticeReceived) === 'no' ? 'not received' : 'unknown'}.`,
-      ...(mailing ? [`Notice mailing/issue date: ${mailing}.`] : []),
+      ...(mailing ? [`Notice mailing or issue date: ${mailing}.`] : []),
       ...(received ? [`Notice received date: ${received}.`] : []),
       `VAB petition: ${triStateLabel(b.vabPetitionFiled) === 'yes' ? 'filed' : triStateLabel(b.vabPetitionFiled) === 'no' ? 'not filed' : 'unknown'}.`,
     ]

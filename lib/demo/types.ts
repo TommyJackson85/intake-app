@@ -182,7 +182,7 @@ export type DemoPropertyTaxAssessmentVabIssue = {
   /** Whether a VAB petition has been filed (client/staff reported — not a filing status). */
   vabPetitionFiled: boolean | null
   /**
-   * Notice mailing/issue date as entered for staff or lawyer review.
+   * Notice mailing or issue date as entered for staff or lawyer review.
    * Not a statutory deadline and not inferred automatically.
    */
   noticeMailingDate: DemoPropertyTaxDatedValue
