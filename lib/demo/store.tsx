@@ -25,6 +25,8 @@ import type {
   DemoIntakeSnapshot,
   DemoMatter,
   DemoPartyType,
+  DemoPropertyTaxIssueKind,
+  DemoPropertyTaxIssueStatus,
   DemoSeedData,
   DemoTaskStatus,
   DemoCondoDiligence,
@@ -138,6 +140,13 @@ import {
   validateObjectMap,
   writeDemoPersistedData,
 } from '@/lib/demo/demoPersistence'
+import {
+  isPropertyTaxIssueStatus,
+  normalizePropertyTaxIssue,
+  patchPropertyTaxAssessmentBranch,
+  patchPropertyTaxDelinquentBranch,
+  patchPropertyTaxOwnershipBranch,
+} from '@/lib/demo/propertyTaxIssue'
 
 type DemoContextType = {
   demoFirm: DemoSeedData['demoFirm']
@@ -157,6 +166,15 @@ type DemoContextType = {
   getMatterById: (matterId: string) => DemoMatter | undefined
   getArchivedMatterById: (matterId: string) => DemoMatter | undefined
   updateMatterStatus: (matterId: string, status: DemoMatter['status']) => void
+  /**
+   * Staff-only internal property-tax kind status (demo).
+   * Operational hand-off flag — not a legal referral or filing determination.
+   */
+  updateMatterPropertyTaxKindStatus: (
+    matterId: string,
+    kind: DemoPropertyTaxIssueKind,
+    status: DemoPropertyTaxIssueStatus,
+  ) => boolean
   toggleTaskComplete: (matterId: string, taskId: string) => void
   updateTaskStatus: (matterId: string, taskId: string, status: DemoTaskStatus) => void
   addTimelineNote: (matterId: string, note: string) => void
@@ -994,6 +1012,30 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           ...prev,
           matters: prev.matters.map((m) => (m.id === matterId && !m.deletedAt ? { ...m, status } : m)),
         }))
+      },
+      updateMatterPropertyTaxKindStatus: (matterId, kind, status) => {
+        if (!isPropertyTaxIssueStatus(status)) return false
+        let updated = false
+        setState((prev) => {
+          const matters = prev.matters.map((m) => {
+            if (m.id !== matterId || m.deletedAt || !m.propertyTaxIssue) return m
+            const current = normalizePropertyTaxIssue(m.propertyTaxIssue)
+            if (!current.kinds.includes(kind)) return m
+            let nextIssue = current
+            if (kind === 'assessment_vab') {
+              nextIssue = patchPropertyTaxAssessmentBranch(current, { status })
+            } else if (kind === 'ownership_change_tax_risk') {
+              nextIssue = patchPropertyTaxOwnershipBranch(current, { status })
+            } else {
+              nextIssue = patchPropertyTaxDelinquentBranch(current, { status })
+            }
+            updated = true
+            return { ...m, propertyTaxIssue: nextIssue }
+          })
+          if (updated) queueMicrotask(() => persistDemoMatters(matters))
+          return updated ? { ...prev, matters } : prev
+        })
+        return updated
       },
       toggleTaskComplete: (matterId, taskId) => {
         setState((prev) => ({
