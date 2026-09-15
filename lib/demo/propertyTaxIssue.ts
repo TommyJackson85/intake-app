@@ -223,6 +223,7 @@ export function isAssessmentReportedIssueType(
     value === 'exemption' ||
     value === 'classification' ||
     value === 'portability' ||
+    value === 'deferral' ||
     value === 'other' ||
     value === 'unknown'
   )
@@ -436,7 +437,7 @@ export function setPropertyTaxIssueEnabled(
 export function getPropertyTaxIssueKindLabel(kind: DemoPropertyTaxIssueKind): string {
   switch (kind) {
     case 'assessment_vab':
-      return 'Assessment / exemption / classification / portability / VAB'
+      return 'Assessment / exemption / classification / portability / deferral / VAB'
     case 'ownership_change_tax_risk':
       return 'Buyer tax-estimate risk after purchase or sale'
     case 'delinquent_tax_deed_surplus':
@@ -465,6 +466,7 @@ export const PROPERTY_TAX_ASSESSMENT_REPORTED_ISSUE_OPTIONS: readonly {
   { value: 'exemption', label: 'Exemption' },
   { value: 'classification', label: 'Classification' },
   { value: 'portability', label: 'Portability' },
+  { value: 'deferral', label: 'Tax deferral' },
   { value: 'other', label: 'Other' },
   { value: 'unknown', label: 'Unknown' },
 ] as const
@@ -1137,6 +1139,8 @@ function assessmentIssueTypeLabel(value: DemoPropertyTaxAssessmentReportedIssueT
       return 'classification'
     case 'portability':
       return 'portability'
+    case 'deferral':
+      return 'tax deferral'
     case 'other':
       return 'other'
     case 'unknown':

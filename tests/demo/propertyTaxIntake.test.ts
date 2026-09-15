@@ -212,4 +212,12 @@ describe('property tax intake (Step 2) visibility and state', () => {
       getPropertyTaxStatedDeadlineBanner(snap!.byKind.delinquent_tax_deed_surplus!.surplusNoticeDeadlineDate),
     ).toMatch(/firm verification required/i)
   })
+
+  it('persists tax deferral as a reported assessment issue type through intake snapshot', () => {
+    let issue = setPropertyTaxInvolvement(null, 'yes')
+    issue = togglePropertyTaxIssueKind(issue, 'assessment_vab', true)
+    issue = patchPropertyTaxAssessmentBranch(issue, { reportedIssueType: 'deferral' })
+    const snap = propertyTaxIssueForIntakeSnapshot(issue, '22 Bay St, Tampa, FL 33602')
+    expect(snap?.byKind.assessment_vab?.reportedIssueType).toBe('deferral')
+  })
 })
