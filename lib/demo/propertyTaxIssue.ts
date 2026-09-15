@@ -931,11 +931,11 @@ export function propertyTaxIssueForIntakeSnapshot(
 }
 
 export const PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER =
-  'This section helps the firm organize facts, documents, and internal review. It does not provide tax or legal advice, determine appeal rights, establish a filing deadline, determine redemption rights, rank liens, or determine entitlement to proceeds.'
+  'Information is collected for staff or lawyer review. Dates and requirements should be verified before action is taken. This section does not provide tax or legal advice, determine appeal rights, establish a filing deadline, determine redemption rights, rank liens, or determine entitlement to proceeds.'
 
 /** Compact Overview panel footer — organizes facts only; not legal/tax advice. */
 export const PROPERTY_TAX_MATTER_OVERVIEW_DISCLAIMER =
-  'This information organizes intake facts and review tasks for the firm. It does not provide legal or tax advice, determine filing rights or deadlines, determine redemption rights, rank liens, or determine entitlement to proceeds.'
+  'Information is collected for staff or lawyer review. Dates and requirements should be verified before action is taken. This panel does not provide legal or tax advice, determine filing rights or deadlines, determine redemption rights, rank liens, or determine entitlement to proceeds.'
 
 export const PROPERTY_TAX_INTAKE_SECTION_TITLE = 'Florida Property-Tax & Tax-Deed Issues'
 

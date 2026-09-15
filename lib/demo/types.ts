@@ -171,8 +171,9 @@ export type DemoPropertyTaxAssessmentVabIssue = {
   notes: string
   parcelOrFolio: string
   /**
-   * Tax year as reported for firm review (free text, e.g. `2026`).
-   * Not a filing-year determination and not used to calculate deadlines.
+   * Tax year shown on the notice or correspondence (free text, e.g. `2026`).
+   * Collected for staff or lawyer review — verify before action; not a filing-year
+   * determination and not used to calculate deadlines.
    */
   taxYear: string
   /** Whether the client reports receiving a TRIM or similar notice. */

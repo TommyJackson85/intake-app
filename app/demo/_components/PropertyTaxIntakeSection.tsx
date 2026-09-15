@@ -408,7 +408,9 @@ export default function PropertyTaxIntakeSection({
                   style={{ ...fieldStyle, background: readOnly ? '#f4f4f0' : 'white' }}
                 />
                 <div style={{ marginTop: 4, fontSize: 12, color: '#627c71', lineHeight: 1.4 }}>
-                  Optional — enter the tax year shown on the notice or correspondence.
+                  Optional — enter the tax year shown on the notice or correspondence. Information is
+                  collected for staff or lawyer review. Dates and requirements should be verified before
+                  action is taken.
                 </div>
               </div>
               <TriStateRadios
