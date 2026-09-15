@@ -427,7 +427,7 @@ export default function PropertyTaxIntakeSection({
                 }
               />
               <p style={{ margin: 0, fontSize: 12, color: '#627c71', lineHeight: 1.4 }}>
-                Optional notice dates — enter values shown on the notice or as reported. Information is
+                Optional — enter the date shown on the notice or correspondence. Information is
                 collected for staff or lawyer review. Dates and requirements should be verified before
                 action is taken.
               </p>
