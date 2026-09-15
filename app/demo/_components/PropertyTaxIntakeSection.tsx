@@ -426,6 +426,11 @@ export default function PropertyTaxIntakeSection({
                   )
                 }
               />
+              <p style={{ margin: 0, fontSize: 12, color: '#627c71', lineHeight: 1.4 }}>
+                Optional notice dates — enter values shown on the notice or as reported. Information is
+                collected for staff or lawyer review. Dates and requirements should be verified before
+                action is taken.
+              </p>
               {getPropertyTaxDateFieldsForKind('assessment_vab').map((field) => (
                 <DatedValueControl
                   key={field.key}

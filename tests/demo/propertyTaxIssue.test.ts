@@ -152,7 +152,8 @@ describe('propertyTaxIssue helpers', () => {
 
   it('builds kind-specific date field maps and document checklists', () => {
     expect(getPropertyTaxDateFieldsForKind('assessment_vab').map((f) => f.key)).toEqual([
-      'trimNoticeDate',
+      'noticeMailingDate',
+      'noticeReceivedDate',
       'vabFilingDate',
       'vabHearingDate',
     ])

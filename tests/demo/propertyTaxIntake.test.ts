@@ -68,7 +68,8 @@ describe('property tax intake (Step 2) visibility and state', () => {
     let issue = setPropertyTaxInvolvement(null, 'yes')
     issue = togglePropertyTaxIssueKind(issue, 'assessment_vab', true)
     expect(getPropertyTaxDateFieldsForKind('assessment_vab').map((f) => f.key)).toEqual([
-      'trimNoticeDate',
+      'noticeMailingDate',
+      'noticeReceivedDate',
       'vabFilingDate',
       'vabHearingDate',
     ])
@@ -95,21 +96,75 @@ describe('property tax intake (Step 2) visibility and state', () => {
     )
   })
 
-  it('retains date verification state on entered dates', () => {
+  it('retains date verification state on entered notice mailing and received dates', () => {
     let issue = togglePropertyTaxIssueKind(null, 'assessment_vab', true)
-    issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'trimNoticeDate', {
+    issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'noticeMailingDate', {
       date: '2026-08-15',
       source: 'documented',
     })
+    issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'noticeReceivedDate', {
+      date: '2026-08-18',
+      source: 'client_reported',
+    })
+    expect(issue.byKind.assessment_vab?.noticeMailingDate).toEqual({
+      date: '2026-08-15',
+      source: 'documented',
+    })
+    expect(issue.byKind.assessment_vab?.noticeReceivedDate).toEqual({
+      date: '2026-08-18',
+      source: 'client_reported',
+    })
+    // Legacy trimNoticeDate stays mirrored from mailing for older readers.
     expect(issue.byKind.assessment_vab?.trimNoticeDate).toEqual({
       date: '2026-08-15',
       source: 'documented',
     })
 
     const again = normalizePropertyTaxIssue(JSON.parse(JSON.stringify(issue)))
-    expect(again.byKind.assessment_vab?.trimNoticeDate).toEqual({
+    expect(again.byKind.assessment_vab?.noticeMailingDate).toEqual({
       date: '2026-08-15',
       source: 'documented',
+    })
+    expect(again.byKind.assessment_vab?.noticeReceivedDate).toEqual({
+      date: '2026-08-18',
+      source: 'client_reported',
+    })
+  })
+
+  it('promotes legacy trimNoticeDate into noticeMailingDate without inventing received date', () => {
+    const legacy = normalizePropertyTaxIssue({
+      enabled: true,
+      involvement: 'yes',
+      kinds: ['assessment_vab'],
+      byKind: {
+        assessment_vab: {
+          kind: 'assessment_vab',
+          status: 'not_started',
+          notes: '',
+          parcelOrFolio: '',
+          taxYear: '',
+          noticeReceived: true,
+          reportedIssueType: 'assessed_value',
+          vabPetitionFiled: null,
+          trimNoticeDate: { date: '2026-07-01', source: 'client_reported' },
+          vabFilingDate: { date: null, source: 'unknown' },
+          vabHearingDate: { date: null, source: 'unknown' },
+          availableDocumentIds: [],
+        },
+      },
+      floridaCounty: '',
+      parcelOrFolio: '',
+      clientIssueDescription: '',
+      opposingPartyOrAgency: '',
+      internalNotes: '',
+    })
+    expect(legacy.byKind.assessment_vab?.noticeMailingDate).toEqual({
+      date: '2026-07-01',
+      source: 'client_reported',
+    })
+    expect(legacy.byKind.assessment_vab?.noticeReceivedDate).toEqual({
+      date: null,
+      source: 'unknown',
     })
   })
 
@@ -230,6 +285,8 @@ describe('property tax intake (Step 2) visibility and state', () => {
           reportedIssueType: 'unknown',
           vabPetitionFiled: null,
           trimNoticeDate: { date: null, source: 'unknown' },
+          noticeMailingDate: { date: null, source: 'unknown' },
+          noticeReceivedDate: { date: null, source: 'unknown' },
           vabFilingDate: { date: null, source: 'unknown' },
           vabHearingDate: { date: null, source: 'unknown' },
           availableDocumentIds: [],

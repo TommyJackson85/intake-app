@@ -64,7 +64,7 @@ describe('property tax lead → matter mapping (Step 3)', () => {
       reportedIssueType: 'assessed_value',
       status: 'needs_more_info',
     })
-    issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'trimNoticeDate', {
+    issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'noticeMailingDate', {
       date: '2026-08-15',
       source: 'client_reported',
     })
@@ -83,6 +83,10 @@ describe('property tax lead → matter mapping (Step 3)', () => {
     const mapped = mapIntakeLeadToNewMatterInitialValues(lead)
     expect(mapped.propertyTaxIssue?.kinds).toEqual(['assessment_vab'])
     expect(mapped.propertyTaxIssue?.byKind.assessment_vab?.reportedIssueType).toBe('assessed_value')
+    expect(mapped.propertyTaxIssue?.byKind.assessment_vab?.noticeMailingDate).toEqual({
+      date: '2026-08-15',
+      source: 'client_reported',
+    })
     expect(mapped.propertyTaxIssue?.byKind.assessment_vab?.trimNoticeDate).toEqual({
       date: '2026-08-15',
       source: 'client_reported',
@@ -191,10 +195,14 @@ describe('property tax matter Overview helpers (Step 3)', () => {
       reportedIssueType: 'assessed_value',
       vabPetitionFiled: false,
       taxYear: '2026',
+      noticeMailingDate: { date: '2026-08-10', source: 'client_reported' },
+      noticeReceivedDate: { date: '2026-08-12', source: 'documented' },
     })
     const lines = getPropertyTaxKindFactualSummaryLines('assessment_vab', issue).join(' ')
     expect(lines).toMatch(/assessed value/i)
     expect(lines).toMatch(/Tax year: 2026/i)
+    expect(lines).toMatch(/Notice mailing\/issue date: 2026-08-10/i)
+    expect(lines).toMatch(/Notice received date: 2026-08-12/i)
     expect(lines).toMatch(/TRIM notice: received/i)
     expect(lines).not.toMatch(/tax-deed|surplus|certificate holder/i)
     expect(lines).not.toMatch(/filing-year determination|statutory deadline|eligible/i)

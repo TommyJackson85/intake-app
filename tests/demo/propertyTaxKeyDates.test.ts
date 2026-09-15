@@ -19,9 +19,13 @@ describe('property-tax Key Dates helpers (Step 5)', () => {
   it('groups Assessment/VAB dates with correct verification badges', () => {
     let issue = setPropertyTaxInvolvement(null, 'yes')
     issue = togglePropertyTaxIssueKind(issue, 'assessment_vab', true)
-    issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'trimNoticeDate', {
+    issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'noticeMailingDate', {
       date: '2026-08-15',
       source: 'client_reported',
+    })
+    issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'noticeReceivedDate', {
+      date: '2026-08-18',
+      source: 'documented',
     })
     issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'vabHearingDate', {
       date: '2026-09-20',
@@ -32,11 +36,14 @@ describe('property-tax Key Dates helpers (Step 5)', () => {
     expect(model.groups).toHaveLength(1)
     expect(model.groups[0]?.kind).toBe('assessment_vab')
     expect(model.groups[0]?.kindLabel).toMatch(/VAB/i)
-    expect(model.recordedDateCount).toBe(2)
+    expect(model.recordedDateCount).toBe(3)
 
-    const trim = model.groups[0]?.rows.find((r) => r.fieldKey === 'trimNoticeDate')
+    const mailing = model.groups[0]?.rows.find((r) => r.fieldKey === 'noticeMailingDate')
+    const received = model.groups[0]?.rows.find((r) => r.fieldKey === 'noticeReceivedDate')
     const hearing = model.groups[0]?.rows.find((r) => r.fieldKey === 'vabHearingDate')
-    expect(trim?.verificationLabel).toBe('Client-reported')
+    expect(mailing?.label).toMatch(/mailing\/issue/i)
+    expect(mailing?.verificationLabel).toBe('Client-reported')
+    expect(received?.verificationLabel).toBe('Documented')
     expect(hearing?.verificationLabel).toBe('Documented')
     expect(model.groups[0]?.rows.every((r) => r.kind === 'assessment_vab')).toBe(true)
     expect(model.footer).not.toMatch(/legally binding|legally controlling/i)
@@ -134,7 +141,7 @@ describe('property-tax Key Dates helpers (Step 5)', () => {
     let issue = setPropertyTaxInvolvement(null, 'yes')
     issue = togglePropertyTaxIssueKind(issue, 'assessment_vab', true)
     issue = togglePropertyTaxIssueKind(issue, 'delinquent_tax_deed_surplus', true)
-    issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'trimNoticeDate', {
+    issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'noticeMailingDate', {
       date: '2026-08-01',
       source: 'documented',
     })
@@ -190,12 +197,12 @@ describe('property-tax Key Dates helpers (Step 5)', () => {
     expect(soon?.urgencyPill).toBe('Soon')
     expect(soon?.verifyAlongsideUrgency).toBe('Verify date')
 
-    issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'trimNoticeDate', {
+    issue = patchPropertyTaxDatedField(issue, 'assessment_vab', 'noticeMailingDate', {
       date: '2026-08-01',
       source: 'documented',
     })
     const passed = buildPropertyTaxKeyDatesModel(issue, '2026-09-10').groups[0]?.rows.find(
-      (r) => r.fieldKey === 'trimNoticeDate',
+      (r) => r.fieldKey === 'noticeMailingDate',
     )
     expect(passed?.urgencyPill).toBe('Passed')
     expect(passed?.verifyAlongsideUrgency).toBe('Verify date')
