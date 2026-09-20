@@ -349,6 +349,12 @@ export type DemoMatter = {
    * Absent on older persisted matters — normalize before use.
    */
   propertyTaxIssue?: DemoPropertyTaxIssue
+  /**
+   * Optional operational triage classification (additive).
+   * Distinct from free-text `matter_type`, intake `transactionRole`, and `property.property_type`.
+   * Absent on older persisted matters — normalize before use.
+   */
+  transactionContext?: DemoTransactionContext
 
   key_dates: {
     effective_date: string
@@ -811,6 +817,77 @@ export type DemoIntakeSnapshot = {
    * Absent on older intake snapshots — normalize before use.
    */
   propertyTaxIssue?: DemoPropertyTaxIssue
+  /**
+   * Optional operational triage classification (additive).
+   * Absent on older intake snapshots — normalize before use.
+   */
+  transactionContext?: DemoTransactionContext
+}
+
+/** Operational workflow classification — not a legal determination. */
+export type DemoTransactionContextMatterKind =
+  | 'purchase'
+  | 'sale'
+  | 'refinance'
+  | 'condo_transaction'
+  | 'landlord_tenant'
+  | 'title_ownership'
+  | 'probate_property'
+  | 'property_dispute'
+  | 'other'
+
+/** Client/party role for triage — distinct from intake `DemoTransactionRole`. */
+export type DemoTransactionContextClientRole =
+  | 'buyer'
+  | 'seller'
+  | 'owner'
+  | 'tenant'
+  | 'landlord'
+  | 'association'
+  | 'agent_broker'
+  | 'entity_representative'
+  | 'other'
+
+/** Property classification for triage — distinct from `property.property_type` labels. */
+export type DemoTransactionContextPropertyKind =
+  | 'condominium'
+  | 'single_family'
+  | 'townhome'
+  | 'cooperative'
+  | 'commercial'
+  | 'vacant_land'
+  | 'other'
+
+export type DemoTransactionContextStage =
+  | 'enquiry'
+  | 'under_contract'
+  | 'diligence'
+  | 'pre_closing'
+  | 'closing'
+  | 'post_closing'
+  | 'dispute_review'
+
+export type DemoTransactionContextPrimaryConcern =
+  | 'deadline'
+  | 'title'
+  | 'hoa_condo_documents'
+  | 'condition_disclosure'
+  | 'compliance'
+  | 'financing'
+  | 'other'
+
+/**
+ * Lightweight matter triage facts for staff workflow routing.
+ * Does not determine liability, compliance, or eligibility.
+ */
+export type DemoTransactionContext = {
+  matterKind: DemoTransactionContextMatterKind | ''
+  clientRole: DemoTransactionContextClientRole | ''
+  propertyKind: DemoTransactionContextPropertyKind | ''
+  transactionStage: DemoTransactionContextStage | ''
+  primaryConcern: DemoTransactionContextPrimaryConcern | ''
+  /** Optional short factual notes — no legal conclusions. */
+  notes: string
 }
 
 export type DemoConflictCheckStatus = 'pending' | 'clear' | 'flagged' | 'confirmed_no_conflict'
