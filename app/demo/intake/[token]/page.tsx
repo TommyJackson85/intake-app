@@ -27,7 +27,10 @@ function normalizeSnapshot(s: DemoIntakeSnapshot): DemoIntakeSnapshot {
 }
 
 type FieldDef = {
-  key: Exclude<keyof DemoIntakeSnapshot, 'transactionRole' | 'transactionRoleOther' | 'propertyTaxIssue'>
+  key: Exclude<
+    keyof DemoIntakeSnapshot,
+    'transactionRole' | 'transactionRoleOther' | 'propertyTaxIssue' | 'transactionContext'
+  >
   label: string
   kind: 'text' | 'email' | 'tel' | 'date' | 'select' | 'textarea'
   options?: string[]

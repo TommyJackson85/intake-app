@@ -2,12 +2,19 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import type { DemoNewMatterInitialValues } from '@/lib/demo/demoIntakeFlow'
-import type { DemoMatter, DemoPartyType, DemoPropertyTaxIssue, DemoTransactionRole } from '@/lib/demo/types'
+import type { DemoMatter, DemoPartyType, DemoPropertyTaxIssue, DemoTransactionContext, DemoTransactionRole } from '@/lib/demo/types'
 import { useDemoStore } from '@/lib/demo/store'
 import { buildEngagementLetterDraftInput } from '@/lib/demo/demoDocument'
 import { resolveEngagementLetterPreview } from '@/lib/demo/engagementLetterPreview'
 import { isCondoDiligenceEligible } from '@/lib/demo/condoDiligence'
 import { propertyTaxIssueForIntakeSnapshot } from '@/lib/demo/propertyTaxIssue'
+import {
+  createEmptyTransactionContext,
+  inferTransactionContextClientRoleFromIntakeRole,
+  inferTransactionContextPropertyKindFromMatterPropertyType,
+  transactionContextForIntakeSnapshot,
+} from '@/lib/demo/transactionContext'
+import TransactionContextIntakeSection from '@/app/demo/_components/TransactionContextIntakeSection'
 import { useAccessibleDialog } from '@/hooks/useAccessibleDialog'
 
 export function getNextDemoFileId(existingFileIds: string[]) {
@@ -91,6 +98,9 @@ export default function NewMatterModal({
   const [titleName, setTitleName] = useState('')
   const [buyerType, setBuyerType] = useState<DemoPartyType>('individual')
   const [propertyTaxIssue, setPropertyTaxIssue] = useState<DemoPropertyTaxIssue | undefined>(undefined)
+  const [transactionContext, setTransactionContext] = useState<DemoTransactionContext | undefined>(
+    undefined,
+  )
   const [activeTab, setActiveTab] = useState<'matter' | 'starter'>('matter')
   const [createEngagementLetterDraft, setCreateEngagementLetterDraft] = useState(true)
   const [engagementClientName, setEngagementClientName] = useState('')
@@ -138,6 +148,15 @@ export default function NewMatterModal({
       setTitleName(role === 'other' ? (initialValues.contactName ?? '') : '')
       setBuyerType(initialValues.buyerType ?? 'individual')
       setPropertyTaxIssue(initialValues.propertyTaxIssue)
+      setTransactionContext(
+        initialValues.transactionContext ??
+          createEmptyTransactionContext({
+            clientRole: inferTransactionContextClientRoleFromIntakeRole(role),
+            propertyKind: inferTransactionContextPropertyKindFromMatterPropertyType(
+              initialValues.propertyType,
+            ),
+          }),
+      )
       setEngagementClientName(initialValues.buyerName || '')
       setEngagementAttorneyName(defaultAttorneyName)
       setEngagementPropertyAddress(initialValues.propertyAddress || '')
@@ -170,6 +189,7 @@ export default function NewMatterModal({
     setTitleName('')
     setBuyerType('individual')
     setPropertyTaxIssue(undefined)
+    setTransactionContext(undefined)
     setEngagementClientName('')
     setEngagementAttorneyName(defaultAttorneyName)
     setEngagementPropertyAddress('')
@@ -259,6 +279,7 @@ export default function NewMatterModal({
         buyer_phone: buyerPhone,
         special_notes,
         propertyTaxIssue: propertyTaxIssueForIntakeSnapshot(propertyTaxIssue, propertyAddress),
+        transactionContext: transactionContextForIntakeSnapshot(transactionContext),
         onCreated: (info) => {
           if (createEngagementLetterDraft) {
             const uploadedByStaffId = staff[0]?.id ?? ''
@@ -594,6 +615,12 @@ export default function NewMatterModal({
                 <option>Both</option>
               </select>
             </div>
+
+            <TransactionContextIntakeSection
+              idPrefix="new-matter"
+              value={transactionContext}
+              onChange={setTransactionContext}
+            />
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: '1 / -1' }}>
               <label style={{ fontSize: '12px', color: '#627c71', fontWeight: 700 }}>

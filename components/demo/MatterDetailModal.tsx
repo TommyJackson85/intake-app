@@ -63,6 +63,7 @@ import DemoTimelineNotes from '@/components/demo/DemoTimelineNotes'
 import { displayOrFallback, parseOtherPartyInfo } from '@/lib/demo/matterPartyDisplay'
 import DemoFinCENTab from '@/components/demo/DemoFinCENTab'
 import PropertyTaxMatterOverviewPanel from '@/components/demo/PropertyTaxMatterOverviewPanel'
+import TransactionContextOverviewPanel from '@/components/demo/TransactionContextOverviewPanel'
 import PropertyTaxKeyDatesSection from '@/components/demo/PropertyTaxKeyDatesSection'
 import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
 import { buildFinCENBeneficialOwnershipReviewDashboard } from '@/lib/demo/fincenBeneficialOwnership'
@@ -992,6 +993,11 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                 <div style={{ fontSize: '12px', color: '#627c71', fontWeight: 800, marginBottom: '4px' }}>File opened</div>
                 <div style={{ color: '#134252', fontWeight: 900 }}>{formatYmd(effectiveMatter.fileOpenedDate)}</div>
               </div>
+
+              <TransactionContextOverviewPanel
+                matter={effectiveMatter}
+                condoDiligence={condoDiligence}
+              />
 
               {(showCondoDiligenceTab ||
                 fincenSummary ||

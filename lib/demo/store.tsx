@@ -275,6 +275,8 @@ type CreateDemoMatterInput = {
   special_notes?: string
   /** Optional Florida property-tax / tax-deed facts from intake. */
   propertyTaxIssue?: DemoMatter['propertyTaxIssue']
+  /** Optional operational triage classification from intake. */
+  transactionContext?: DemoMatter['transactionContext']
   onCreated?: (r: { matterId: string; fileId: string }) => void
 }
 
@@ -1755,6 +1757,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               },
             ],
             ...(input.propertyTaxIssue ? { propertyTaxIssue: input.propertyTaxIssue } : {}),
+            ...(input.transactionContext ? { transactionContext: input.transactionContext } : {}),
           }
 
           createdInfo = { matterId: nextMatter.id, fileId: nextMatter.file_id }

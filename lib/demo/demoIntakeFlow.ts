@@ -7,11 +7,13 @@ import type {
   DemoIntakeSnapshot,
   DemoPartyType,
   DemoPropertyTaxIssue,
+  DemoTransactionContext,
   DemoTransactionRole,
 } from '@/lib/demo/types'
 import type { AddDemoDocumentInput } from '@/lib/demo/demoDocument'
 import { buildEngagementLetterDraftInput } from '@/lib/demo/demoDocument'
 import { propertyTaxIssueForIntakeSnapshot } from '@/lib/demo/propertyTaxIssue'
+import { transactionContextForIntakeSnapshot } from '@/lib/demo/transactionContext'
 
 /** Labels for client + lawyer intake UIs */
 export const DEMO_TRANSACTION_ROLE_OPTIONS: { value: DemoTransactionRole; label: string }[] = [
@@ -59,6 +61,8 @@ export type DemoNewMatterInitialValues = {
    * Omitted when non-Florida, involvement No, or inactive.
    */
   propertyTaxIssue?: DemoPropertyTaxIssue
+  /** Optional operational triage classification from intake. */
+  transactionContext?: DemoTransactionContext
 }
 
 const DEFAULT_MATTER: Omit<DemoNewMatterInitialValues, never> = {
@@ -119,6 +123,7 @@ export function mapIntakeLeadToNewMatterInitialValues(lead: DemoIntakeLead): Dem
     contactName: role === 'other' ? clientName : '',
     buyerType: buyerSide ? s.buyerType : undefined,
     propertyTaxIssue: propertyTaxIssueForIntakeSnapshot(s.propertyTaxIssue, s.propertyAddress),
+    transactionContext: transactionContextForIntakeSnapshot(s.transactionContext),
   }
 }
 
