@@ -360,6 +360,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     addDemoDocumentRequest,
     addMatterReviewTask,
     updateMatterReviewTaskStatus,
+    updateMatterPropertyTaxKindStatus,
     getMatterById,
     getArchivedMatterById,
     ensureCondoDiligence,
@@ -1170,6 +1171,9 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
                   }}
                   onGoToDocuments={() => setActiveTab('Documents')}
                   onViewTrackedDates={() => setActiveTab('Key Dates')}
+                  onUpdateKindStatus={(kind, status) => {
+                    updateMatterPropertyTaxKindStatus(effectiveMatter.id, kind, status)
+                  }}
                 />
               ) : null}
 
