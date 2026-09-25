@@ -1562,6 +1562,12 @@ input {
   margin-bottom: 28px;
 }
 
+.insights-cta-stack {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+
 .insights-card {
   display: flex;
   flex-direction: column;
