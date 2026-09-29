@@ -2285,7 +2285,16 @@ input {
 }
 
 .sw-hero--research h1 {
-  max-width: 22ch;
+  max-width: 18ch;
+}
+
+.sw-hero__research-q {
+  margin: 0.85rem 0 0;
+  max-width: 46ch;
+  color: #24444a;
+  font-size: clamp(1.08rem, 2.2vw, 1.28rem);
+  font-weight: 650;
+  line-height: 1.45;
 }
 
 .sw-hero__lead {
@@ -2403,6 +2412,18 @@ input {
   line-height: 1.6;
 }
 
+.sw-blocker__list {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+  color: #24444a;
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+.sw-blocker__list li + li {
+  margin-top: 0.4rem;
+}
+
 .sw-blocker__note {
   margin-top: 0.7rem !important;
   color: #60787b !important;
@@ -2476,6 +2497,26 @@ input {
   margin: 1.25rem 0 0;
   padding: 0;
   list-style: none;
+}
+
+.sw-glance-grid--eight {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.sw-outcome {
+  padding: 1.35rem 1.35rem 1.2rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.sw-config-panel {
+  padding: 1.35rem 1.35rem 1.2rem;
+  background:
+    linear-gradient(135deg, rgba(61, 168, 159, 0.08), rgba(239, 190, 98, 0.1)),
+    var(--white);
+  border: 1px solid rgba(11, 63, 74, 0.12);
+  border-radius: 16px;
 }
 
 .sw-glance-card {
@@ -2927,10 +2968,18 @@ input {
   .sw-flow--seven {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+
+  .sw-glance-grid--eight {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 980px) {
   .sw-glance-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sw-glance-grid--eight {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -2942,6 +2991,7 @@ input {
 
 @media (max-width: 700px) {
   .sw-glance-grid,
+  .sw-glance-grid--eight,
   .sw-overview,
   .sw-demo-grid,
   .sw-flow,
