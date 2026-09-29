@@ -70,12 +70,23 @@ log(
   html.indexOf('id="research-pulse-check"') < html.indexOf('id="full-fictional-workspace"'),
 );
 log(
-  "research-first hero copy",
+  "product-first hero heading",
+  /Make the next action and handoff blocker visible on every new real-estate matter\./.test(html),
+);
+log(
+  "research question secondary in hero",
   /Where do Florida real-estate firms lose time between enquiry and matter handoff\?/.test(html),
 );
 log("hero primary scrolls to sample workflow", /href="#sample-workflow"/.test(html));
 log("hero secondary scrolls to survey", /href="#research-pulse-check"/.test(html));
 log("skip link scrolls to full workspace", /href="#full-fictional-workspace"/.test(html));
+log("eight glance cards", (html.match(/sw-glance-card"/g) || []).length === 8 || (html.match(/class="sw-glance-card"/g) || []).length === 8);
+log("no duplicate not-ready glance cards", (html.match(/Not marked ready for handoff/g) || []).length <= 3);
+log("target closing visible before survey", html.indexOf("24 October 2026") < html.indexOf('id="research-pulse-check"'));
+log("sample timing column present", /Sample timing/.test(html));
+log("before next handoff section", /Before the next handoff/.test(html));
+log("transaction-specific panel", /Configurable for transaction-specific work/.test(html));
+log("acceptance decision terminology", /Acceptance decision/.test(html));
 
 log("fixture has checklist rows", derived.rowCount === 16, String(derived.rowCount));
 log(
@@ -104,7 +115,7 @@ for (const pattern of [
 
 log(
   "safer readiness wording present",
-  /Not marked ready for handoff/.test(html) && /3 priority review items remain open/.test(html),
+  /Handoff gate/.test(html) && /Blocked/.test(html) && /Acceptance decision and onboarding review remain/.test(html),
 );
 log(
   "client ID onboarding wording",
@@ -123,7 +134,7 @@ log(
 log(
   "conflict firm-review framing",
   /does not determine whether a conflict exists/i.test(compact) &&
-    /Conflict-screening review — firm-authorised reviewer/.test(html),
+    /Conflict review — assigned attorney/.test(html),
 );
 log(
   "local-only questionnaire privacy",

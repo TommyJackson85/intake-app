@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta
       name="description"
-      content="Explore a fictional LawIntake Florida real-estate matter workflow and share 60-second research feedback on intake, documents, ownership, and handoffs. Responses stay on your device."
+      content="See a fictional LawIntake Florida real-estate matter workflow—next actions, blockers, ownership, and handoff readiness—then share 60-second research feedback. Answers stay on your device."
     >
     <meta name="theme-color" content="#0b3f4a">
     <meta property="og:title" content="Sample Real-Estate Matter Workspace | LawIntake">
     <meta
       property="og:description"
-      content="See a fictional Florida real-estate intake workflow, then share brief research feedback. Survey answers stay on your device."
+      content="Make the next action and handoff blocker visible on every new real-estate matter. Explore a fictional Florida workflow, then share brief research feedback."
     >
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://tommyjackson85.github.io/intake-app/product/sample-workspace/">
@@ -80,7 +80,10 @@
               </ol>
             </nav>
             <p class="eyebrow"><span></span> LAWINTAKE SAMPLE</p>
-            <h1>Where do Florida real-estate firms lose time between enquiry and matter handoff?</h1>
+            <h1>Make the next action and handoff blocker visible on every new real-estate matter.</h1>
+            <p class="sw-hero__research-q">
+              Where do Florida real-estate firms lose time between enquiry and matter handoff?
+            </p>
             <p class="sw-hero__lead">
               LawIntake is a configurable workflow view for Florida real-estate teams managing new
               matters: from first enquiry and conflict-screening preparation through engagement,
@@ -93,9 +96,10 @@
             </p>
             <div class="sw-notice" role="note">
               <strong>Illustrative sample only.</strong>
-              No real client, firm, property, or confidential data is shown. LawIntake supports
-              workflow visibility; it does not determine conflicts, acceptance, legal completeness,
-              compliance, or replace firm procedures and professional judgment.
+              No real client, firm, property, financial, or confidential data is shown. LawIntake
+              supports operational workflow visibility; it does not determine conflicts, firm
+              acceptance, legal completeness, compliance, deadlines, or replace firm procedures and
+              professional judgment.
             </div>
             <div class="sw-hero__actions">
               <a class="button" href="#sample-workflow">View the sample workflow</a>
@@ -115,7 +119,10 @@
           >
             <h2 id="glance-heading">Fictional matter: at a glance</h2>
             <p class="sw-section__subhead">Florida residential condominium purchase — buyer</p>
-            <ul class="sw-glance-grid">
+            <p class="sw-section__note">
+              Illustrative workflow only. No real client, property, or confidential data is shown.
+            </p>
+            <ul class="sw-glance-grid sw-glance-grid--eight">
               <li class="sw-glance-card">
                 <span class="sw-glance-card__label">Matter stage</span>
                 <span class="sw-status sw-status--in-progress"
@@ -123,71 +130,101 @@
                 >
               </li>
               <li class="sw-glance-card">
-                <span class="sw-glance-card__label">Next-stage readiness</span>
-                <strong>Not marked ready for handoff</strong>
-                <span class="sw-glance-card__detail">3 priority review items remain open</span>
+                <span class="sw-glance-card__label">Target closing</span>
+                <strong>24 October 2026</strong>
+                <span class="sw-glance-card__detail">Fictional target date</span>
               </li>
               <li class="sw-glance-card">
-                <span class="sw-glance-card__label">Checklist items</span>
-                <strong>6 complete / 9 require action / 1 applicability review</strong>
+                <span class="sw-glance-card__label">Handoff gate</span>
+                <span class="sw-status sw-status--not-ready"
+                  ><span aria-hidden="true">!</span> Blocked</span
+                >
+                <span class="sw-glance-card__detail"
+                  >Acceptance decision and onboarding review remain</span
+                >
+              </li>
+              <li class="sw-glance-card">
+                <span class="sw-glance-card__label">Checklist progress</span>
+                <strong>6 ready · 6 open · 1 applicability review</strong>
+                <span class="sw-glance-card__detail">Configured workflow items</span>
               </li>
               <li class="sw-glance-card">
                 <span class="sw-glance-card__label">Next action</span>
-                <strong>Complete conflict-screening review</strong>
-                <span class="sw-glance-card__detail">Firm-authorised reviewer</span>
+                <span class="sw-status sw-status--needs-review"
+                  ><span aria-hidden="true">!</span> Conflict review</span
+                >
+                <span class="sw-glance-card__detail">Assigned attorney</span>
               </li>
               <li class="sw-glance-card">
-                <span class="sw-glance-card__label">Assigned owner</span>
+                <span class="sw-glance-card__label">Workflow owner</span>
                 <strong>Intake coordinator</strong>
+                <span class="sw-glance-card__detail">Coordinates follow-up and handoff</span>
               </li>
               <li class="sw-glance-card">
-                <span class="sw-glance-card__label">Matter readiness</span>
-                <span class="sw-status sw-status--not-ready"
-                  ><span aria-hidden="true">!</span> Not marked ready for handoff</span
+                <span class="sw-glance-card__label">Latest activity</span>
+                <span class="sw-status sw-status--received"
+                  ><span aria-hidden="true">✓</span> Purchase contract received</span
+                >
+                <span class="sw-glance-card__detail">Queued for internal review</span>
+              </li>
+              <li class="sw-glance-card">
+                <span class="sw-glance-card__label">Time-sensitive follow-up</span>
+                <span class="sw-status sw-status--in-progress"
+                  ><span aria-hidden="true">→</span> Association estoppel request</span
+                >
+                <span class="sw-glance-card__detail"
+                  >Follow-up due 10 October 2026 — fictional operational date</span
                 >
               </li>
             </ul>
+
             <aside class="sw-blocker" aria-labelledby="blocker-heading">
               <h3 id="blocker-heading">Current operational blockers</h3>
-              <p>
-                Conflict-screening review by a firm-authorised reviewer, firm decision on whether to
-                proceed, and review of client identification documents under the firm’s onboarding
-                procedure.
-              </p>
+              <p>Three items are preventing the next handoff:</p>
+              <ol class="sw-blocker__list">
+                <li>Conflict review is awaiting the assigned attorney.</li>
+                <li>The firm has not yet recorded an acceptance decision.</li>
+                <li>
+                  Client identification documents are received but require review under the firm’s
+                  onboarding process.
+                </li>
+              </ol>
               <p class="sw-blocker__note">
-                Operational indicator for this fictional checklist—not a conflict, compliance, or
-                legal-completeness determination.
+                This is an operational workflow indicator for a fictional matter. It is not a conflict
+                result, acceptance decision, legal-completeness determination, compliance finding, or
+                legal advice.
               </p>
             </aside>
           </section>
 
-          <section class="sw-section" aria-labelledby="overview-heading" data-reveal>
-            <h2 id="overview-heading">Sample matter overview</h2>
+          <section class="sw-section" aria-labelledby="context-heading" data-reveal>
+            <h2 id="context-heading">Matter context</h2>
             <p>
-              This preview illustrates intake context, key parties, ownership, review gates, and
-              handoff blockers in one operational view.
+              This fictional sample shows the operational context a team may need to move a new
+              residential purchase from enquiry to internal review and the next handoff.
             </p>
             <dl class="sw-overview">
               <div><dt>Matter type</dt><dd>Residential condominium purchase</dd></div>
               <div><dt>Jurisdiction</dt><dd>Florida</dd></div>
-              <div><dt>Property type</dt><dd>Condominium (illustrative)</dd></div>
               <div><dt>Client role</dt><dd>Buyer</dd></div>
-              <div><dt>Client contact details</dt><dd>Captured</dd></div>
-              <div><dt>Stage</dt><dd>Intake, screening, and document collection</dd></div>
+              <div><dt>Property type</dt><dd>Condominium</dd></div>
+              <div><dt>Intake source</dt><dd>Website enquiry (fictional)</dd></div>
               <div><dt>Matter owner</dt><dd>Intake coordinator</dd></div>
-              <div><dt>Responsible attorney</dt><dd>Assigned attorney (illustrative)</dd></div>
-              <div><dt>Property address</dt><dd>Captured (fictional)</dd></div>
-              <div><dt>Desired closing timeline</dt><dd>Captured</dd></div>
-              <div><dt>Seller / known counterparties</dt><dd>Captured for conflict screening</dd></div>
-              <div><dt>Lender details</dt><dd>Pending client confirmation</dd></div>
+              <div><dt>Assigned attorney</dt><dd>Assigned attorney (illustrative)</dd></div>
+              <div><dt>Buyer contact</dt><dd>Verified; preferred contact recorded</dd></div>
+              <div><dt>Property reference</dt><dd>Address and unit reference on file (fictional)</dd></div>
+              <div><dt>Target closing</dt><dd>24 October 2026 (fictional)</dd></div>
+              <div><dt>Seller / other parties</dt><dd>Seller and known counterparties prepared for firm review</dd></div>
+              <div><dt>Financing</dt><dd>Lender contact pending client confirmation</dd></div>
+              <div><dt>Condo / association</dt><dd>Association contact recorded; document requests in progress</dd></div>
             </dl>
           </section>
 
           <section class="sw-section" aria-labelledby="key-visibility-heading" data-reveal>
             <h2 id="key-visibility-heading">What the team can see immediately</h2>
             <p>
-              A compact view of common intake, review, document, ownership, and engagement-readiness
-              items for this fictional matter.
+              A compact view of common intake, review, document, ownership, engagement-readiness,
+              and follow-up items for this fictional matter.
             </p>
             <div
               class="table-wrap sw-table-wrap"
@@ -197,7 +234,7 @@
             >
               <table>
                 <caption class="sr-only">
-                  Compact fictional workflow visibility with status, owner, and next action
+                  Compact fictional workflow visibility with status, owner, next action, and sample timing
                 </caption>
                 <thead>
                   <tr>
@@ -205,6 +242,7 @@
                     <th scope="col">Status</th>
                     <th scope="col">Owner</th>
                     <th scope="col">Next action</th>
+                    <th scope="col">Sample timing</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -213,56 +251,97 @@
                     <td><span class="sw-status sw-status--complete"><span aria-hidden="true">✓</span> Complete</span></td>
                     <td>Intake coordinator</td>
                     <td>Ready</td>
+                    <td>Received today</td>
                   </tr>
                   <tr>
-                    <th scope="row">Conflict-screening party list</th>
+                    <th scope="row">Conflict party details</th>
                     <td><span class="sw-status sw-status--received"><span aria-hidden="true">✓</span> Received</span></td>
                     <td>Intake coordinator</td>
                     <td>Ready for firm review</td>
+                    <td>Submitted today</td>
                   </tr>
                   <tr>
-                    <th scope="row">Conflict-screening review — firm-authorised reviewer</th>
-                    <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Pending review</span></td>
+                    <th scope="row">Conflict review</th>
+                    <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Pending attorney review</span></td>
                     <td>Assigned attorney</td>
                     <td>Review screening summary</td>
+                    <td>Next internal review</td>
                   </tr>
                   <tr>
-                    <th scope="row">Firm decision on whether to proceed</th>
-                    <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Not decided</span></td>
+                    <th scope="row">Acceptance decision</th>
+                    <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Not recorded</span></td>
                     <td>Assigned attorney</td>
-                    <td>Firm reviewer decides whether to proceed</td>
+                    <td>Record firm decision</td>
+                    <td>After conflict review</td>
                   </tr>
                   <tr>
-                    <th scope="row">Engagement / onboarding letter</th>
-                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Draft ready — awaiting firm decision</span></td>
+                    <th scope="row">Engagement / onboarding</th>
+                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Prepared</span></td>
                     <td>Intake coordinator</td>
-                    <td>Send only after the firm decides to proceed</td>
+                    <td>Send only after acceptance decision</td>
+                    <td>Queued</td>
                   </tr>
                   <tr>
                     <th scope="row">Purchase contract</th>
                     <td><span class="sw-status sw-status--received"><span aria-hidden="true">✓</span> Received</span></td>
                     <td>Real-estate paralegal</td>
-                    <td>Review details</td>
+                    <td>Review key dates and parties</td>
+                    <td>Next review cycle</td>
                   </tr>
                   <tr>
                     <th scope="row">Client identification documents</th>
-                    <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Needs review</span></td>
+                    <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Received — review needed</span></td>
                     <td>Intake coordinator</td>
-                    <td>Review documents requested under firm onboarding procedure</td>
+                    <td>Review under firm onboarding procedure</td>
+                    <td>This week</td>
                   </tr>
                   <tr>
                     <th scope="row">Lender confirmation</th>
-                    <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Pending</span></td>
+                    <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Awaiting client</span></td>
                     <td>Client / intake coordinator</td>
-                    <td>Confirm when known</td>
+                    <td>Confirm lender contact</td>
+                    <td>Follow up in 2 business days</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Association estoppel</th>
+                    <td><span class="sw-status sw-status--in-progress"><span aria-hidden="true">→</span> Request in progress</span></td>
+                    <td>Real-estate paralegal</td>
+                    <td>Check response / follow up</td>
+                    <td>10 October 2026 — sample follow-up date</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <p class="sw-section__note">
               The purpose is not to decide whether a matter is legally complete. It is to make the
-              current operational state, ownership, and next action visible before the next internal
-              handoff.
+              current operational state, ownership, timing, and next action visible before the next
+              internal handoff.
+            </p>
+          </section>
+
+          <section class="sw-section sw-outcome" aria-labelledby="before-handoff-heading" data-reveal>
+            <h2 id="before-handoff-heading">Before the next handoff</h2>
+            <p>
+              The intake coordinator can see that the purchase contract is in, but the file should not
+              move to engagement or matter opening yet. The next work is owned: attorney conflict
+              review, firm acceptance decision, and onboarding-document review.
+            </p>
+            <p>
+              LawIntake is showing the work state and handoff blockers—not deciding whether the firm
+              may act or whether the matter is legally complete.
+            </p>
+          </section>
+
+          <section class="sw-section sw-config-panel" aria-labelledby="config-heading" data-reveal>
+            <h2 id="config-heading">Configurable for transaction-specific work</h2>
+            <p>
+              This fictional condominium purchase includes optional association follow-ups, an
+              estoppel request, association documents, reserve-related information, and a firm review
+              of whether a milestone-inspection or SIRS-related item is relevant.
+            </p>
+            <p>
+              These are illustrative firm-configured workflow items. The firm determines which items
+              apply and whether available information is sufficient.
             </p>
           </section>
 
@@ -276,13 +355,13 @@
             <p class="sw-section__subhead">Help shape LawIntake — 60 seconds</p>
             <p>
               You have seen a fictional example of the workflow concept. Help validate whether
-              similar follow-up, ownership, document, and handoff issues arise in your team’s current
-              process.
+              similar follow-up, ownership, document, timing, and handoff issues arise in your team’s
+              current process.
             </p>
             <p class="sw-privacy">
               Responses stay on this device unless you choose to copy or share them. There is no
               research inbox on this page. Do not enter confidential, privileged, client, property,
-              or financial information.
+              financial, or case-specific information.
             </p>
 
             <form id="research-form" class="sw-form" novalidate>
@@ -369,8 +448,8 @@
 
               <fieldset class="sw-field">
                 <legend>
-                  4. How often do incomplete information, missing documents, unclear ownership, or
-                  unclear handoffs slow a new real-estate matter?
+                  4. How often do incomplete information, missing documents, unclear ownership,
+                  unclear timing, or unclear handoffs slow a new real-estate matter?
                   <span class="sw-required">(required)</span>
                 </legend>
                 <div class="sw-radios">
@@ -385,8 +464,8 @@
 
               <div class="sw-field">
                 <label for="research-comment"
-                  >5. Thinking of a recent new matter, what information, document, owner, or handoff
-                  step was hardest to see or chase?
+                  >5. Thinking of a recent new matter, what information, document, owner, timing, or
+                  handoff step was hardest to see or chase?
                   <span class="sw-optional">(optional)</span></label
                 >
                 <textarea id="research-comment" name="comment" rows="3" maxlength="2000"></textarea>
@@ -490,8 +569,7 @@
               <h3 id="tracker-heading">Matter checklist tracker</h3>
               <p>
                 Track what has been requested, received, reviewed, or is still missing—and who owns
-                the next step. Core intake and matter-workflow items appear first. Condominium and
-                association rows follow as optional matter-specific examples.
+                the next step.
               </p>
               <p class="sw-section__note">
                 Client identification documents in this sample reflect a configured firm onboarding
@@ -539,7 +617,7 @@
                       <td>Ready for firm review</td>
                     </tr>
                     <tr data-scope="core" data-status="needs-review">
-                      <th scope="row">Conflict-screening review — firm-authorised reviewer</th>
+                      <th scope="row">Conflict review — assigned attorney</th>
                       <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Pending review</span></td>
                       <td>Yes</td>
                       <td>Yes</td>
@@ -547,7 +625,7 @@
                       <td>Review screening summary — firm decides next step</td>
                     </tr>
                     <tr data-scope="core" data-status="missing">
-                      <th scope="row">Firm decision on whether to proceed</th>
+                      <th scope="row">Acceptance decision</th>
                       <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Not decided</span></td>
                       <td>—</td>
                       <td>No</td>
@@ -556,7 +634,7 @@
                     </tr>
                     <tr data-scope="core" data-status="waiting">
                       <th scope="row">Engagement / onboarding letter</th>
-                      <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Draft ready — awaiting firm decision</span></td>
+                      <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Prepared — awaiting acceptance decision</span></td>
                       <td>—</td>
                       <td>No</td>
                       <td>Intake coordinator</td>
@@ -588,7 +666,7 @@
                     </tr>
                     <tr data-scope="core" data-status="not-ready">
                       <th scope="row">Matter open / handoff pack</th>
-                      <td><span class="sw-status sw-status--not-ready"><span aria-hidden="true">!</span> Not marked ready for handoff in this sample workflow</span></td>
+                      <td><span class="sw-status sw-status--not-ready"><span aria-hidden="true">!</span> Not marked ready for handoff</span></td>
                       <td>—</td>
                       <td>No</td>
                       <td>Intake coordinator</td>
@@ -652,8 +730,10 @@
                 </table>
               </div>
               <p class="sw-section__note">
-                Operational workflow status—not a legal-completeness, compliance, deadline, or
-                acceptance determination.
+                Optional, firm-configured example for this fictional condominium purchase. The firm
+                determines applicability, sufficiency, and next steps under its own procedures and
+                professional judgment. Applicability-review rows are not completeness, deadline, or
+                overdue determinations.
               </p>
             </section>
 
@@ -661,8 +741,8 @@
               <h3 id="ownership-heading">Ownership and next steps</h3>
               <p>
                 The goal is to avoid unclear “pending” work by showing the next action, its owner,
-                and whether the firm has marked the sample workflow ready for the next handoff or
-                matter opening.
+                timing, and whether the firm has marked the sample workflow ready for the next
+                handoff.
               </p>
               <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="ownership-heading">
                 <table>
@@ -680,17 +760,17 @@
                   </thead>
                   <tbody>
                     <tr>
-                      <th scope="row">Conflict-screening review</th>
+                      <th scope="row">Conflict review</th>
                       <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Pending review</span></td>
                       <td>Assigned attorney</td>
-                      <td>Firm-authorised reviewer reviews parties and decides next step</td>
-                      <td>Today</td>
+                      <td>Assigned attorney reviews screening summary and decides next step</td>
+                      <td>Next internal review</td>
                     </tr>
                     <tr>
                       <th scope="row">Engagement send</th>
-                      <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Awaiting firm decision</span></td>
+                      <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Awaiting acceptance decision</span></td>
                       <td>Intake coordinator</td>
-                      <td>Send engagement only after the firm decides to proceed</td>
+                      <td>Send engagement only after firm decides to proceed</td>
                       <td>After review</td>
                     </tr>
                     <tr>
@@ -704,26 +784,30 @@
                       <th scope="row">Association / estoppel follow-up</th>
                       <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Waiting on response</span></td>
                       <td>Real-estate paralegal</td>
-                      <td>Chase outstanding association items</td>
-                      <td>Sample follow-up date</td>
+                      <td>Check response and chase outstanding association items</td>
+                      <td>10 October 2026 — sample follow-up date</td>
                     </tr>
                     <tr>
                       <th scope="row">Purchase contract review</th>
                       <td><span class="sw-status sw-status--received"><span aria-hidden="true">✓</span> Ready for review</span></td>
                       <td>Real-estate paralegal</td>
                       <td>Review received contract</td>
-                      <td>Next internal review</td>
+                      <td>Next review cycle</td>
                     </tr>
                     <tr>
                       <th scope="row">Matter open / conveyancing handoff</th>
                       <td><span class="sw-status sw-status--not-ready"><span aria-hidden="true">!</span> Not marked ready in this sample workflow</span></td>
                       <td>Intake coordinator</td>
-                      <td>Open or hand off when the responsible firm reviewer marks the configured items ready</td>
-                      <td>After firm decision + configured outstanding items</td>
+                      <td>Open or hand off when responsible firm reviewer marks configured items ready</td>
+                      <td>After acceptance decision + configured outstanding items</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+              <p class="sw-section__note">
+                Operational workflow status—not a legal-completeness, compliance, deadline, or
+                acceptance determination.
+              </p>
             </section>
 
             <section class="sw-section sw-section--nested" aria-labelledby="conflict-heading" data-reveal>
@@ -762,19 +846,19 @@
                       <td>Included in screening pack</td>
                     </tr>
                     <tr>
-                      <th scope="row">Conflict-screening review</th>
+                      <th scope="row">Conflict review</th>
                       <td><span class="sw-status sw-status--needs-review"><span aria-hidden="true">!</span> Pending firm review</span></td>
-                      <td>Awaiting firm-authorised reviewer</td>
+                      <td>Awaiting assigned attorney</td>
                     </tr>
                     <tr>
-                      <th scope="row">Firm decision on whether to proceed</th>
+                      <th scope="row">Acceptance decision</th>
                       <td><span class="sw-status sw-status--missing"><span aria-hidden="true">!</span> Not decided</span></td>
                       <td>Awaiting firm decision before engagement is sent</td>
                     </tr>
                     <tr>
                       <th scope="row">Engagement / onboarding letter</th>
-                      <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Draft ready — awaiting firm decision</span></td>
-                      <td>Send only after the firm decides to proceed</td>
+                      <td><span class="sw-status sw-status--waiting"><span aria-hidden="true">→</span> Prepared — awaiting acceptance decision</span></td>
+                      <td>Send only after firm decides to proceed</td>
                     </tr>
                     <tr>
                       <th scope="row">Matter open readiness</th>
@@ -791,11 +875,11 @@
             </section>
 
             <section class="sw-section sw-section--nested" aria-labelledby="condo-heading" data-reveal>
-              <h3 id="condo-heading">Matter-specific requirements (condo example)</h3>
+              <h3 id="condo-heading">Matter-specific requirements — condominium example</h3>
               <p>
                 Optional, firm-configured example for this fictional condominium purchase. The firm
-                determines applicability, sufficiency, and next steps under its own procedures and
-                professional judgment.
+                determines relevance to the building, transaction, available records, and its
+                procedure.
               </p>
               <div class="table-wrap sw-table-wrap" tabindex="0" role="region" aria-labelledby="condo-heading">
                 <table>
@@ -818,7 +902,7 @@
                     <tr>
                       <th scope="row">Estoppel</th>
                       <td><span class="sw-status sw-status--in-progress"><span aria-hidden="true">→</span> Requested</span></td>
-                      <td>Follow-up owner and next step visible</td>
+                      <td>Follow-up owner, sample timing, and next step visible</td>
                     </tr>
                     <tr>
                       <th scope="row">Condo questionnaire</th>
@@ -839,9 +923,8 @@
                       <th scope="row">SIRS / milestone inspection — firm review of applicability</th>
                       <td><span class="sw-status sw-status--review-applicability"><span aria-hidden="true">?</span> Review applicability</span></td>
                       <td>
-                        Confirm whether this item is relevant to this matter. Shown as a condominium
-                        example; the firm determines relevance to the building, transaction,
-                        available records, and its procedure.
+                        Confirm whether this item is relevant to this matter. The firm determines
+                        relevance and next steps.
                       </td>
                     </tr>
                     <tr>
@@ -852,6 +935,11 @@
                   </tbody>
                 </table>
               </div>
+              <p class="sw-section__note">
+                Client identification documents in this sample reflect a configured firm onboarding
+                process. They do not determine legal, AML, title, lender, or identity-verification
+                requirements for every Florida real-estate matter.
+              </p>
             </section>
 
             <section class="sw-section sw-section--nested" aria-labelledby="workflow-heading" data-reveal>
@@ -885,7 +973,7 @@
                 <li class="sw-flow__step">
                   <span class="sw-flow__number" aria-hidden="true">6</span>
                   <h4>Details and documents</h4>
-                  <p>Collect client details, supporting docs, and firm-configured matter items.</p>
+                  <p>Collect client details, supporting documents, and firm-configured matter items.</p>
                 </li>
                 <li class="sw-flow__step">
                   <span class="sw-flow__number" aria-hidden="true">7</span>
@@ -899,7 +987,10 @@
               <h3 id="demonstrates-heading">What this demonstrates</h3>
               <ul class="sw-demo-grid">
                 <li>Client and matter intake context in one clearer operational view.</li>
-                <li>Document collection, follow-ups, and outstanding items with visible ownership.</li>
+                <li>
+                  Document collection, timing, follow-ups, and outstanding items with visible
+                  ownership.
+                </li>
                 <li>
                   Open items and readiness signals before the next handoff—not a claim of legal
                   completeness.
@@ -907,6 +998,10 @@
                 <li>
                   A configurable real-estate law-firm workflow that can adapt stages, roles, and
                   matter-specific checklists to the firm’s process.
+                </li>
+                <li>
+                  Optional condominium/association examples without presenting them as mandatory for
+                  every Florida matter.
                 </li>
               </ul>
             </section>
@@ -916,7 +1011,7 @@
             <h2 id="final-cta-heading">Does this reflect a workflow challenge your team faces?</h2>
             <p>
               Share a short, general response to help validate how Florida real-estate teams manage
-              intake, documents, ownership, and handoffs.
+              intake, documents, ownership, timing, and handoffs.
             </p>
             <div class="sw-hero__actions">
               <a class="button" href="#research-pulse-check">Share 60-second feedback</a>
@@ -926,13 +1021,14 @@
           <div class="disclaimer-box" data-reveal>
             <strong>Disclaimer</strong>
             <p>
-              Illustrative sample only. No real client, firm, property, or confidential data is
-              shown. This page is for operational and informational purposes only. It is not legal
-              advice, does not create an attorney-client relationship, and does not determine
-              conflicts or legal completeness. LawIntake supports workflow visibility and does not
-              replace firm procedures or professional judgment. Do not enter confidential information
-              in the research questionnaire. Survey answers remain on your device until you choose to
-              copy or share them.
+              Illustrative sample only. No real client, firm, property, financial, or confidential
+              data is shown. This page is for operational and informational purposes only. It is not
+              legal advice, does not create an attorney-client relationship, and does not determine
+              conflicts, firm acceptance, legal completeness, compliance, deadlines, or legal
+              requirements. LawIntake supports workflow visibility and does not replace firm
+              procedures or professional judgment. Do not enter confidential information in the
+              research questionnaire. Survey answers remain on your device until you choose to copy
+              or share them.
             </p>
           </div>
         </div>
