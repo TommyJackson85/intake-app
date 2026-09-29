@@ -2368,6 +2368,107 @@ input {
   font-size: 0.95rem !important;
 }
 
+.sw-section__subhead {
+  margin: -0.15rem 0 1rem;
+  max-width: 68ch;
+  color: #3d565b;
+  font-size: 1.08rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.sw-blocker {
+  margin-top: 1.35rem;
+  padding: 1.1rem 1.2rem;
+  max-width: 68ch;
+  background: rgba(255, 248, 232, 0.95);
+  border: 1px solid rgba(138, 90, 18, 0.28);
+  border-left: 4px solid #c48a2a;
+  border-radius: 12px;
+}
+
+.sw-blocker h3 {
+  margin: 0 0 0.45rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.15rem;
+  font-weight: 550;
+  letter-spacing: -0.02em;
+  color: #24444a;
+}
+
+.sw-blocker p {
+  margin: 0;
+  color: #3d565b;
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.sw-blocker__note {
+  margin-top: 0.7rem !important;
+  color: #60787b !important;
+  font-size: 0.9rem !important;
+}
+
+.sw-preview {
+  padding-top: 0.25rem;
+}
+
+.sw-full-workspace {
+  margin-top: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.sw-section--nested {
+  margin-top: 2.25rem;
+}
+
+.sw-section--nested h3 {
+  margin: 0 0 0.65rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.sw-section--nested h4 {
+  margin: 0 0 0.35rem;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #24444a;
+}
+
+.sw-copy-fallback {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.sw-copy-fallback label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-weight: 650;
+  color: #24444a;
+}
+
+.sw-copy-fallback textarea {
+  width: 100%;
+  margin-bottom: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(15, 39, 66, 0.18);
+  border-radius: 10px;
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.sw-copy-fallback[hidden] {
+  display: none !important;
+}
+
 .sw-glance-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2754,8 +2855,19 @@ input {
   margin-top: 0.4rem;
 }
 
-.sample-workspace--research .sw-research {
-  margin-top: 1.75rem;
+.sample-workspace--research .sw-research,
+.sample-workspace--same-page .sw-research {
+  margin-top: 2.5rem;
+  padding: 1.5rem 1.25rem 1.25rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(248, 249, 244, 0.9)),
+    var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.sample-workspace--same-page .sw-research {
+  margin-top: 3rem;
 }
 
 .sw-privacy,
