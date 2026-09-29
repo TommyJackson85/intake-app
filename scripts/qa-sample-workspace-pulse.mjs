@@ -60,36 +60,22 @@ function deriveCountsFromHtml(html) {
   };
 }
 
-const landingHtml = fs.readFileSync("product/sample-workspace/index.html", "utf8");
-const workspaceHtml = fs.readFileSync(
-  "product/sample-workspace/workspace/index.html",
-  "utf8",
-);
-const landingCompact = landingHtml.replace(/\s+/g, " ");
-const workspaceCompact = workspaceHtml.replace(/\s+/g, " ");
-const derived = deriveCountsFromHtml(workspaceHtml);
+const html = fs.readFileSync("product/sample-workspace/index.html", "utf8");
+const compact = html.replace(/\s+/g, " ");
+const derived = deriveCountsFromHtml(html);
 
+log("same-page has sample-workflow before survey", html.indexOf('id="sample-workflow"') < html.indexOf('id="research-pulse-check"'));
 log(
-  "landing has research questionnaire near top",
-  /id="research-questionnaire"/.test(landingHtml) &&
-    landingHtml.indexOf('id="research-questionnaire"') <
-      landingHtml.indexOf("See the workflow concept"),
+  "same-page has survey before full workspace",
+  html.indexOf('id="research-pulse-check"') < html.indexOf('id="full-fictional-workspace"'),
 );
 log(
-  "landing has no checklist body",
-  !/#sw-checklist-body/.test(landingHtml) && !/sw-checklist-body/.test(landingHtml),
+  "research-first hero copy",
+  /Where do Florida real-estate firms lose time between enquiry and matter handoff\?/.test(html),
 );
-log(
-  "landing research-first hero copy",
-  /Where do Florida real-estate firms lose time between enquiry and matter handoff\?/.test(
-    landingHtml,
-  ),
-);
-log(
-  "landing workspace CTA",
-  /href="\.\/workspace\/"/.test(landingHtml) &&
-    /Explore the fictional workspace/.test(landingHtml),
-);
+log("hero primary scrolls to sample workflow", /href="#sample-workflow"/.test(html));
+log("hero secondary scrolls to survey", /href="#research-pulse-check"/.test(html));
+log("skip link scrolls to full workspace", /href="#full-fictional-workspace"/.test(html));
 
 log("fixture has checklist rows", derived.rowCount === 16, String(derived.rowCount));
 log(
@@ -113,123 +99,93 @@ for (const pattern of [
   /Blocked — 3 priority items require action/i,
   /68%/i,
 ]) {
-  log(
-    `no unsafe pattern ${pattern}`,
-    !pattern.test(workspaceHtml) && !pattern.test(landingHtml),
-    pattern.toString(),
-  );
+  log(`no unsafe pattern ${pattern}`, !pattern.test(html), pattern.toString());
 }
 
 log(
   "safer readiness wording present",
-  /Not marked ready for handoff — 3 priority review items remain open/.test(workspaceHtml),
+  /Not marked ready for handoff/.test(html) && /3 priority review items remain open/.test(html),
 );
 log(
   "client ID onboarding wording",
-  /Review documents requested under firm onboarding procedure/.test(workspaceHtml) &&
-    /configured firm onboarding process/.test(workspaceCompact),
+  /Review documents requested under firm onboarding procedure/.test(html) &&
+    /configured firm onboarding process/.test(compact),
 );
 log(
   "SIRS applicability wording",
-  /SIRS \/ milestone inspection — firm review of applicability/.test(workspaceHtml) &&
-    /Confirm whether this item is relevant to this matter/.test(workspaceHtml),
+  /SIRS \/ milestone inspection — firm review of applicability/.test(html) &&
+    /Confirm whether this item is relevant to this matter/.test(html),
 );
 log(
   "condo optional framing",
-  /not mandatory for every firm, property, building, or transaction/i.test(workspaceCompact) ||
-    /not required for every firm, property, or transaction/i.test(workspaceCompact),
+  /Optional, firm-configured example for this fictional condominium purchase/.test(compact),
 );
 log(
   "conflict firm-review framing",
-  /does not determine whether a conflict exists/i.test(workspaceCompact) &&
-    /Conflict-screening review — firm-authorised reviewer/.test(workspaceHtml),
-);
-log(
-  "workspace survey back-link",
-  /href="\.\.\/#research-questionnaire"/.test(workspaceHtml) &&
-    /Share 60-second feedback/.test(workspaceHtml),
+  /does not determine whether a conflict exists/i.test(compact) &&
+    /Conflict-screening review — firm-authorised reviewer/.test(html),
 );
 log(
   "local-only questionnaire privacy",
-  /There is no research inbox on this page/.test(landingCompact) &&
-    /does not receive, store, analyse, or respond to these answers automatically/i.test(
-      landingCompact,
-    ),
+  /There is no research inbox on this page/.test(compact) &&
+    /does not receive, store, analyse, or respond to these answers automatically/i.test(compact),
 );
-log("friction is multi-select", /type="checkbox" name="friction"/.test(landingHtml));
-log("frequency question present", /name="frequency"/.test(landingHtml));
+log("friction is multi-select", /type="checkbox" name="friction"/.test(html));
+log("frequency question present", /name="frequency"/.test(html));
 log(
   "research conversation optional",
   /Would you be open to a short, no-obligation research conversation about your current workflow\?/.test(
-    landingCompact,
-  ) && !/name="open_to_conversation"[^>]*required/.test(landingHtml),
+    compact,
+  ) && !/name="open_to_conversation"[^>]*required/.test(html),
 );
 log(
   "role question wording",
-  /What best describes your role in residential real-estate matters\?/.test(landingHtml),
+  /What best describes your role in residential real-estate matters\?/.test(html),
 );
 log(
   "friction question wording",
-  /Which areas create the most follow-up or uncertainty\? Select up to two\./.test(landingHtml),
+  /Which areas create the most follow-up or uncertainty\? Select up to two\./.test(html),
+);
+log(
+  "copy opens full workflow not remote demo popup",
+  /Copy answers &amp; open full workflow/.test(html) &&
+    !/window\.open\(DEMO_URL/.test(html),
 );
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
 await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-
 await page.goto(base + "/product/sample-workspace/", { waitUntil: "networkidle" });
+
+log("preview section visible", await page.locator("#sample-workflow").isVisible());
+log("survey section present", await page.locator("#research-pulse-check").count() === 1);
+log("full workspace present", await page.locator("#full-fictional-workspace").count() === 1);
 log(
-  "landing survey visible without deep scroll past workspace",
-  await page.locator("#research-questionnaire").isVisible(),
-);
-log(
-  "landing has no glance checklist",
-  (await page.locator("#sw-checklist-summary").count()) === 0,
+  "checklist in full workspace",
+  (await page.locator("#full-fictional-workspace #sw-checklist-body tr[data-status]").count()) === 16,
 );
 
-const heroFeedback = page.locator('a.button[href="#research-questionnaire"]').first();
-await heroFeedback.click();
+await page.locator('a.button[href="#sample-workflow"]').first().click();
 await page.waitForFunction(() => {
-  const el = document.getElementById("research-questionnaire");
+  const el = document.getElementById("sample-workflow");
+  if (!el) return false;
+  const rect = el.getBoundingClientRect();
+  return rect.top < window.innerHeight && rect.bottom > 0;
+});
+log("view sample workflow scrolls", true);
+
+await page.locator('a[href="#research-pulse-check"]').first().click();
+await page.waitForFunction(() => {
+  const el = document.getElementById("research-pulse-check");
   if (!el) return false;
   const rect = el.getBoundingClientRect();
   return rect.top < window.innerHeight && rect.bottom > 0;
 });
 log("share feedback scrolls to survey", true);
 
-await page.goto(base + "/product/sample-workspace/workspace/", { waitUntil: "networkidle" });
-const renderedSummary = ((await page.locator("#sw-checklist-summary").textContent()) || "").trim();
-const expectedSummary = `${derived.complete} complete / ${derived.action} require action · ${derived.applicability} applicability review`;
-log("rendered summary matches fixture", renderedSummary === expectedSummary, renderedSummary);
-log("no 68% primary", (await page.getByText(/68%/).count()) === 0);
-log(
-  "safer readiness visible",
-  (await page.getByText("Not marked ready for handoff — 3 priority review items remain open").count()) >
-    0,
-);
-log(
-  "divider present",
-  (await page.getByText(/Matter-specific condominium examples/i).count()) > 0,
-);
-log(
-  "engagement awaiting firm decision",
-  (await page.getByText(/Draft ready — awaiting firm decision/i).count()) > 0,
-);
-
-const workspaceSurveyLinks = await page
-  .locator('a[href*="#research-questionnaire"]')
-  .count();
-log("workspace feedback CTAs present", workspaceSurveyLinks >= 2, String(workspaceSurveyLinks));
-
-await page.goto(base + "/product/sample-workspace/", { waitUntil: "networkidle" });
-const demoHrefs = await page.locator('a[href*="intake-app-dun.vercel.app/demo"]').count();
-log("interactive demo CTAs present", demoHrefs >= 1, String(demoHrefs));
-const fictionHrefs = await page.locator('a[href="./workspace/"]').count();
-log("fictional workspace CTAs present", fictionHrefs >= 2, String(fictionHrefs));
-
-await page.goto(base + "/product/sample-workspace/#research-questionnaire");
+await page.goto(base + "/product/sample-workspace/#research-pulse-check");
 await page.waitForFunction(() => {
-  const el = document.getElementById("research-questionnaire");
+  const el = document.getElementById("research-pulse-check");
   return el && el.getBoundingClientRect().bottom > 0;
 });
 
@@ -255,20 +211,14 @@ const frictionNone =
 await page.check(friction1);
 await page.check(friction2);
 log("two frictions allowed", (await page.locator('input[name="friction"]:checked').count()) === 2);
-log(
-  "none disabled when others selected",
-  await page.isDisabled(frictionNone),
-);
+log("none disabled when others selected", await page.isDisabled(frictionNone));
+log("third ordinary disabled at max", await page.isDisabled(friction3));
 
 await page.locator(friction3).click({ force: true });
 log(
   "third friction prevented",
   (await page.locator('input[name="friction"]:checked').count()) === 2 &&
     !(await page.isChecked(friction3)),
-);
-log(
-  "max-two validation message",
-  /up to two/i.test((await page.locator("#research-friction-error").textContent()) || ""),
 );
 
 await page.uncheck(friction1);
@@ -280,10 +230,7 @@ log(
     !(await page.isChecked(friction1)) &&
     !(await page.isChecked(friction2)),
 );
-log(
-  "others disabled when none selected",
-  await page.isDisabled(friction1),
-);
+log("others disabled when none selected", await page.isDisabled(friction1));
 
 await page.uncheck(frictionNone);
 await page.check(friction1);
@@ -303,17 +250,21 @@ page.on("request", (req) => {
   if (!req.url().startsWith(base)) requests.push(req.url());
 });
 
-const popupPromise = page.waitForEvent("popup", { timeout: 5000 }).catch(() => null);
+const popupPromise = page.waitForEvent("popup", { timeout: 1500 }).catch(() => null);
 await page.click("#research-submit");
 const popup = await popupPromise;
-log("demo popup", !!popup, popup ? popup.url() : "none");
+log("no demo popup", !popup, popup ? popup.url() : "none");
 if (popup) await popup.close();
 log("page still mounted", await page.evaluate(() => !!document.getElementById("research-form")));
-log(
-  "no remote survey submission",
-  requests.every((url) => /intake-app-dun\.vercel\.app\/demo/.test(url)),
-  requests.join(", "),
-);
+log("no remote survey submission", requests.length === 0, requests.join(", "));
+
+await page.waitForFunction(() => {
+  const el = document.getElementById("full-fictional-workspace");
+  if (!el) return false;
+  const rect = el.getBoundingClientRect();
+  return rect.top < window.innerHeight && rect.bottom > 0;
+});
+log("copy scrolls to full workspace", true);
 
 const clip = await page.evaluate(async () => navigator.clipboard.readText());
 log("clipboard title", clip.startsWith("LawIntake workflow pulse check"), clip.split("\n")[0]);
@@ -328,18 +279,21 @@ log("clipboard comment", /Hardest to see or chase: Clearer next-action ownership
 log("clipboard contact", /Contact: https:\/\/linkedin.com\/in\/example/.test(clip));
 log(
   "notice updated",
-  /copied to the clipboard/i.test((await page.locator("#research-submit-notice").textContent()) || "") &&
-    /not sent to LawIntake automatically/i.test(
-      (await page.locator("#research-submit-notice").textContent()) || "",
-    ),
+  /copied on this device/i.test((await page.locator("#research-submit-notice").textContent()) || ""),
 );
+
+await page.locator('a.button[href="#research-pulse-check"]').last().click();
+await page.waitForFunction(() => {
+  const el = document.getElementById("research-pulse-check");
+  if (!el) return false;
+  const rect = el.getBoundingClientRect();
+  return rect.top < window.innerHeight && rect.bottom > 0;
+});
+log("final CTA scrolls to survey", true);
 
 await page.check('input[name="open_to_conversation"][value="Not right now"]');
 log("contact wrap hidden again", await page.isHidden("#research-contact-wrap"));
-const popupPromise2 = page.waitForEvent("popup", { timeout: 5000 }).catch(() => null);
 await page.click("#research-submit");
-const popup2 = await popupPromise2;
-if (popup2) await popup2.close();
 const clip2 = await page.evaluate(async () => navigator.clipboard.readText());
 log(
   "clipboard excludes contact when Not right now",
@@ -352,10 +306,7 @@ await page.evaluate(() => {
     el.checked = false;
   });
 });
-const popupPromise3 = page.waitForEvent("popup", { timeout: 5000 }).catch(() => null);
 await page.click("#research-submit");
-const popup3 = await popupPromise3;
-if (popup3) await popup3.close();
 const clip3 = await page.evaluate(async () => navigator.clipboard.readText());
 log(
   "conversation optional omitted from clipboard",
@@ -369,18 +320,21 @@ await mpage.goto(base + "/product/sample-workspace/", { waitUntil: "networkidle"
 const overflow = await mpage.evaluate(
   () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2,
 );
-log("mobile landing no overflow", !overflow);
-
-await mpage.goto(base + "/product/sample-workspace/workspace/", { waitUntil: "networkidle" });
-const workspaceOverflow = await mpage.evaluate(
-  () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2,
-);
-log("mobile workspace no overflow", !workspaceOverflow);
+log("mobile no overflow", !overflow);
 const canScroll = await mpage
   .locator(".sw-table-wrap")
   .first()
   .evaluate((el) => el.scrollWidth > el.clientWidth + 1);
 log("mobile table scrollable", canScroll);
+
+await mpage.goto(base + "/product/sample-workspace/workspace/", { waitUntil: "domcontentloaded" });
+await mpage.waitForURL(/sample-workspace\/?(#|$)/);
+log(
+  "workspace route redirects to same page",
+  /sample-workspace\/?(#full-fictional-workspace)?/.test(mpage.url()),
+  mpage.url(),
+);
+
 await mobile.close();
 await browser.close();
 

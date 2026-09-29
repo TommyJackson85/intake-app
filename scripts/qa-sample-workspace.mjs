@@ -3,7 +3,7 @@ import { chromium } from "playwright";
 import fs from "fs";
 
 /**
- * Smoke checks for research landing + fictional workspace + homepage links.
+ * Smoke checks for same-page sample workspace + homepage links.
  * Detailed survey/clipboard coverage: scripts/qa-sample-workspace-pulse.mjs
  */
 const base = "http://127.0.0.1:8765";
@@ -32,12 +32,15 @@ await page.screenshot({
   path: `${out}/sample-workspace-desktop-glance.png`,
   fullPage: false,
 });
-await page.locator("#research-questionnaire").scrollIntoViewIfNeeded();
-await page.locator("#research-questionnaire").screenshot({
+await page.locator("#sample-workflow").scrollIntoViewIfNeeded();
+await page.locator("#sample-workflow").screenshot({
+  path: `${out}/sample-workspace-desktop-preview.png`,
+});
+await page.locator("#research-pulse-check").scrollIntoViewIfNeeded();
+await page.locator("#research-pulse-check").screenshot({
   path: `${out}/sample-workspace-desktop-survey.png`,
 });
-
-await page.goto(base + "/product/sample-workspace/workspace/", { waitUntil: "networkidle" });
+await page.locator("#full-fictional-workspace").scrollIntoViewIfNeeded();
 await page.screenshot({
   path: `${out}/sample-workspace-desktop-workspace.png`,
   fullPage: false,
@@ -50,7 +53,7 @@ const hrefs = await page
 log("homepage has sample-workspace links", hrefs.length > 0, hrefs.slice(0, 6).join(", "));
 const localLink = page
   .locator(
-    'a[href="./product/sample-workspace/"], a[href="/product/sample-workspace/"], a[href="./product/sample-workspace/#research-questionnaire"]',
+    'a[href="./product/sample-workspace/"], a[href="/product/sample-workspace/"], a[href="./product/sample-workspace/#research-pulse-check"]',
   )
   .first();
 if ((await localLink.count()) > 0) {
@@ -74,6 +77,7 @@ try {
   fs.mkdirSync(artifacts, { recursive: true });
   for (const name of [
     "sample-workspace-desktop-glance.png",
+    "sample-workspace-desktop-preview.png",
     "sample-workspace-desktop-survey.png",
     "sample-workspace-desktop-workspace.png",
     "sample-workspace-mobile-glance.png",
