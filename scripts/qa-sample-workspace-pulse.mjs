@@ -60,9 +60,36 @@ function deriveCountsFromHtml(html) {
   };
 }
 
-const html = fs.readFileSync("product/sample-workspace/index.html", "utf8");
-const compact = html.replace(/\s+/g, " ");
-const derived = deriveCountsFromHtml(html);
+const landingHtml = fs.readFileSync("product/sample-workspace/index.html", "utf8");
+const workspaceHtml = fs.readFileSync(
+  "product/sample-workspace/workspace/index.html",
+  "utf8",
+);
+const landingCompact = landingHtml.replace(/\s+/g, " ");
+const workspaceCompact = workspaceHtml.replace(/\s+/g, " ");
+const derived = deriveCountsFromHtml(workspaceHtml);
+
+log(
+  "landing has research questionnaire near top",
+  /id="research-questionnaire"/.test(landingHtml) &&
+    landingHtml.indexOf('id="research-questionnaire"') <
+      landingHtml.indexOf("See the workflow concept"),
+);
+log(
+  "landing has no checklist body",
+  !/#sw-checklist-body/.test(landingHtml) && !/sw-checklist-body/.test(landingHtml),
+);
+log(
+  "landing research-first hero copy",
+  /Where do Florida real-estate firms lose time between enquiry and matter handoff\?/.test(
+    landingHtml,
+  ),
+);
+log(
+  "landing workspace CTA",
+  /href="\.\/workspace\/"/.test(landingHtml) &&
+    /Explore the fictional workspace/.test(landingHtml),
+);
 
 log("fixture has checklist rows", derived.rowCount === 16, String(derived.rowCount));
 log(
@@ -86,51 +113,91 @@ for (const pattern of [
   /Blocked — 3 priority items require action/i,
   /68%/i,
 ]) {
-  log(`no unsafe pattern ${pattern}`, !pattern.test(html), pattern.toString());
+  log(
+    `no unsafe pattern ${pattern}`,
+    !pattern.test(workspaceHtml) && !pattern.test(landingHtml),
+    pattern.toString(),
+  );
 }
 
 log(
   "safer readiness wording present",
-  /Not marked ready for handoff — 3 priority review items remain open/.test(html),
+  /Not marked ready for handoff — 3 priority review items remain open/.test(workspaceHtml),
 );
 log(
   "client ID onboarding wording",
-  /Review documents requested under firm onboarding procedure/.test(html) &&
-    /configured firm onboarding process/.test(compact),
+  /Review documents requested under firm onboarding procedure/.test(workspaceHtml) &&
+    /configured firm onboarding process/.test(workspaceCompact),
 );
 log(
   "SIRS applicability wording",
-  /SIRS \/ milestone inspection — firm review of applicability/.test(html) &&
-    /Confirm whether this item is relevant to this matter/.test(html),
+  /SIRS \/ milestone inspection — firm review of applicability/.test(workspaceHtml) &&
+    /Confirm whether this item is relevant to this matter/.test(workspaceHtml),
 );
 log(
   "condo optional framing",
-  /not mandatory for every firm, property, building, or transaction/i.test(compact) ||
-    /not required for every firm, property, or transaction/i.test(compact),
+  /not mandatory for every firm, property, building, or transaction/i.test(workspaceCompact) ||
+    /not required for every firm, property, or transaction/i.test(workspaceCompact),
 );
 log(
   "conflict firm-review framing",
-  /does not determine whether a conflict exists/i.test(compact) &&
-    /Conflict-screening review — firm-authorised reviewer/.test(html),
+  /does not determine whether a conflict exists/i.test(workspaceCompact) &&
+    /Conflict-screening review — firm-authorised reviewer/.test(workspaceHtml),
+);
+log(
+  "workspace survey back-link",
+  /href="\.\.\/#research-questionnaire"/.test(workspaceHtml) &&
+    /Share 60-second feedback/.test(workspaceHtml),
 );
 log(
   "local-only questionnaire privacy",
-  /There is no research inbox on this page/.test(compact) &&
-    /does not receive, store, analyse, or respond to these answers automatically/i.test(compact),
+  /There is no research inbox on this page/.test(landingCompact) &&
+    /does not receive, store, analyse, or respond to these answers automatically/i.test(
+      landingCompact,
+    ),
 );
-log("friction is multi-select", /type="checkbox" name="friction"/.test(html));
-log("frequency question present", /name="frequency"/.test(html));
+log("friction is multi-select", /type="checkbox" name="friction"/.test(landingHtml));
+log("frequency question present", /name="frequency"/.test(landingHtml));
 log(
   "research conversation optional",
-  /Optional: Would you be open to a short, no-obligation research conversation/.test(compact) &&
-    !/name="open_to_conversation"[^>]*required/.test(html),
+  /Would you be open to a short, no-obligation research conversation about your current workflow\?/.test(
+    landingCompact,
+  ) && !/name="open_to_conversation"[^>]*required/.test(landingHtml),
+);
+log(
+  "role question wording",
+  /What best describes your role in residential real-estate matters\?/.test(landingHtml),
+);
+log(
+  "friction question wording",
+  /Which areas create the most follow-up or uncertainty\? Select up to two\./.test(landingHtml),
 );
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
 await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-await page.goto(base + "/product/sample-workspace/", { waitUntil: "networkidle" });
 
+await page.goto(base + "/product/sample-workspace/", { waitUntil: "networkidle" });
+log(
+  "landing survey visible without deep scroll past workspace",
+  await page.locator("#research-questionnaire").isVisible(),
+);
+log(
+  "landing has no glance checklist",
+  (await page.locator("#sw-checklist-summary").count()) === 0,
+);
+
+const heroFeedback = page.locator('a.button[href="#research-questionnaire"]').first();
+await heroFeedback.click();
+await page.waitForFunction(() => {
+  const el = document.getElementById("research-questionnaire");
+  if (!el) return false;
+  const rect = el.getBoundingClientRect();
+  return rect.top < window.innerHeight && rect.bottom > 0;
+});
+log("share feedback scrolls to survey", true);
+
+await page.goto(base + "/product/sample-workspace/workspace/", { waitUntil: "networkidle" });
 const renderedSummary = ((await page.locator("#sw-checklist-summary").textContent()) || "").trim();
 const expectedSummary = `${derived.complete} complete / ${derived.action} require action · ${derived.applicability} applicability review`;
 log("rendered summary matches fixture", renderedSummary === expectedSummary, renderedSummary);
@@ -149,8 +216,16 @@ log(
   (await page.getByText(/Draft ready — awaiting firm decision/i).count()) > 0,
 );
 
+const workspaceSurveyLinks = await page
+  .locator('a[href*="#research-questionnaire"]')
+  .count();
+log("workspace feedback CTAs present", workspaceSurveyLinks >= 2, String(workspaceSurveyLinks));
+
+await page.goto(base + "/product/sample-workspace/", { waitUntil: "networkidle" });
 const demoHrefs = await page.locator('a[href*="intake-app-dun.vercel.app/demo"]').count();
-log("demo CTAs present", demoHrefs >= 3, String(demoHrefs));
+log("interactive demo CTAs present", demoHrefs >= 1, String(demoHrefs));
+const fictionHrefs = await page.locator('a[href="./workspace/"]').count();
+log("fictional workspace CTAs present", fictionHrefs >= 2, String(fictionHrefs));
 
 await page.goto(base + "/product/sample-workspace/#research-questionnaire");
 await page.waitForFunction(() => {
@@ -180,6 +255,10 @@ const frictionNone =
 await page.check(friction1);
 await page.check(friction2);
 log("two frictions allowed", (await page.locator('input[name="friction"]:checked').count()) === 2);
+log(
+  "none disabled when others selected",
+  await page.isDisabled(frictionNone),
+);
 
 await page.locator(friction3).click({ force: true });
 log(
@@ -192,12 +271,18 @@ log(
   /up to two/i.test((await page.locator("#research-friction-error").textContent()) || ""),
 );
 
+await page.uncheck(friction1);
+await page.uncheck(friction2);
 await page.check(frictionNone);
 log(
   "none mutually exclusive",
   (await page.isChecked(frictionNone)) &&
     !(await page.isChecked(friction1)) &&
     !(await page.isChecked(friction2)),
+);
+log(
+  "others disabled when none selected",
+  await page.isDisabled(friction1),
 );
 
 await page.uncheck(frictionNone);
@@ -284,7 +369,13 @@ await mpage.goto(base + "/product/sample-workspace/", { waitUntil: "networkidle"
 const overflow = await mpage.evaluate(
   () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2,
 );
-log("mobile no overflow", !overflow);
+log("mobile landing no overflow", !overflow);
+
+await mpage.goto(base + "/product/sample-workspace/workspace/", { waitUntil: "networkidle" });
+const workspaceOverflow = await mpage.evaluate(
+  () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2,
+);
+log("mobile workspace no overflow", !workspaceOverflow);
 const canScroll = await mpage
   .locator(".sw-table-wrap")
   .first()

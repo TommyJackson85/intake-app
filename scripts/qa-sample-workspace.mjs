@@ -3,7 +3,7 @@ import { chromium } from "playwright";
 import fs from "fs";
 
 /**
- * Smoke checks for Sample Real-Estate Matter Workspace + homepage links.
+ * Smoke checks for research landing + fictional workspace + homepage links.
  * Detailed survey/clipboard coverage: scripts/qa-sample-workspace-pulse.mjs
  */
 const base = "http://127.0.0.1:8765";
@@ -37,13 +37,21 @@ await page.locator("#research-questionnaire").screenshot({
   path: `${out}/sample-workspace-desktop-survey.png`,
 });
 
+await page.goto(base + "/product/sample-workspace/workspace/", { waitUntil: "networkidle" });
+await page.screenshot({
+  path: `${out}/sample-workspace-desktop-workspace.png`,
+  fullPage: false,
+});
+
 await page.goto(base + "/", { waitUntil: "networkidle" });
 const hrefs = await page
   .locator('a[href*="sample-workspace"]')
   .evaluateAll((as) => as.map((a) => a.getAttribute("href")));
 log("homepage has sample-workspace links", hrefs.length > 0, hrefs.slice(0, 6).join(", "));
 const localLink = page
-  .locator('a[href="./product/sample-workspace/"], a[href="/product/sample-workspace/"]')
+  .locator(
+    'a[href="./product/sample-workspace/"], a[href="/product/sample-workspace/"], a[href="./product/sample-workspace/#research-questionnaire"]',
+  )
   .first();
 if ((await localLink.count()) > 0) {
   await localLink.click();
@@ -67,6 +75,7 @@ try {
   for (const name of [
     "sample-workspace-desktop-glance.png",
     "sample-workspace-desktop-survey.png",
+    "sample-workspace-desktop-workspace.png",
     "sample-workspace-mobile-glance.png",
   ]) {
     fs.copyFileSync(`${out}/${name}`, `${artifacts}/${name}`);
