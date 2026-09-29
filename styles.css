@@ -2166,6 +2166,12 @@ input {
   margin-top: 18px;
 }
 
+.article-cta .text-link {
+  display: inline-flex;
+  margin-top: 14px;
+  margin-left: 0.25rem;
+}
+
 .site-nav a[aria-current="page"] {
   color: var(--teal);
 }
@@ -2278,12 +2284,25 @@ input {
   line-height: 1.08;
 }
 
+.sw-hero--research h1 {
+  max-width: 22ch;
+}
+
 .sw-hero__lead {
   margin: 1rem 0 0;
   max-width: 62ch;
   color: #3d565b;
   font-size: clamp(1.02rem, 2vw, 1.15rem);
   line-height: 1.65;
+}
+
+.sw-hero__lead--secondary {
+  margin-top: 0.75rem;
+}
+
+.sw-privacy--hero {
+  margin: 0.85rem 0 0;
+  max-width: 62ch;
 }
 
 .sw-notice {
@@ -2297,6 +2316,11 @@ input {
   border-radius: 12px;
   font-size: 0.95rem;
   line-height: 1.55;
+}
+
+.sw-notice--research {
+  border-left-color: #8a9a6d;
+  background: rgba(248, 249, 244, 0.92);
 }
 
 .sw-notice strong {
@@ -2704,6 +2728,34 @@ input {
 .sw-checkboxes input,
 .sw-radios input {
   margin-top: 0.25rem;
+}
+
+.sw-checkboxes label:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sw-teaser {
+  margin-top: 3.25rem;
+  padding: 1.5rem 0 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.sw-teaser__list {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+  max-width: 62ch;
+  color: #3d565b;
+  font-size: 1.02rem;
+  line-height: 1.7;
+}
+
+.sw-teaser__list li + li {
+  margin-top: 0.4rem;
+}
+
+.sample-workspace--research .sw-research {
+  margin-top: 1.75rem;
 }
 
 .sw-privacy,
