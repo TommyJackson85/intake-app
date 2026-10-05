@@ -11,6 +11,7 @@ import DemoTimelineNotes from '@/components/demo/DemoTimelineNotes'
 import NewIntakeDemoModal from './_components/NewIntakeDemoModal'
 import SystemContractMapCard from './_components/SystemContractMapCard'
 import PropertyTaxDemoScenariosCard from './_components/PropertyTaxDemoScenariosCard'
+import DashboardLayoutFeedbackInvite from './_components/DashboardLayoutFeedbackInvite'
 import { getMatterPartyDisplayRows } from '@/lib/demo/matterPartyDisplay'
 import {
   buildCondoDiligenceWorkQueueRows,
@@ -746,123 +747,7 @@ function DemoPageContent() {
           </table>
         </div>
 
-        <aside
-          id="dashboard-layout-feedback"
-          aria-labelledby="dashboard-feedback-heading"
-          style={{
-            marginTop: '18px',
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.55fr) minmax(180px, 0.85fr)',
-            gap: '16px 20px',
-            alignItems: 'center',
-            padding: '16px 18px',
-            background: 'linear-gradient(165deg, rgba(220, 239, 233, 0.55), rgba(255, 255, 255, 0.92)), white',
-            border: '1px solid rgba(23, 124, 128, 0.22)',
-            borderLeft: '4px solid #208096',
-            borderRadius: '12px',
-            boxShadow: '0 10px 28px rgba(6, 42, 49, 0.06)',
-          }}
-        >
-          <div>
-            <p
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: '10px',
-                margin: '0 0 8px',
-                color: '#208096',
-                fontSize: '12px',
-                fontWeight: 800,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-              }}
-            >
-              <span
-                aria-hidden="true"
-                style={{ width: '24px', height: '2px', background: 'currentColor' }}
-              />
-              Research feedback
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '2px 8px',
-                  color: '#24444a',
-                  background: 'rgba(255, 255, 255, 0.85)',
-                  border: '1px solid rgba(12, 60, 68, 0.14)',
-                  borderRadius: '999px',
-                  fontSize: '10px',
-                  fontWeight: 750,
-                  letterSpacing: '0.08em',
-                }}
-              >
-                60-second questionnaire
-              </span>
-            </p>
-            <h3
-              id="dashboard-feedback-heading"
-              style={{
-                margin: '0 0 8px',
-                fontSize: '18px',
-                fontWeight: 700,
-                lineHeight: 1.3,
-                color: '#134252',
-              }}
-            >
-              Does this dashboard layout reflect how your team works?
-            </h3>
-            <p style={{ margin: '0 0 8px', color: '#3d565b', fontSize: '14px', lineHeight: 1.55 }}>
-              This fictional Matter worklist is designed to make status, ownership, next actions,
-              timing, and handoff blockers easier to see in one place.
-            </p>
-            <p style={{ margin: 0, color: '#3d565b', fontSize: '14px', lineHeight: 1.55 }}>
-              Tell us whether this layout feels useful for your real-estate matter workflow. The
-              questionnaire takes about 60 seconds and does not ask for client or confidential
-              information.
-            </p>
-          </div>
-          <div style={{ display: 'grid', gap: '8px', justifyItems: 'start' }}>
-            <a
-              href="https://tommyjackson85.github.io/intake-app/product/sample-workspace/#research-pulse-check"
-              style={{
-                ...actionBtn('#208096', 'white'),
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                whiteSpace: 'normal',
-                textAlign: 'left',
-              }}
-            >
-              <svg
-                viewBox="0 0 20 20"
-                width="18"
-                height="18"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path
-                  d="M4 3.75h12A1.75 1.75 0 0 1 17.75 5.5v7A1.75 1.75 0 0 1 16 14.25H9.2L5.8 16.7a.6.6 0 0 1-.95-.49V14.25H4A1.75 1.75 0 0 1 2.25 12.5v-7A1.75 1.75 0 0 1 4 3.75Z"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M6.25 8.25h7.5M6.25 11h4.5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-              Share feedback on this layout
-            </a>
-            <p style={{ margin: 0, maxWidth: '28ch', color: '#60787b', fontSize: '13px', lineHeight: 1.45 }}>
-              Responses stay on your device unless you choose to copy or share them.
-            </p>
-          </div>
-        </aside>
+        <DashboardLayoutFeedbackInvite />
       </section>
 
       <aside ref={detailPanelRef}>
