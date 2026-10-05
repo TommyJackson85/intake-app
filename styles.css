@@ -269,7 +269,7 @@ input {
 
 .button-secondary:hover .button-icon--trail,
 .button-secondary:focus-visible .button-icon--trail {
-  transform: translate(2px, -2px);
+  transform: translate(1px, 1px);
 }
 
 .button-small {
