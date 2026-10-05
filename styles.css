@@ -190,7 +190,7 @@ input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   min-height: 52px;
   padding: 0 24px;
   color: var(--white);
@@ -204,14 +204,72 @@ input {
   transition:
     transform 180ms ease,
     background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
     box-shadow 180ms ease;
 }
 
-.button:hover,
-.button:focus-visible {
+.button:hover {
   background: #106b70;
+  border-color: #106b70;
   box-shadow: 0 14px 34px rgba(23, 124, 128, 0.25);
   transform: translateY(-2px);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+  background: #106b70;
+  border-color: #106b70;
+  box-shadow: 0 14px 34px rgba(23, 124, 128, 0.25);
+}
+
+.button:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 20px rgba(23, 124, 128, 0.18);
+}
+
+.button-secondary {
+  color: var(--ink);
+  background: var(--white);
+  border-color: rgba(12, 60, 68, 0.22);
+  box-shadow: 0 8px 22px rgba(6, 42, 49, 0.06);
+}
+
+.button-secondary:hover {
+  color: var(--teal);
+  background: var(--mint-light);
+  border-color: rgba(23, 124, 128, 0.45);
+  box-shadow: 0 12px 28px rgba(6, 42, 49, 0.1);
+  transform: translateY(-2px);
+}
+
+.button-secondary:focus-visible {
+  color: var(--teal);
+  background: var(--mint-light);
+  border-color: var(--teal);
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+}
+
+.button-secondary:active {
+  transform: translateY(0);
+}
+
+.button-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.button-secondary .button-icon--trail {
+  transition: transform 180ms ease;
+}
+
+.button-secondary:hover .button-icon--trail,
+.button-secondary:focus-visible .button-icon--trail {
+  transform: translate(2px, -2px);
 }
 
 .button-small {
@@ -351,6 +409,20 @@ input {
   flex-direction: column;
   gap: 12px;
   align-items: flex-start;
+}
+
+.hero-cta-stack .button {
+  min-width: 260px;
+  padding-inline: 22px;
+}
+
+.hero-cta-help {
+  margin: 2px 0 0;
+  max-width: 34ch;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.45;
 }
 
 .hero-points {
@@ -1452,6 +1524,15 @@ input {
   .hero-cta-stack {
     width: 100%;
     align-items: stretch;
+  }
+
+  .hero-cta-stack .button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .hero-cta-help {
+    display: none;
   }
 
   .hero-actions .text-link {
