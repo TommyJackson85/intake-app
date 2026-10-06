@@ -318,72 +318,71 @@ export default function DashboardLayoutFeedbackInvite() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: open ? '1fr' : 'minmax(0, 1.55fr) minmax(180px, 0.85fr)',
-          gap: '16px 20px',
-          alignItems: open ? 'stretch' : 'center',
+          gridTemplateColumns: 'minmax(0, 1fr)',
+          gap: '0',
+          justifyItems: 'start',
+          textAlign: 'left',
         }}
       >
-        <div>
-          <p
+        <p
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: '10px',
+            margin: '0 0 8px',
+            color: '#208096',
+            fontSize: '12px',
+            fontWeight: 800,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{ width: '24px', height: '2px', background: 'currentColor' }}
+          />
+          Research feedback
+          <span
             style={{
-              display: 'flex',
-              flexWrap: 'wrap',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '10px',
-              margin: '0 0 8px',
-              color: '#208096',
-              fontSize: '12px',
-              fontWeight: 800,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
+              padding: '2px 8px',
+              color: '#24444a',
+              background: 'rgba(255, 255, 255, 0.85)',
+              border: '1px solid rgba(12, 60, 68, 0.14)',
+              borderRadius: '999px',
+              fontSize: '10px',
+              fontWeight: 750,
+              letterSpacing: '0.08em',
             }}
           >
-            <span
-              aria-hidden="true"
-              style={{ width: '24px', height: '2px', background: 'currentColor' }}
-            />
-            Research feedback
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '2px 8px',
-                color: '#24444a',
-                background: 'rgba(255, 255, 255, 0.85)',
-                border: '1px solid rgba(12, 60, 68, 0.14)',
-                borderRadius: '999px',
-                fontSize: '10px',
-                fontWeight: 750,
-                letterSpacing: '0.08em',
-              }}
-            >
-              60-second questionnaire
-            </span>
-          </p>
-          <h3
-            id={`${baseId}-heading`}
-            style={{
-              margin: '0 0 8px',
-              fontSize: '18px',
-              fontWeight: 700,
-              lineHeight: 1.3,
-              color: '#134252',
-            }}
-          >
-            Does this dashboard layout reflect how your team works?
-          </h3>
-          <p style={{ margin: '0 0 8px', color: '#3d565b', fontSize: '14px', lineHeight: 1.55 }}>
-            This fictional Matter worklist is designed to make status, ownership, next actions,
-            timing, and handoff blockers easier to see in one place.
-          </p>
-          <p style={{ margin: 0, color: '#3d565b', fontSize: '14px', lineHeight: 1.55 }}>
-            Tell us whether this layout feels useful for your real-estate matter workflow. The
-            questionnaire takes about 60 seconds and does not ask for client or confidential
-            information.
-          </p>
-        </div>
+            60-second questionnaire
+          </span>
+        </p>
+        <h3
+          id={`${baseId}-heading`}
+          style={{
+            margin: '0 0 8px',
+            fontSize: '18px',
+            fontWeight: 700,
+            lineHeight: 1.3,
+            color: '#134252',
+          }}
+        >
+          Does this dashboard layout reflect how your team works?
+        </h3>
+        <p style={{ margin: '0 0 8px', color: '#3d565b', fontSize: '14px', lineHeight: 1.55 }}>
+          This fictional Matter worklist is designed to make status, ownership, next actions,
+          timing, and handoff blockers easier to see in one place.
+        </p>
+        <p style={{ margin: '0 0 16px', color: '#3d565b', fontSize: '14px', lineHeight: 1.55 }}>
+          Tell us whether this layout feels useful for your real-estate matter workflow. The
+          questionnaire takes about 60 seconds and does not ask for client or confidential
+          information.
+        </p>
 
-        <div style={{ display: 'grid', gap: '8px', justifyItems: 'start' }}>
+        <div style={{ display: 'grid', gap: '8px', justifyItems: 'start', width: '100%' }}>
           <button
             type="button"
             aria-expanded={open}
@@ -426,7 +425,7 @@ export default function DashboardLayoutFeedbackInvite() {
               {open ? '▴' : '▾'}
             </span>
           </button>
-          <p style={{ margin: 0, maxWidth: '28ch', color: '#60787b', fontSize: '13px', lineHeight: 1.45 }}>
+          <p style={{ margin: 0, color: '#60787b', fontSize: '13px', lineHeight: 1.45 }}>
             Responses stay on your device unless you choose to copy or share them.
           </p>
         </div>
