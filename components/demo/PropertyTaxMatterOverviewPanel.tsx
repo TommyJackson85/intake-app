@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
-import type { DemoDocumentRequest, DemoMatter } from '@/lib/demo/types'
+import type { DemoDocumentRequest, DemoMatter, DemoPropertyTaxIssueKind, DemoPropertyTaxIssueStatus } from '@/lib/demo/types'
 import {
+  PROPERTY_TAX_ISSUE_STATUS_OPTIONS,
   buildPropertyTaxMatterOverviewModel,
   countPropertyTaxRecordedDates,
   shouldShowPropertyTaxMatterOverviewPanel,
@@ -24,6 +25,8 @@ type Props = {
   onCreateDocumentRequests?: (inputs: AddDemoDocumentRequestInput[]) => void
   onGoToDocuments?: () => void
   onViewTrackedDates?: () => void
+  /** Staff-only internal status change — not a legal referral determination. */
+  onUpdateKindStatus?: (kind: DemoPropertyTaxIssueKind, status: DemoPropertyTaxIssueStatus) => void
 }
 
 /**
@@ -37,6 +40,7 @@ export default function PropertyTaxMatterOverviewPanel({
   onCreateDocumentRequests,
   onGoToDocuments,
   onViewTrackedDates,
+  onUpdateKindStatus,
 }: Props) {
   if (
     !shouldShowPropertyTaxMatterOverviewPanel({
@@ -147,21 +151,53 @@ export default function PropertyTaxMatterOverviewPanel({
             }}
           >
             <div style={{ fontSize: 12, fontWeight: 800, color: '#134252' }}>{row.label}</div>
-            <span
-              style={{
-                display: 'inline-block',
-                padding: '4px 8px',
-                borderRadius: 999,
-                fontSize: 11,
-                fontWeight: 800,
-                background: row.statusPresentation.bg,
-                color: row.statusPresentation.color,
-                border: `1px solid ${row.statusPresentation.border}`,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {row.statusPresentation.label}
-            </span>
+            {onUpdateKindStatus ? (
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 200 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#627c71' }}>
+                  Internal review status
+                </span>
+                <select
+                  data-testid={`ptx-kind-status-${row.kind}`}
+                  aria-label={`Internal review status for ${row.label}`}
+                  value={row.status}
+                  onChange={(e) =>
+                    onUpdateKindStatus(row.kind, e.target.value as DemoPropertyTaxIssueStatus)
+                  }
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: row.statusPresentation.color,
+                    background: row.statusPresentation.bg,
+                    border: `1px solid ${row.statusPresentation.border}`,
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    maxWidth: 280,
+                  }}
+                >
+                  {PROPERTY_TAX_ISSUE_STATUS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <span
+                style={{
+                  display: 'inline-block',
+                  padding: '4px 8px',
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  background: row.statusPresentation.bg,
+                  color: row.statusPresentation.color,
+                  border: `1px solid ${row.statusPresentation.border}`,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {row.statusPresentation.label}
+              </span>
+            )}
           </div>
 
           <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: '#627c71', lineHeight: 1.45 }}>

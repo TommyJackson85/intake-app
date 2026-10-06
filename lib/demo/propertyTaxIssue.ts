@@ -45,6 +45,7 @@ export const DEMO_PROPERTY_TAX_ISSUE_STATUSES: readonly DemoPropertyTaxIssueStat
   'in_progress',
   'needs_more_info',
   'ready_for_attorney_review',
+  'needs_property_tax_specialist_review',
 ] as const
 
 /** Soft urgency window (days) for UI hints only — not a statutory rule. */
@@ -314,7 +315,8 @@ export function isPropertyTaxIssueStatus(value: unknown): value is DemoPropertyT
     value === 'not_started' ||
     value === 'in_progress' ||
     value === 'needs_more_info' ||
-    value === 'ready_for_attorney_review'
+    value === 'ready_for_attorney_review' ||
+    value === 'needs_property_tax_specialist_review'
   )
 }
 
@@ -963,6 +965,20 @@ export type DemoPropertyTaxStatusPresentation = {
   border: string
 }
 
+export const PROPERTY_TAX_ISSUE_STATUS_OPTIONS: readonly {
+  value: DemoPropertyTaxIssueStatus
+  label: string
+}[] = [
+  { value: 'not_started', label: 'Not started' },
+  { value: 'in_progress', label: 'In review' },
+  { value: 'needs_more_info', label: 'Information needed' },
+  { value: 'ready_for_attorney_review', label: 'Ready for attorney review' },
+  {
+    value: 'needs_property_tax_specialist_review',
+    label: 'Needs property-tax specialist review',
+  },
+] as const
+
 /** UI badge labels for per-kind / overall status (not legal clearance). */
 export function propertyTaxIssueStatusPresentation(
   status: DemoPropertyTaxIssueStatus,
@@ -986,6 +1002,13 @@ export function propertyTaxIssueStatusPresentation(
         color: '#842029',
         border: 'rgba(132,32,41,0.25)',
       }
+    case 'needs_property_tax_specialist_review':
+      return {
+        label: 'Needs property-tax specialist review',
+        bg: '#eef2f6',
+        color: '#3d5a80',
+        border: 'rgba(61,90,128,0.3)',
+      }
     default: {
       const _exhaustive: never = status
       return _exhaustive
@@ -994,6 +1017,7 @@ export function propertyTaxIssueStatusPresentation(
 }
 
 const STATUS_PRIORITY: readonly DemoPropertyTaxIssueStatus[] = [
+  'needs_property_tax_specialist_review',
   'ready_for_attorney_review',
   'needs_more_info',
   'in_progress',
@@ -1118,6 +1142,11 @@ export function getPropertyTaxKindNextStep(
   kind: DemoPropertyTaxIssueKind,
   issue: DemoPropertyTaxIssue | null | undefined,
 ): string {
+  const n = normalizePropertyTaxIssue(issue)
+  const branch = n.byKind[kind]
+  if (branch?.status === 'needs_property_tax_specialist_review') {
+    return 'Route internally for property-tax specialist review — not a filing instruction or referral determination.'
+  }
   const relevant = getMostRelevantPropertyTaxDate(kind, issue)
   if (relevant && propertyTaxDateNeedsVerification(relevant.dated)) {
     return 'Verify the date stated in the notice for attorney review.'

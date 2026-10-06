@@ -245,6 +245,38 @@ describe('property tax matter Overview helpers (Step 3)', () => {
     )
   })
 
+  it('specialist-review status has presentation, priority, and hand-off next step', () => {
+    let issue = togglePropertyTaxIssueKind(null, 'assessment_vab', true)
+    issue = patchPropertyTaxAssessmentBranch(issue, {
+      status: 'needs_property_tax_specialist_review',
+      noticeReceived: true,
+      reportedIssueType: 'assessed_value',
+      noticeMailingDate: { date: '2026-08-18', source: 'client_reported' },
+    })
+    expect(propertyTaxIssueStatusPresentation('needs_property_tax_specialist_review').label).toBe(
+      'Needs property-tax specialist review',
+    )
+    expect(getOverallPropertyTaxIssueStatus(issue)).toBe('needs_property_tax_specialist_review')
+    expect(getPropertyTaxKindNextStep('assessment_vab', issue)).toMatch(
+      /property-tax specialist review/i,
+    )
+    expect(getPropertyTaxKindNextStep('assessment_vab', issue)).toMatch(
+      /not a filing instruction or referral determination/i,
+    )
+    expect(getPropertyTaxKindNextStep('assessment_vab', issue)).not.toMatch(
+      /eligible|statutory deadline/i,
+    )
+    // Specialist hand-off outranks ready-for-attorney when both kinds are selected.
+    issue = togglePropertyTaxIssueKind(issue, 'ownership_change_tax_risk', true)
+    issue = patchPropertyTaxOwnershipBranch(issue, { status: 'ready_for_attorney_review' })
+    expect(getOverallPropertyTaxIssueStatus(issue)).toBe('needs_property_tax_specialist_review')
+    const model = buildPropertyTaxMatterOverviewModel(issue)
+    expect(model.overallStatusPresentation.label).toBe('Needs property-tax specialist review')
+    expect(model.kinds.find((k) => k.kind === 'assessment_vab')?.nextStep).toMatch(
+      /Route internally for property-tax specialist review/i,
+    )
+  })
+
   it('preserves date verification through normalize round-trip onto a matter-shaped object', () => {
     let issue = togglePropertyTaxIssueKind(null, 'ownership_change_tax_risk', true)
     issue = patchPropertyTaxOwnershipBranch(issue, {
