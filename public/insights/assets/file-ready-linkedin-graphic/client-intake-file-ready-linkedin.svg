@@ -1,0 +1,88 @@
+<svg
+  width="1080"
+  height="1350"
+  viewBox="0 0 1080 1350"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-labelledby="title description"
+>
+  <title id="title">Client Intake file-ready workflow graphic</title>
+  <desc id="description">
+    A graphic explaining that a real-estate transaction file is ready when the team can see received
+    items, missing items, ownership of the next step, and blockers to handoff.
+  </desc>
+
+  <defs>
+    <linearGradient id="leftOverlay" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0F2742" stop-opacity="0.96" />
+      <stop offset="63%" stop-color="#0F2742" stop-opacity="0.84" />
+      <stop offset="100%" stop-color="#0F2742" stop-opacity="0.22" />
+    </linearGradient>
+
+    <linearGradient id="bottomOverlay" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F2742" stop-opacity="0" />
+      <stop offset="100%" stop-color="#0F2742" stop-opacity="0.50" />
+    </linearGradient>
+  </defs>
+
+  <image
+    href="linkedin-file-ready-background.png"
+    x="0"
+    y="0"
+    width="1080"
+    height="1350"
+    preserveAspectRatio="xMidYMid slice"
+  />
+
+  <rect width="1080" height="1350" fill="url(#leftOverlay)" />
+  <rect width="1080" height="1350" fill="url(#bottomOverlay)" />
+
+  <text
+    x="90"
+    y="130"
+    fill="#A7F3D0"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="30"
+    font-weight="700"
+    letter-spacing="4"
+  >
+    CLIENT INTAKE
+  </text>
+
+  <text
+    x="90"
+    y="315"
+    fill="#FFFFFF"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="78"
+    font-weight="700"
+  >
+    <tspan x="90" dy="0">A file is not ready</tspan>
+    <tspan x="90" dy="95">because a client replied.</tspan>
+  </text>
+
+  <text
+    x="90"
+    y="570"
+    fill="#F3F7FA"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="40"
+    font-weight="500"
+  >
+    It is ready when the team can see:
+  </text>
+
+  <text
+    x="90"
+    y="700"
+    fill="#FFFFFF"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="48"
+    font-weight="600"
+  >
+    <tspan x="90" dy="0">-  What was received</tspan>
+    <tspan x="90" dy="78">-  What is missing</tspan>
+    <tspan x="90" dy="78">-  Who owns the next step</tspan>
+    <tspan x="90" dy="78">-  What blocks the handoff</tspan>
+  </text>
+</svg>
