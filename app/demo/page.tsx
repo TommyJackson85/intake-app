@@ -746,8 +746,6 @@ function DemoPageContent() {
             </tbody>
           </table>
         </div>
-
-        <DashboardLayoutFeedbackInvite />
       </section>
 
       <aside ref={detailPanelRef}>
@@ -804,6 +802,9 @@ function DemoPageContent() {
         </div>
       </aside>
       </div>
+
+      {/* Full-width below the worklist/detail columns so the CTA cannot sit beside the matter panel. */}
+      <DashboardLayoutFeedbackInvite />
 
       <SystemContractMapCard />
 
