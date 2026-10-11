@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { AuthProvider } from '@/lib/auth-context'
-import Footer from '@/components/Footer'
+import ConditionalFooter from '@/components/ConditionalFooter'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -20,7 +20,7 @@ export default function RootLayout({
           <div style={{ flex: 1 }}>
             {children}
           </div>
-          <Footer />
+          <ConditionalFooter />
         </AuthProvider>
       </body>
     </html>
