@@ -17,6 +17,7 @@ import {
   propertyTaxIssueForIntakeSnapshot,
 } from '@/lib/demo/propertyTaxIssue'
 import PropertyTaxIntakeSection from '@/app/demo/_components/PropertyTaxIntakeSection'
+import NewIntakeFormFeedbackInvite from '@/app/demo/_components/NewIntakeFormFeedbackInvite'
 
 type Props = {
   isOpen: boolean
@@ -933,6 +934,16 @@ export default function NewIntakeDemoModal({ isOpen, onClose, nextFileId, onCrea
               )}
             </div>
           )}
+
+          <div
+            style={{
+              marginTop: 20,
+              paddingTop: 18,
+              borderTop: '1px solid rgba(94,82,64,0.18)',
+            }}
+          >
+            <NewIntakeFormFeedbackInvite />
+          </div>
         </div>
       </div>
     </div>
