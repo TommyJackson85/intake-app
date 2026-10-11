@@ -318,118 +318,147 @@ export default function DashboardLayoutFeedbackInvite() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: open ? '1fr' : 'minmax(0, 1.55fr) minmax(180px, 0.85fr)',
-          gap: '16px 20px',
-          alignItems: open ? 'stretch' : 'center',
+          gridTemplateColumns: 'minmax(0, 1fr)',
+          gap: '12px',
+          justifyItems: 'start',
+          alignItems: 'stretch',
         }}
       >
-        <div>
+        <p
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: '10px',
+            margin: 0,
+            color: '#208096',
+            fontSize: '12px',
+            fontWeight: 800,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{ width: '24px', height: '2px', background: 'currentColor' }}
+          />
+          Research feedback
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '2px 8px',
+              color: '#24444a',
+              background: 'rgba(255, 255, 255, 0.85)',
+              border: '1px solid rgba(12, 60, 68, 0.14)',
+              borderRadius: '999px',
+              fontSize: '10px',
+              fontWeight: 750,
+              letterSpacing: '0.08em',
+            }}
+          >
+            60-second questionnaire
+          </span>
+        </p>
+        <h3
+          id={`${baseId}-heading`}
+          style={{
+            margin: 0,
+            fontSize: '18px',
+            fontWeight: 700,
+            lineHeight: 1.3,
+            color: '#134252',
+            maxWidth: '100%',
+            overflowWrap: 'anywhere',
+          }}
+        >
+          Does this dashboard layout reflect how your team works?
+        </h3>
+        <div style={{ display: 'grid', gap: '8px', maxWidth: '100%' }}>
           <p
             style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              gap: '10px',
-              margin: '0 0 8px',
-              color: '#208096',
-              fontSize: '12px',
-              fontWeight: 800,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
+              margin: 0,
+              color: '#3d565b',
+              fontSize: '14px',
+              lineHeight: 1.55,
+              overflowWrap: 'anywhere',
             }}
           >
-            <span
-              aria-hidden="true"
-              style={{ width: '24px', height: '2px', background: 'currentColor' }}
-            />
-            Research feedback
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '2px 8px',
-                color: '#24444a',
-                background: 'rgba(255, 255, 255, 0.85)',
-                border: '1px solid rgba(12, 60, 68, 0.14)',
-                borderRadius: '999px',
-                fontSize: '10px',
-                fontWeight: 750,
-                letterSpacing: '0.08em',
-              }}
-            >
-              60-second questionnaire
-            </span>
-          </p>
-          <h3
-            id={`${baseId}-heading`}
-            style={{
-              margin: '0 0 8px',
-              fontSize: '18px',
-              fontWeight: 700,
-              lineHeight: 1.3,
-              color: '#134252',
-            }}
-          >
-            Does this dashboard layout reflect how your team works?
-          </h3>
-          <p style={{ margin: '0 0 8px', color: '#3d565b', fontSize: '14px', lineHeight: 1.55 }}>
             This fictional Matter worklist is designed to make status, ownership, next actions,
             timing, and handoff blockers easier to see in one place.
           </p>
-          <p style={{ margin: 0, color: '#3d565b', fontSize: '14px', lineHeight: 1.55 }}>
+          <p
+            style={{
+              margin: 0,
+              color: '#3d565b',
+              fontSize: '14px',
+              lineHeight: 1.55,
+              overflowWrap: 'anywhere',
+            }}
+          >
             Tell us whether this layout feels useful for your real-estate matter workflow. The
             questionnaire takes about 60 seconds and does not ask for client or confidential
             information.
           </p>
         </div>
 
-        <div style={{ display: 'grid', gap: '8px', justifyItems: 'start' }}>
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-controls={`${baseId}-panel`}
-            onClick={() => setOpen((value) => !value)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: '#208096',
-              color: 'white',
-              padding: '12px 18px',
-              border: 'none',
-              borderRadius: '6px',
-              fontWeight: 700,
-              fontSize: '14px',
-              cursor: 'pointer',
-              whiteSpace: 'normal',
-              textAlign: 'left',
-            }}
-          >
-            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
-              <path
-                d="M4 3.75h12A1.75 1.75 0 0 1 17.75 5.5v7A1.75 1.75 0 0 1 16 14.25H9.2L5.8 16.7a.6.6 0 0 1-.95-.49V14.25H4A1.75 1.75 0 0 1 2.25 12.5v-7A1.75 1.75 0 0 1 4 3.75Z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M6.25 8.25h7.5M6.25 11h4.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-            {open ? 'Hide questionnaire' : 'Share feedback on this layout'}
-            <span aria-hidden="true" style={{ marginLeft: '2px', fontSize: '16px', lineHeight: 1 }}>
-              {open ? '▴' : '▾'}
-            </span>
-          </button>
-          <p style={{ margin: 0, maxWidth: '28ch', color: '#60787b', fontSize: '13px', lineHeight: 1.45 }}>
-            Responses stay on your device unless you choose to copy or share them.
-          </p>
-        </div>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={`${baseId}-panel`}
+          onClick={() => setOpen((value) => !value)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            width: 'fit-content',
+            maxWidth: '100%',
+            background: '#208096',
+            color: 'white',
+            padding: '12px 18px',
+            border: 'none',
+            borderRadius: '6px',
+            fontWeight: 700,
+            fontSize: '14px',
+            cursor: 'pointer',
+            whiteSpace: 'normal',
+            textAlign: 'left',
+            justifySelf: 'start',
+          }}
+        >
+          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
+            <path
+              d="M4 3.75h12A1.75 1.75 0 0 1 17.75 5.5v7A1.75 1.75 0 0 1 16 14.25H9.2L5.8 16.7a.6.6 0 0 1-.95-.49V14.25H4A1.75 1.75 0 0 1 2.25 12.5v-7A1.75 1.75 0 0 1 4 3.75Z"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M6.25 8.25h7.5M6.25 11h4.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+          {open ? 'Hide questionnaire' : 'Share feedback on this layout'}
+          <span aria-hidden="true" style={{ marginLeft: '2px', fontSize: '16px', lineHeight: 1 }}>
+            {open ? '▴' : '▾'}
+          </span>
+        </button>
+        <p
+          style={{
+            margin: 0,
+            maxWidth: '100%',
+            color: '#60787b',
+            fontSize: '13px',
+            lineHeight: 1.45,
+            overflowWrap: 'anywhere',
+          }}
+        >
+          Responses stay on your device unless you choose to copy or share them.
+        </p>
       </div>
 
       {open ? (
