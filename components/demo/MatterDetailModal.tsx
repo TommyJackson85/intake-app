@@ -71,6 +71,7 @@ import { buildFinCENReportabilityReviewDashboard, FINCEN_SECTION_IDS } from '@/l
 import UploadDemoDocumentModal from '@/app/demo/_components/UploadDemoDocumentModal'
 import CondoDiligenceSummaryCompareModal from '@/app/demo/_components/CondoDiligenceSummaryCompareModal'
 import CreateCondoDiligenceSummaryReviewTaskModal from '@/app/demo/_components/CreateCondoDiligenceSummaryReviewTaskModal'
+import MatterViewFeedbackInvite from '@/app/demo/_components/MatterViewFeedbackInvite'
 import {
   buildCondoDiligenceInternalReport,
   buildCondoDiligenceOperationalSummary,
@@ -8140,6 +8141,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
             display: 'flex',
             justifyContent: 'space-between',
             gap: '12px',
+            flexShrink: 0,
           }}
         >
           <button
@@ -8175,6 +8177,19 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
           >
             Close
           </button>
+        </div>
+
+        <div
+          style={{
+            padding: '16px 18px 18px',
+            borderTop: '1px solid rgba(94,82,64,0.15)',
+            background: '#fcfcf9',
+            flexShrink: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+          }}
+        >
+          <MatterViewFeedbackInvite />
         </div>
       </div>
     </div>
