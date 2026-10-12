@@ -3,6 +3,7 @@
 import { useAuth } from '@/lib/auth-context'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 import { MobileTopBar, MobileBottomNav } from '@/components/MobileNav'
+import Footer from '@/components/Footer'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import { needsTermsAcceptance } from '@/lib/terms-config'
@@ -183,9 +184,18 @@ export default function DashboardLayout({
         {/* Mobile top bar */}
         <MobileTopBar firmName={firm?.name} />
 
-        {/* Scrollable content */}
+        {/* Scrollable content — footer lives here so it scrolls with the page, not the viewport */}
         <main style={{ flex: 1, overflowY: 'auto' }} className="pt-14 pb-24 lg:pt-0 lg:pb-0">
-          <div className="px-4 py-6 lg:px-10 lg:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
+          <div
+            className="px-4 py-6 lg:px-10 lg:py-10"
+            style={{
+              background: '#fcfcf9',
+              minHeight: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }}
+          >
             <ImpersonationBanner />
             {/* Demo firm banner */}
             {isDemoFirm && (
@@ -256,7 +266,8 @@ export default function DashboardLayout({
                 )}
               </div>
             )}
-            {children}
+            <div style={{ flex: '1 0 auto' }}>{children}</div>
+            <Footer />
           </div>
         </main>
 
