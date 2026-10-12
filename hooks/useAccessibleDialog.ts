@@ -15,6 +15,11 @@ type UseAccessibleDialogOptions = {
   closeOnEscape?: boolean
   /** Restore focus to the element that was focused when the dialog opened. Default true. */
   restoreFocus?: boolean
+  /**
+   * When true (default), sets `document.body.style.overflow = 'hidden'` while open.
+   * Set false when the dialog overlay itself provides page-level scrolling.
+   */
+  lockBodyScroll?: boolean
 }
 
 /**
@@ -27,6 +32,7 @@ export function useAccessibleDialog({
   initialFocusSelector,
   closeOnEscape = true,
   restoreFocus = true,
+  lockBodyScroll = true,
 }: UseAccessibleDialogOptions) {
   const panelRef = useRef<HTMLDivElement | null>(null)
   const previouslyFocusedRef = useRef<HTMLElement | null>(null)
@@ -59,12 +65,16 @@ export function useAccessibleDialog({
 
     window.addEventListener('keydown', onKeyDown, true)
     const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    if (lockBodyScroll) {
+      document.body.style.overflow = 'hidden'
+    }
 
     return () => {
       window.clearTimeout(focusTimer)
       window.removeEventListener('keydown', onKeyDown, true)
-      document.body.style.overflow = prevOverflow
+      if (lockBodyScroll) {
+        document.body.style.overflow = prevOverflow
+      }
       if (restoreFocus) {
         const prev = previouslyFocusedRef.current
         if (prev && typeof prev.focus === 'function') {
@@ -72,7 +82,7 @@ export function useAccessibleDialog({
         }
       }
     }
-  }, [open, onClose, initialFocusSelector, closeOnEscape, restoreFocus])
+  }, [open, onClose, initialFocusSelector, closeOnEscape, restoreFocus, lockBodyScroll])
 
   return { panelRef }
 }
