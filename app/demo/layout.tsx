@@ -7,6 +7,7 @@ import { DemoDataProvider } from '@/context/DemoDataContext'
 import { MobileTopBar, MobileBottomNav } from '@/components/MobileNav'
 import { DemoPersistenceNotice } from '@/app/demo/_components/DemoPersistenceNotice'
 import { DemoResetControls } from '@/app/demo/_components/DemoResetControls'
+import Footer from '@/components/Footer'
 
 export default function DemoLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -101,11 +102,21 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
             {/* Mobile top bar */}
             <MobileTopBar isDemo={true} />
 
-            {/* Scrollable content */}
+            {/* Scrollable content — footer lives here so it scrolls with the page, not the viewport */}
             <main style={{ flex: 1, overflowY: 'auto' }} className="pt-14 pb-24 lg:pt-0 lg:pb-0">
-              <div className="px-4 py-6 lg:px-10 lg:py-10" style={{ background: '#fcfcf9', minHeight: '100%' }}>
+              <div
+                className="px-4 py-6 lg:px-10 lg:py-10"
+                style={{
+                  background: '#fcfcf9',
+                  minHeight: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  boxSizing: 'border-box',
+                }}
+              >
                 <DemoPersistenceNotice />
-                {children}
+                <div style={{ flex: '1 0 auto' }}>{children}</div>
+                <Footer />
               </div>
             </main>
 

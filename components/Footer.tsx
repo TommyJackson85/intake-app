@@ -10,7 +10,9 @@ export default function Footer() {
       data-testid="site-footer"
       className="pb-20 lg:pb-6"
       style={{
+        // When parent is a flex column (demo/dashboard scroll areas), keep footer after content.
         marginTop: 'auto',
+        flexShrink: 0,
         paddingTop: '24px',
         paddingLeft: '20px',
         paddingRight: '20px',
