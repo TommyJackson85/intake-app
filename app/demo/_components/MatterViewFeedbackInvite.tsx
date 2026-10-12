@@ -2,7 +2,13 @@
 
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 
-const MATCH_OPTIONS = ['Very well', 'Mostly well', 'Partly', 'Not well', 'Not sure'] as const
+const EASE_OPTIONS = [
+  'Very easy',
+  'Mostly easy',
+  'Somewhat difficult',
+  'Very difficult',
+  'Not sure',
+] as const
 const CLARITY_OPTIONS = [
   'Very clear',
   'Mostly clear',
@@ -13,7 +19,7 @@ const CLARITY_OPTIONS = [
 const HELP_OPTIONS = ['Yes', 'Possibly', 'No', 'Not sure'] as const
 
 /** Distinct from dashboard / New intake questionnaire answer titles. */
-const QUESTIONNAIRE_ID = 'LawIntake matter-view research feedback'
+const QUESTIONNAIRE_ID = 'LawIntake existing-matter-view research feedback'
 
 async function copyText(text: string): Promise<boolean> {
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -72,7 +78,7 @@ function optionRowStyle(): CSSProperties {
   }
 }
 
-/** Local-only research questionnaire for the Matter detail modal (separate from matter data). */
+/** Local-only research questionnaire for the existing-matter detail modal (separate from matter data). */
 export default function MatterViewFeedbackInvite() {
   const baseId = useId()
   const formRef = useRef<HTMLFormElement>(null)
@@ -81,7 +87,7 @@ export default function MatterViewFeedbackInvite() {
   const fallbackRef = useRef<HTMLTextAreaElement>(null)
 
   const [open, setOpen] = useState(false)
-  const [matchQuality, setMatchQuality] = useState('')
+  const [currentPositionEase, setCurrentPositionEase] = useState('')
   const [nextActionClarity, setNextActionClarity] = useState('')
   const [missingDetails, setMissingDetails] = useState('')
   const [fewerFollowUps, setFewerFollowUps] = useState('')
@@ -105,10 +111,12 @@ export default function MatterViewFeedbackInvite() {
 
   function buildAnswersText() {
     const lines = [QUESTIONNAIRE_ID]
-    if (matchQuality) lines.push('', `Matter view match quality: ${matchQuality}`)
+    if (currentPositionEase) lines.push('', `Ease understanding current position: ${currentPositionEase}`)
     if (nextActionClarity) lines.push(`Next action / ownership clarity: ${nextActionClarity}`)
-    if (missingDetails.trim()) lines.push(`Missing details/statuses/blockers: ${missingDetails.trim()}`)
-    if (fewerFollowUps) lines.push(`Would reduce follow-up or handoff confusion: ${fewerFollowUps}`)
+    if (missingDetails.trim()) lines.push(`Missing or hard-to-find information: ${missingDetails.trim()}`)
+    if (fewerFollowUps) {
+      lines.push(`Would help review progress without extra messages/updates: ${fewerFollowUps}`)
+    }
     if (oneChange.trim()) lines.push(`One useful change: ${oneChange.trim()}`)
     return lines.join('\n')
   }
@@ -164,7 +172,7 @@ export default function MatterViewFeedbackInvite() {
   return (
     <aside
       id="matter-view-feedback"
-      data-questionnaire-id="matter-view-research-feedback"
+      data-questionnaire-id="existing-matter-view-research-feedback"
       aria-labelledby={`${baseId}-heading`}
       style={{
         padding: '16px 18px',
@@ -230,7 +238,7 @@ export default function MatterViewFeedbackInvite() {
             overflowWrap: 'anywhere',
           }}
         >
-          Does this matter view reflect how your team manages a live matter?
+          Does this existing matter view give your team the information it needs?
         </h3>
         <div style={{ display: 'grid', gap: '8px', maxWidth: '100%' }}>
           <p
@@ -242,8 +250,8 @@ export default function MatterViewFeedbackInvite() {
               overflowWrap: 'anywhere',
             }}
           >
-            This fictional matter view is designed to help your team review key details, understand progress, identify
-            blockers, and see what needs to happen next.
+            This fictional matter view is designed to help your team understand the current position, review ownership
+            and next actions, and identify anything delaying progress.
           </p>
           <p
             style={{
@@ -254,7 +262,7 @@ export default function MatterViewFeedbackInvite() {
               overflowWrap: 'anywhere',
             }}
           >
-            Tell us whether the information and layout fit your real-estate matter workflow. The questionnaire takes
+            Tell us whether this view fits how your team reviews existing real-estate matters. The questionnaire takes
             about 60 seconds and does not ask for client or confidential information.
           </p>
         </div>
@@ -349,19 +357,19 @@ export default function MatterViewFeedbackInvite() {
           >
             <fieldset style={{ margin: 0, padding: 0, border: 0, display: 'grid', gap: '8px' }}>
               <legend style={fieldLabelStyle()}>
-                1. How well does this matter view match the information your team needs when reviewing a live
-                real-estate matter? <span style={{ color: '#9f1239', fontWeight: 650 }}>(required)</span>
+                1. How easy is it to understand the current position of this matter?{' '}
+                <span style={{ color: '#9f1239', fontWeight: 650 }}>(required)</span>
               </legend>
               <div style={{ display: 'grid', gap: '6px' }}>
-                {MATCH_OPTIONS.map((option) => (
+                {EASE_OPTIONS.map((option) => (
                   <label key={option} style={optionRowStyle()}>
                     <input
                       type="radio"
-                      name={`${baseId}-match`}
+                      name={`${baseId}-ease`}
                       value={option}
                       required
-                      checked={matchQuality === option}
-                      onChange={() => setMatchQuality(option)}
+                      checked={currentPositionEase === option}
+                      onChange={() => setCurrentPositionEase(option)}
                       style={{ marginTop: '3px' }}
                     />
                     <span>{option}</span>
@@ -395,7 +403,7 @@ export default function MatterViewFeedbackInvite() {
 
             <div style={{ display: 'grid', gap: '6px' }}>
               <label htmlFor={`${baseId}-missing`} style={fieldLabelStyle()}>
-                3. Are any important details, statuses, or blockers missing?{' '}
+                3. What information is missing or difficult to find?{' '}
                 <span style={{ color: '#60787b', fontWeight: 550 }}>(optional)</span>
               </label>
               <textarea
@@ -411,7 +419,7 @@ export default function MatterViewFeedbackInvite() {
 
             <fieldset style={{ margin: 0, padding: 0, border: 0, display: 'grid', gap: '8px' }}>
               <legend style={fieldLabelStyle()}>
-                4. Would this view help your team reduce follow-up messages or handoff confusion?{' '}
+                4. Would this view help your team review progress without needing additional messages or updates?{' '}
                 <span style={{ color: '#9f1239', fontWeight: 650 }}>(required)</span>
               </legend>
               <div style={{ display: 'grid', gap: '6px' }}>
@@ -434,7 +442,7 @@ export default function MatterViewFeedbackInvite() {
 
             <div style={{ display: 'grid', gap: '6px' }}>
               <label htmlFor={`${baseId}-change`} style={fieldLabelStyle()}>
-                5. What one change would make this matter view more useful?{' '}
+                5. What one change would make this existing matter view more useful?{' '}
                 <span style={{ color: '#60787b', fontWeight: 550 }}>(optional)</span>
               </label>
               <textarea

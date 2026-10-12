@@ -8130,66 +8130,63 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
               setActiveTab('Tasks')
             }}
           />
-        </div>
 
-        {/* Footer */}
-        <div
-          style={{
-            padding: '14px 18px',
-            borderTop: '1px solid rgba(94,82,64,0.15)',
-            background: '#fcfcf9',
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: '12px',
-            flexShrink: 0,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              onArchive(effectiveMatter.id)
-              onClose()
-            }}
+          {/* Action buttons, then research feedback as the final scrollable section */}
+          <div
             style={{
-              background: 'white',
-              color: '#134252',
-              border: '1px solid rgba(94,82,64,0.25)',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              fontWeight: 900,
-              cursor: 'pointer',
+              marginTop: 20,
+              paddingTop: 18,
+              borderTop: '1px solid rgba(94,82,64,0.18)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
             }}
           >
-            Archive
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
+            <button
+              type="button"
+              onClick={() => {
+                onArchive(effectiveMatter.id)
+                onClose()
+              }}
+              style={{
+                background: 'white',
+                color: '#134252',
+                border: '1px solid rgba(94,82,64,0.25)',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                fontWeight: 900,
+                cursor: 'pointer',
+              }}
+            >
+              Archive
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#208096',
+                color: 'white',
+                border: 'none',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                fontWeight: 900,
+                cursor: 'pointer',
+              }}
+            >
+              Close
+            </button>
+          </div>
+
+          <div
             style={{
-              background: '#208096',
-              color: 'white',
-              border: 'none',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              fontWeight: 900,
-              cursor: 'pointer',
+              marginTop: 20,
+              paddingTop: 18,
+              borderTop: '1px solid rgba(94,82,64,0.18)',
             }}
           >
-            Close
-          </button>
-        </div>
-
-        <div
-          style={{
-            padding: '16px 18px 18px',
-            borderTop: '1px solid rgba(94,82,64,0.15)',
-            background: '#fcfcf9',
-            flexShrink: 1,
-            minHeight: 0,
-            overflowY: 'auto',
-          }}
-        >
-          <MatterViewFeedbackInvite />
+            <MatterViewFeedbackInvite />
+          </div>
         </div>
       </div>
     </div>
