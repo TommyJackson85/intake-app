@@ -121,7 +121,15 @@ export default function NewMatterModal({
     initialFocusSelector: '[data-new-matter-dialog-close]',
     closeOnEscape: true,
     restoreFocus: true,
+    // Overlay provides page-level scrolling; do not lock document body scroll.
+    lockBodyScroll: false,
   })
+
+  useEffect(() => {
+    if (!isOpen) return
+    const overlay = document.querySelector<HTMLElement>('[data-testid="demo-new-matter-overlay"]')
+    if (overlay) overlay.scrollTop = 0
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -315,26 +323,51 @@ export default function NewMatterModal({
   return (
     <div
       role="presentation"
+      data-testid="demo-new-matter-overlay"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.45)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '18px',
         zIndex: 50,
+        overflowX: 'hidden',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
       }}
     >
+      {/* Backdrop stays viewport-fixed while the overlay scrolls */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.45)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        role="presentation"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) onClose()
+        }}
+        style={{
+          position: 'relative',
+          minHeight: '100%',
+          boxSizing: 'border-box',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          padding: '18px',
+        }}
+      >
       <div
         ref={newMatterDialogPanelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Create matter (demo)"
         tabIndex={-1}
+        data-testid="demo-new-matter-dialog"
         style={{
           width: '100%',
           maxWidth: '880px',
@@ -342,11 +375,10 @@ export default function NewMatterModal({
           borderRadius: '10px',
           border: '1px solid rgba(94,82,64,0.25)',
           boxShadow: '0 18px 40px rgba(0,0,0,0.25)',
-          overflow: 'hidden',
-          maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
           outline: 'none',
+          marginBottom: '18px',
         }}
       >
         <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(94,82,64,0.15)', display: 'flex', alignItems: 'center' }}>
@@ -380,7 +412,8 @@ export default function NewMatterModal({
         </div>
 
 
-        <div style={{ padding: '18px 20px', overflowY: 'auto', flex: 1 }}>
+        {/* Body — natural height; page/overlay scroll only (no internal modal scrollbar) */}
+        <div style={{ padding: '18px 20px' }}>
           {saveError && (
             <div
               role="alert"
@@ -855,6 +888,7 @@ export default function NewMatterModal({
             {saving ? 'Saving…' : 'Create Matter (Demo)'}
           </button>
         </div>
+      </div>
       </div>
     </div>
   )
