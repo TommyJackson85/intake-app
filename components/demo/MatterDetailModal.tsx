@@ -710,6 +710,12 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   }, [open, matterId, initialTab])
 
   useEffect(() => {
+    if (!open) return
+    const overlay = document.querySelector<HTMLElement>('[data-testid="demo-matter-detail-overlay"]')
+    if (overlay) overlay.scrollTop = 0
+  }, [open, matterId])
+
+  useEffect(() => {
     if (!open || activeTab !== 'Condo Diligence' || !matterId) return
     ensureCondoDiligence(matterId)
   }, [activeTab, ensureCondoDiligence, matterId, open])
@@ -726,6 +732,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
     initialFocusSelector: '[data-matter-dialog-close]',
     closeOnEscape: true,
     restoreFocus: true,
+    // Overlay provides page-level scrolling; do not lock document body scroll.
+    lockBodyScroll: false,
   })
 
   const tabList: MatterDetailTab[] = [
@@ -763,20 +771,44 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
   return (
     <div
       role="presentation"
+      data-testid="demo-matter-detail-overlay"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.45)',
         zIndex: 60,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'stretch',
-        padding: '18px',
+        overflowX: 'hidden',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
       }}
     >
+      {/* Backdrop stays viewport-fixed while the overlay scrolls */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.45)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        role="presentation"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) onClose()
+        }}
+        style={{
+          position: 'relative',
+          minHeight: '100%',
+          boxSizing: 'border-box',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          padding: '18px',
+        }}
+      >
       <div
         ref={matterDialogPanelRef}
         role="dialog"
@@ -793,9 +825,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
           boxShadow: '0 18px 40px rgba(0,0,0,0.25)',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '100%',
-          overflow: 'hidden',
           outline: 'none',
+          marginBottom: '18px',
         }}
       >
         {/* Header */}
@@ -902,8 +933,8 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
           </div>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: '16px 18px', overflowY: 'auto', flex: 1 }}>
+        {/* Body — natural height; page/overlay scroll only (no internal modal scrollbar) */}
+        <div style={{ padding: '16px 18px' }}>
           {activeTab === 'Overview' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -8188,6 +8219,7 @@ export default function MatterDetailModal({ matter, open, onClose, onArchive, in
             <MatterViewFeedbackInvite />
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
