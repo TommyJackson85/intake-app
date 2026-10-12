@@ -26,6 +26,7 @@ import {
 import { useDemoStore } from '@/lib/demo/store'
 import NewIntakeDemoModal from '@/app/demo/_components/NewIntakeDemoModal'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
+import IntakesListFeedbackInvite from '@/app/demo/_components/IntakesListFeedbackInvite'
 
 type ConflictResult = {
   hasConflict: boolean
@@ -577,6 +578,16 @@ export default function DemoIntakesPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div
+        style={{
+          marginTop: 24,
+          paddingTop: 20,
+          borderTop: '1px solid rgba(94,82,64,0.18)',
+        }}
+      >
+        <IntakesListFeedbackInvite />
       </div>
 
       <NewIntakeDemoModal
