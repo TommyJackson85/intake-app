@@ -15,6 +15,7 @@ import {
   transactionContextForIntakeSnapshot,
 } from '@/lib/demo/transactionContext'
 import TransactionContextIntakeSection from '@/app/demo/_components/TransactionContextIntakeSection'
+import CreateMatterFormFeedbackInvite from '@/app/demo/_components/CreateMatterFormFeedbackInvite'
 import { useAccessibleDialog } from '@/hooks/useAccessibleDialog'
 
 export function getNextDemoFileId(existingFileIds: string[]) {
@@ -887,6 +888,17 @@ export default function NewMatterModal({
           >
             {saving ? 'Saving…' : 'Create Matter (Demo)'}
           </button>
+        </div>
+
+        <div
+          style={{
+            marginTop: 0,
+            padding: '16px 20px 18px',
+            borderTop: '1px solid rgba(94,82,64,0.18)',
+            background: '#fcfcf9',
+          }}
+        >
+          <CreateMatterFormFeedbackInvite />
         </div>
       </div>
       </div>
