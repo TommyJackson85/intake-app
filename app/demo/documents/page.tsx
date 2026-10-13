@@ -28,6 +28,7 @@ import {
   getClientDocumentRequestLifecyclePresentation,
 } from '@/lib/demo/staffCancelClientDocumentRequest'
 import { canReactivateClientDocumentRequest } from '@/lib/demo/staffReactivateClientDocumentRequest'
+import DocumentsFeedbackInvite from '@/app/demo/_components/DocumentsFeedbackInvite'
 
 function formatDemoDateTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
