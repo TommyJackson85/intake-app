@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useDemoStore } from '@/lib/demo/store'
+import ArchiveMattersFeedbackInvite from '@/app/demo/_components/ArchiveMattersFeedbackInvite'
 
 export default function DemoArchivedMattersPage() {
   const { archivedMatters, recentlyDeletedMatters, restoreMatter, permanentlyDeleteMatter } = useDemoStore()
@@ -84,6 +85,16 @@ export default function DemoArchivedMattersPage() {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div
+        style={{
+          marginTop: 24,
+          paddingTop: 20,
+          borderTop: '1px solid rgba(94,82,64,0.18)',
+        }}
+      >
+        <ArchiveMattersFeedbackInvite />
       </div>
     </div>
   )
