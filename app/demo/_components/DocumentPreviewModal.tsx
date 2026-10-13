@@ -13,6 +13,7 @@ import {
   isCondoDiligenceReviewMemoDocument,
 } from '@/lib/demo/condoDiligence'
 import { isGeneratedInternalConflictCheckMemo } from '@/lib/demo/conflictCheckReview'
+import DocumentPreviewFeedbackInvite from '@/app/demo/_components/DocumentPreviewFeedbackInvite'
 
 type DocumentPreviewModalProps = {
   previewDocument: DemoDocument | null
@@ -619,6 +620,17 @@ export default function DocumentPreviewModal({
               Download PDF (disabled in demo mode)
             </button>
             )}
+          </div>
+
+          <div
+            style={{
+              gridColumn: '1 / -1',
+              marginTop: 8,
+              paddingTop: 16,
+              borderTop: '1px solid rgba(94,82,64,0.18)',
+            }}
+          >
+            <DocumentPreviewFeedbackInvite />
           </div>
         </div>
       </div>
