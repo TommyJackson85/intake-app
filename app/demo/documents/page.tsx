@@ -728,6 +728,16 @@ export default function DemoDocumentsPage() {
           </tbody>
         </table>
       </div>
+
+      <div
+        style={{
+          marginTop: 24,
+          paddingTop: 20,
+          borderTop: '1px solid rgba(94,82,64,0.18)',
+        }}
+      >
+        <DocumentsFeedbackInvite />
+      </div>
     </div>
   )
 }
