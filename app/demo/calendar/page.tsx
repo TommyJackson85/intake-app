@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
+import CalendarFeedbackInvite from '@/app/demo/_components/CalendarFeedbackInvite'
 
 function kindBadge(kind: string) {
   if (kind === 'closing') return { bg: '#e8f5f0', fg: '#208096' }
@@ -72,6 +73,16 @@ export default function DemoCalendarPage() {
             })}
           </tbody>
         </table>
+      </div>
+
+      <div
+        style={{
+          marginTop: 24,
+          paddingTop: 20,
+          borderTop: '1px solid rgba(94,82,64,0.18)',
+        }}
+      >
+        <CalendarFeedbackInvite />
       </div>
     </div>
   )
