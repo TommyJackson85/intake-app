@@ -13,6 +13,7 @@ import {
   propertyTaxIssueForIntakeSnapshot,
 } from '@/lib/demo/propertyTaxIssue'
 import PropertyTaxIntakeSection from '@/app/demo/_components/PropertyTaxIntakeSection'
+import ClientIntakeTemplateFeedbackInvite from '@/app/demo/_components/ClientIntakeTemplateFeedbackInvite'
 
 function normalizeSnapshot(s: DemoIntakeSnapshot): DemoIntakeSnapshot {
   return {
@@ -67,9 +68,14 @@ const tailFieldDefs: FieldDef[] = [
   { key: 'notes', label: 'Notes', kind: 'textarea' },
 ]
 
+/** Short demo URL alias used in share links → pending seeded client intake form. */
+const DEMO_TOKEN_SEED_ALIAS = 'demo-token-seed'
+
 export default function DemoClientIntakePage() {
   const params = useParams()
-  const token = typeof params.token === 'string' ? params.token : ''
+  const rawToken = typeof params.token === 'string' ? params.token : ''
+  const token =
+    rawToken === DEMO_TOKEN_SEED_ALIAS ? DEMO_SEED_INTAKE_TOKENS.pendingClient : rawToken
   const { intakeLeads, submitDemoIntakeLead } = useDemoStore()
   const lead = useMemo(() => intakeLeads.find((l) => l.token === token), [intakeLeads, token])
 
@@ -406,6 +412,16 @@ export default function DemoClientIntakePage() {
         <p style={{ margin: '16px 0 0', fontSize: 12, color: '#627c71' }}>
           File reference (internal): <strong>{lead.fileReference}</strong>
         </p>
+      </div>
+
+      <div
+        style={{
+          marginTop: 24,
+          paddingTop: 20,
+          borderTop: '1px solid rgba(94,82,64,0.18)',
+        }}
+      >
+        <ClientIntakeTemplateFeedbackInvite />
       </div>
     </div>
   )
