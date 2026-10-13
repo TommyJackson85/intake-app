@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
 import { POST_CLOSING_RECORDED_ITEM_LABEL } from '@/lib/demo/postClosingUndertakings'
 import { getPostClosingUndertakingsWorklist } from '@/lib/demo/postClosingUndertakingsWorklist'
+import PostClosingFeedbackInvite from '@/app/demo/_components/PostClosingFeedbackInvite'
 
 function formatWorklistDate(value: string | null) {
   if (!value) return '—'
@@ -162,6 +163,16 @@ export default function PostClosingUndertakingsWorklistPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div
+        style={{
+          marginTop: 24,
+          paddingTop: 20,
+          borderTop: '1px solid rgba(94,82,64,0.18)',
+        }}
+      >
+        <PostClosingFeedbackInvite />
       </div>
     </div>
   )
