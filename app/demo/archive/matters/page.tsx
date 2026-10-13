@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useDemoStore } from '@/lib/demo/store'
+import ArchiveMattersFeedbackInvite from '@/app/demo/_components/ArchiveMattersFeedbackInvite'
 
 export default function DemoArchivedMattersPage() {
   const { archivedMatters, recentlyDeletedMatters, restoreMatter, permanentlyDeleteMatter } = useDemoStore()
