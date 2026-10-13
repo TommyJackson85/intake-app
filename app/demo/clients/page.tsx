@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useDemoStore } from '@/lib/demo/store'
+import ClientsFeedbackInvite from '@/app/demo/_components/ClientsFeedbackInvite'
 
 export default function DemoClientsPage() {
   const { clients, matters, archiveClient, archivedClients } = useDemoStore()
@@ -115,6 +116,16 @@ export default function DemoClientsPage() {
           </Link>
         </p>
       )}
+
+      <div
+        style={{
+          marginTop: 24,
+          paddingTop: 20,
+          borderTop: '1px solid rgba(94,82,64,0.18)',
+        }}
+      >
+        <ClientsFeedbackInvite />
+      </div>
     </div>
   )
 }
