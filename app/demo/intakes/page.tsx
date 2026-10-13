@@ -27,6 +27,7 @@ import { useDemoStore } from '@/lib/demo/store'
 import NewIntakeDemoModal from '@/app/demo/_components/NewIntakeDemoModal'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
 import IntakesListFeedbackInvite from '@/app/demo/_components/IntakesListFeedbackInvite'
+import { useAccessibleDialog } from '@/hooks/useAccessibleDialog'
 
 type ConflictResult = {
   hasConflict: boolean
@@ -216,19 +217,21 @@ export default function DemoIntakesPage() {
     setOrigin(typeof window !== 'undefined' ? window.location.origin : '')
   }, [])
 
+  const { panelRef: conflictDialogPanelRef } = useAccessibleDialog({
+    open: conflictModal.open,
+    onClose: closeConflictModal,
+    initialFocusSelector: '[data-conflict-check-dialog-close]',
+    closeOnEscape: true,
+    restoreFocus: true,
+    // Overlay provides page-level scrolling; do not lock document body scroll.
+    lockBodyScroll: false,
+  })
+
   useEffect(() => {
     if (!conflictModal.open) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeConflictModal()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      document.body.style.overflow = prevOverflow
-    }
-  }, [closeConflictModal, conflictModal.open])
+    const overlay = document.querySelector<HTMLElement>('[data-testid="demo-conflict-check-overlay"]')
+    if (overlay) overlay.scrollTop = 0
+  }, [conflictModal.open])
 
   const openMatterFromLead = useCallback(
     (lead: DemoIntakeLead) => {
@@ -617,30 +620,60 @@ export default function DemoIntakesPage() {
 
       {conflictModal.open && conflictModal.lead && conflictModal.result && (
         <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Conflict check result"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-          }}
+          role="presentation"
+          data-testid="demo-conflict-check-overlay"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) closeConflictModal()
           }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            overflowX: 'hidden',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+          }}
         >
+          {/* Backdrop stays viewport-fixed while the overlay scrolls */}
           <div
+            aria-hidden="true"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.5)',
+              pointerEvents: 'none',
+            }}
+          />
+          <div
+            role="presentation"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) closeConflictModal()
+            }}
+            style={{
+              position: 'relative',
+              minHeight: '100%',
+              boxSizing: 'border-box',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'flex-start',
+              padding: '18px',
+            }}
+          >
+          <div
+            ref={conflictDialogPanelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Conflict check result"
+            tabIndex={-1}
+            data-testid="demo-conflict-check-dialog"
             style={{
               background: 'white',
               borderRadius: 12,
               padding: '28px 32px',
               maxWidth: 520,
-              width: '90%',
+              width: '100%',
               boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+              marginBottom: 24,
             }}
             onMouseDown={(e) => e.stopPropagation()}
           >
@@ -651,6 +684,7 @@ export default function DemoIntakesPage() {
               </div>
               <button
                 type="button"
+                data-conflict-check-dialog-close
                 aria-label="Close"
                 onClick={closeConflictModal}
                 style={{
@@ -1031,6 +1065,7 @@ export default function DemoIntakesPage() {
               ) : null}
             </div>
 
+          </div>
           </div>
         </div>
       )}
