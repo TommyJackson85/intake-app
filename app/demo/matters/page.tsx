@@ -22,6 +22,7 @@ import {
   type DemoMattersListSortKey,
 } from '@/lib/demo/demoMattersListQuery'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
+import MattersListFeedbackInvite from '@/app/demo/_components/MattersListFeedbackInvite'
 import MatterDetailModal from '@/components/demo/MatterDetailModal'
 import MatterRowActionsMenu from '@/components/demo/MatterRowActionsMenu'
 import AccessibleConfirmDialog from '@/components/a11y/AccessibleConfirmDialog'
@@ -889,6 +890,16 @@ function DemoMattersContent() {
           </Link>
         </p>
       )}
+
+      <div
+        style={{
+          marginTop: 24,
+          paddingTop: 20,
+          borderTop: '1px solid rgba(94,82,64,0.18)',
+        }}
+      >
+        <MattersListFeedbackInvite />
+      </div>
 
       <AccessibleConfirmDialog
         open={archiveConfirm != null}

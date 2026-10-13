@@ -17,9 +17,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        # Skip lifecycle scripts: the supabase CLI postinstall downloads a binary
+        # from GitHub Releases and can flake with Z_DATA_ERROR / incorrect header check.
+        # check:compliance only needs TypeScript + local SQL/docs files, not the CLI.
+        run: npm install --ignore-scripts
 
       - name: Run compliance checks
         run: npm run check:compliance
