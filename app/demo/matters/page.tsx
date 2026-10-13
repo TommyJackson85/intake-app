@@ -23,6 +23,7 @@ import {
 } from '@/lib/demo/demoMattersListQuery'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
 import MattersListFeedbackInvite from '@/app/demo/_components/MattersListFeedbackInvite'
+import MattersPriorityFeedbackInvite from '@/app/demo/_components/MattersPriorityFeedbackInvite'
 import MatterDetailModal from '@/components/demo/MatterDetailModal'
 import MatterRowActionsMenu from '@/components/demo/MatterRowActionsMenu'
 import AccessibleConfirmDialog from '@/components/a11y/AccessibleConfirmDialog'
@@ -896,9 +897,12 @@ function DemoMattersContent() {
           marginTop: 24,
           paddingTop: 20,
           borderTop: '1px solid rgba(94,82,64,0.18)',
+          display: 'grid',
+          gap: 16,
         }}
       >
         <MattersListFeedbackInvite />
+        <MattersPriorityFeedbackInvite />
       </div>
 
       <AccessibleConfirmDialog
