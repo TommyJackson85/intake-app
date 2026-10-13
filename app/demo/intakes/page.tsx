@@ -27,6 +27,7 @@ import { useDemoStore } from '@/lib/demo/store'
 import NewIntakeDemoModal from '@/app/demo/_components/NewIntakeDemoModal'
 import NewMatterModal, { getNextDemoFileId } from '@/app/demo/_components/NewMatterModal'
 import IntakesListFeedbackInvite from '@/app/demo/_components/IntakesListFeedbackInvite'
+import ConflictCheckFeedbackInvite from '@/app/demo/_components/ConflictCheckFeedbackInvite'
 import { useAccessibleDialog } from '@/hooks/useAccessibleDialog'
 
 type ConflictResult = {
@@ -1065,6 +1066,15 @@ export default function DemoIntakesPage() {
               ) : null}
             </div>
 
+            <div
+              style={{
+                marginTop: 22,
+                paddingTop: 16,
+                borderTop: '1px solid rgba(94,82,64,0.18)',
+              }}
+            >
+              <ConflictCheckFeedbackInvite />
+            </div>
           </div>
           </div>
         </div>
