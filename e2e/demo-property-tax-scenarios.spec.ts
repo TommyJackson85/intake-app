@@ -46,6 +46,22 @@ test.describe('Property-tax demo scenarios smoke', () => {
     await expect(page.getByTestId('client-intake-property-tax-section')).toBeVisible()
 
     await page.goto('/demo')
+    const assessmentMatter = PROPERTY_TAX_DEMO_SCENARIOS.find((s) => s.id === 'assessment_vab')!
+    await page.getByTestId(`property-tax-demo-matter-${assessmentMatter.id}`).click()
+    await expect(page.getByTestId('demo-matter-detail-dialog')).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByTestId('matter-property-tax-overview')).toBeVisible()
+    const statusSelect = page.getByTestId('ptx-kind-status-assessment_vab')
+    await expect(statusSelect).toBeVisible()
+    await expect(statusSelect).toHaveValue('needs_property_tax_specialist_review')
+    await expect(page.getByTestId('matter-property-tax-overview')).toContainText(
+      /Route internally for property-tax specialist review/i,
+    )
+    await statusSelect.selectOption('needs_more_info')
+    await expect(statusSelect).toHaveValue('needs_more_info')
+    await statusSelect.selectOption('needs_property_tax_specialist_review')
+    await expect(statusSelect).toHaveValue('needs_property_tax_specialist_review')
+
+    await page.goto('/demo')
     const taxDeed = PROPERTY_TAX_DEMO_SCENARIOS.find((s) => s.id === 'tax_deed_surplus')!
     await page.getByTestId(`property-tax-demo-matter-${taxDeed.id}`).click()
     await expect(page.getByTestId('demo-matter-detail-dialog')).toBeVisible({ timeout: 20_000 })

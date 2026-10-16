@@ -155,6 +155,8 @@ export type DemoPropertyTaxIssueStatus =
   | 'in_progress'
   | 'needs_more_info'
   | 'ready_for_attorney_review'
+  /** Internal hand-off flag — not a legal referral determination or filing instruction. */
+  | 'needs_property_tax_specialist_review'
 
 /** Assessment / exemption / classification / portability / VAB facts. */
 export type DemoPropertyTaxAssessmentReportedIssueType =

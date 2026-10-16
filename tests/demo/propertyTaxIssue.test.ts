@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DEMO_PROPERTY_TAX_ISSUE_STATUSES,
   PROPERTY_TAX_ISSUE_BOUNDARY_DISCLAIMER,
+  PROPERTY_TAX_ISSUE_STATUS_OPTIONS,
   createEmptyPropertyTaxIssue,
   getPropertyTaxDateFieldsForKind,
   getPropertyTaxDateVerificationLabel,
@@ -10,6 +12,7 @@ import {
   isIsoDateOnly,
   isPropertyTaxBranchActive,
   isPropertyTaxDateWithinSoftUrgencyWindow,
+  isPropertyTaxIssueStatus,
   normalizePropertyTaxIssue,
   parseOrNullIsoDateOnly,
   propertyTaxDateNeedsVerification,
@@ -189,6 +192,27 @@ describe('propertyTaxIssue helpers', () => {
     expect(
       isPropertyTaxDateWithinSoftUrgencyWindow({ date: null, source: 'unknown' }, '2026-04-01'),
     ).toBe(false)
+  })
+
+  it('recognizes needs_property_tax_specialist_review as an internal status', () => {
+    expect(isPropertyTaxIssueStatus('needs_property_tax_specialist_review')).toBe(true)
+    expect(DEMO_PROPERTY_TAX_ISSUE_STATUSES).toContain('needs_property_tax_specialist_review')
+    expect(
+      PROPERTY_TAX_ISSUE_STATUS_OPTIONS.some(
+        (o) => o.value === 'needs_property_tax_specialist_review',
+      ),
+    ).toBe(true)
+    const issue = normalizePropertyTaxIssue({
+      enabled: true,
+      kinds: ['assessment_vab'],
+      byKind: {
+        assessment_vab: {
+          kind: 'assessment_vab',
+          status: 'needs_property_tax_specialist_review',
+        },
+      },
+    })
+    expect(issue.byKind.assessment_vab?.status).toBe('needs_property_tax_specialist_review')
   })
 
   it('exposes human labels and boundary disclaimer', () => {

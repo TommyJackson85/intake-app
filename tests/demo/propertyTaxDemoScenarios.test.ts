@@ -145,7 +145,7 @@ describe('property-tax demo scenarios (Step 6)', () => {
     expect(branch.availableDocumentIds).toContain('ptx-trim-notice')
     expect(branch.availableDocumentIds).not.toContain('ptx-property-appraiser-correspondence')
     expect(branch.availableDocumentIds).not.toContain('ptx-appraisal-comparables')
-    expect(branch.status).toBe('needs_more_info')
+    expect(branch.status).toBe('needs_property_tax_specialist_review')
 
     expect(
       shouldShowPropertyTaxMatterOverviewPanel({
