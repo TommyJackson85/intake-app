@@ -18,6 +18,7 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const hasFirm = Boolean(profile?.firm_id)
   const isTestFirm = Boolean(firm?.is_test_firm)
+  /** Legacy shared tenant flag — quarantined. Public prospect demo is `/demo`, not this path. */
   const isDemoFirm = Boolean((firm as { is_demo_firm?: boolean } | null)?.is_demo_firm)
   const isDemoGuest = Boolean((profile as { is_demo_guest?: boolean } | null)?.is_demo_guest)
   const isRegisterFirmPage = pathname === '/dashboard/register-firm'

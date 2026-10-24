@@ -28,7 +28,7 @@ This package is for **internal pilot validation** of workflows that already ship
 
 ### Optional: production-style demo firm
 
-Prospective-firm “Try a demo firm” flow is documented in [demo-firm.md](./demo-firm.md) and [sudo-and-demo-concepts.md](./sudo-and-demo-concepts.md). That path is a shared sandboxed tenant (`is_demo_firm`), not developer sudo. Prefer `/demo` for these six walkthroughs so paths and seed names match this guide.
+Public product demo is the browser sandbox at **`/demo`** ([public-demo-sandbox.md](./public-demo-sandbox.md)). A legacy Supabase `is_demo_firm` tenant is quarantined ([demo-firm.md](./demo-firm.md)); do not use it for these walkthroughs. Prefer `/demo` so paths and seed names match this guide.
 
 ### Access boundaries (do not blur)
 

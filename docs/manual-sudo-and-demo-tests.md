@@ -1,29 +1,43 @@
-# Manual tests: sudo and demo
+# Manual tests: public demo, legacy demo firm, and sudo
 
-Use this checklist to verify demo and developer sudo behaviour.
+Use this checklist to verify the three distinct paths. Prefer **§1 Public `/demo`** for product validation.
 
 ## Prerequisites
 
 - Local (or non-production) run with migrations applied.
-- Demo firm seeded (`npx ts-node scripts/seed-demo-firm.ts`).
-- Env: `DEMO_LAWYER_EMAIL`, `DEMO_LAWYER_PASSWORD` set if using demo login.
-- At least one profile with `is_dev_sudo = true` (e.g. `npx ts-node scripts/set-dev-sudo.ts your@email.com`).
+- For §1 only: no special env beyond a normal `npm run dev`.
+- For §2 (legacy): demo firm seeded with `DEMO_LAWYER_PASSWORD` set (`npx ts-node scripts/seed-demo-firm.ts`).
+- For §3–4: at least one profile with `is_dev_sudo = true` (e.g. `npx ts-node scripts/set-dev-sudo.ts your@email.com`).
 
 ---
 
-## 1. Lawyer demo (“Try a demo firm”)
+## 1. Public demo sandbox (`/demo`) — preferred
 
-- [ ] **Home**: On `/`, click “Try a demo firm”. You are signed in and redirected to the dashboard.
-- [ ] **Sign-in**: Sign out, go to `/auth/signin`, click “Try a demo firm”. Same: signed in, dashboard.
-- [ ] **Dashboard**: You see the **Demo** badge in the sidebar and the banner: *“Demo firm – for testing only. Do not enter real client data. Data may be reset regularly.”*
-- [ ] **Data**: Dashboard shows the demo firm’s data (e.g. sample clients, matters, intakes). You cannot see any other firm’s data.
-- [ ] **No sudo**: There is no “Dev Sudo” link or impersonation UI for the demo lawyer account.
+- [ ] Open `/demo` while signed out. Dashboard-like demo shell loads without login.
+- [ ] Banner explains browser/`localStorage` persistence and **Reset demo data**.
+- [ ] Create or edit a matter/intake; refresh — changes remain until reset.
+- [ ] Open `/api/auth/demo-login` (GET) → redirected to `/demo` (not a dashboard session).
+- [ ] Open `/api/auth/use-demo-firm` (GET) → redirected to `/demo`.
 
-**Pass**: Demo flow works and is clearly labelled; no cross-tenant or sudo access.
+**Pass**: Prospect path is `/demo` only; legacy auth URLs do not mint sessions.
+
+Canonical: [public-demo-sandbox.md](./public-demo-sandbox.md).
 
 ---
 
-## 2. Developer sudo (non-production)
+## 2. Legacy demo firm dashboard (quarantined / optional)
+
+Only if you still maintain an `is_demo_firm` tenant for internal QA:
+
+- [ ] Sign in as the seeded demo lawyer (env credentials). Confirm dashboard **Demo** banner and limited settings/billing gating.
+- [ ] Confirm no “Dev Sudo” for that account.
+- [ ] Confirm you only see that firm’s data.
+
+**Pass**: Legacy tenant remains isolated; do not use this as the marketed prospect path.
+
+---
+
+## 3. Developer sudo (non-production)
 
 - [ ] Sign in as a user with `is_dev_sudo = true`.
 - [ ] In the dashboard sidebar, **“Dev Sudo”** is visible. Open it (`/dashboard/dev/sudo`).
@@ -37,7 +51,7 @@ Use this checklist to verify demo and developer sudo behaviour.
 
 ---
 
-## 3. No sudo in production
+## 4. No sudo in production
 
 - [ ] Run the app with `NODE_ENV=production` (e.g. `npm run build && npm run start`), or use a production-like env.
 - [ ] Sign in as the same dev sudo user. **“Dev Sudo”** should **not** appear in the sidebar.
@@ -48,9 +62,9 @@ Use this checklist to verify demo and developer sudo behaviour.
 
 ---
 
-## 4. Demo allowed in production
+## 5. Public demo allowed in production
 
-- [ ] In production (or production-like) build, open the home page. “Try a demo firm” is present.
-- [ ] Click it: you are signed in as the demo lawyer and see the demo dashboard and banner. No sudo options.
+- [ ] In production (or production-like) build, open `/demo`. Sandbox loads without requiring `DEMO_LAWYER_*`.
+- [ ] Confirm marketing/README still point at `/demo`, not session-based demo login.
 
-**Pass**: Demo remains available and safe in production.
+**Pass**: Public demo remains available and sandboxed.

@@ -1,67 +1,48 @@
-# Demo Firm and Dashboard
+# Demo firm and dashboard (legacy / quarantined)
 
-This document explains the demo vs real firm behaviour, dashboard differences, and feature restrictions.
+> **Public product demo is `/demo`.** See [public-demo-sandbox.md](./public-demo-sandbox.md).  
+> This page describes dashboard behaviour when a session is still attached to a firm with `is_demo_firm = true` (internal QA / leftover seed). Do not market this as the prospect path.
 
-## Modes Overview
+## Modes overview
 
 | Mode | Flag | Purpose |
 |------|------|---------|
-| **Demo firm** | `firms.is_demo_firm = true` | User-facing: lawyers evaluating the product |
-| **Real firm** | `firms.is_demo_firm = false` | Fully registered firm with real data |
-| **Developer sudo** | `profiles.is_dev_sudo = true` | Internal only, non-production: testing and debugging |
+| **Public sandbox** | N/A (`/demo`) | Prospect / pilot fictional workspace |
+| **Legacy demo firm** | `firms.is_demo_firm = true` | Quarantined shared tenant |
+| **Real firm** | `firms.is_demo_firm = false` | Registered firm with real data |
+| **Developer sudo** | `profiles.is_dev_sudo = true` | Internal only, non-production |
 
-## Demo Firm Mode
+## Public sandbox (preferred)
 
-### Login Flow
+Unauthenticated `/demo` with browser-local data. No dashboard login. CTAs and README should send people here.
 
-When a user chooses **"Try a demo firm"** or **"Use demo law firm"**:
+## Legacy demo firm mode (dashboard)
 
-1. They are signed into the pre-configured demo lawyer account (via `DEMO_LAWYER_EMAIL` / `DEMO_LAWYER_PASSWORD`).
-2. That account is linked to a firm with `is_demo_firm = true`.
-3. They are redirected to the **dashboard** (not firm registration).
+### How someone might still land here
 
-### Dashboard Behaviour
+Only via an existing seeded session or internal tooling — **not** via current public `demo-login` / `use-demo-firm` (those redirect to `/demo`).
 
-For `firm.is_demo_firm === true`:
+### Dashboard behaviour when `firm.is_demo_firm === true`
 
-- **Demo banner**: A prominent warning is shown: *"Demo firm – for testing only. Do not enter real client data."*
-- **Register CTA**: A clear, non-blocking CTA **"Register your own firm"** is always visible. Clicking it starts the real firm registration flow and routes the user to their real firm dashboard once created.
-- **Summary cards, intake pipeline, matters list**: Full workflow is enabled with seeded/fake data.
-- **Day-to-day features**: Create demo intakes and matters, progress them through stages, add notes/tasks/documents.
-- **Client portal preview**: Available for demo matters and intakes.
+- Demo banner / limited settings / billing hidden (see `app/dashboard/layout.tsx`).
+- Register-firm CTA may still appear for upgrading off the demo tenant.
+- Day-to-day workflow against **real DB rows** for that firm (unlike `/demo`).
 
-### Restrictions in Demo Mode
+### Restrictions
 
-| Feature | Demo behaviour |
-|---------|----------------|
-| **Billing** | Hidden from navigation |
-| **Settings** | Visible but marked "Settings (limited)". Export and other actions may be restricted. |
-| **User/role admin** | Not available or read-only |
-| **Integrations** | E-sign, accounting, external services shown as locked or hidden |
-| **Real data** | Strong warnings not to enter real client data; data may be reset periodically |
-| **Cross-tenant / sudo** | No access to impersonation or internal sudo tools |
+| Feature | Demo firm dashboard |
+|---------|---------------------|
+| Billing | Hidden from navigation |
+| Settings | Marked limited |
+| Send intake link | Disabled (403) |
+| Cross-tenant / sudo | No |
 
-### Rule
+## Real firm mode
 
-```ts
-if (firm.is_demo_firm) {
-  // Enable day-to-day workflow and full-ish dashboard
-  // Always show "Register your own firm" CTA
-  // Lock down settings, billing, integrations, admin, and any cross-tenant/sudo behaviour
-}
-```
+For `firm.is_demo_firm === false`: full dashboard subject to role/permissions; no demo firm banner.
 
-## Real Firm Mode
+## Implementation notes
 
-For `firm.is_demo_firm === false`:
-
-- Same general dashboard structure (summary cards, intake pipeline, matters list, key dates).
-- No demo warning banner.
-- Instead of "Register your own firm", users see: **Manage firm settings**, **Manage users**, **Billing & subscriptions**, etc.
-- All firm-level features are available subject to role/permissions (e.g. firm admin vs fee-earner).
-
-## Implementation Notes
-
-- `is_demo_firm` is fetched as part of the firm row and exposed via `useAuth()` (context) and `getCurrentUserServer()`.
-- The dashboard layout gates nav items (e.g. Billing) based on `is_demo_firm`.
-- The register-firm API allows creating a new firm when the user's current firm is a demo firm, effectively "upgrading" from demo to real firm.
+- `is_demo_firm` is still selected with the firm row (`getCurrentUserServer`, auth context).
+- Prefer retiring leftover demo-firm sessions over adding new features on this path.
+- Seed internals: [demo-firm.md](./demo-firm.md).
