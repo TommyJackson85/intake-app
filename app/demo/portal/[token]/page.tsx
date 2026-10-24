@@ -2,10 +2,14 @@
 
 import { useParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { demoSeedData, DEMO_MILESTONE_LOGS, MILESTONE_LABELS, MILESTONE_ORDER } from '@/lib/demo/demoData'
-import type { MatterMilestoneStatus } from '@/lib/demo/types'
+import { demoSeedData } from '@/lib/demo/demoData'
 import { buildClientDocumentRequestStatusView } from '@/lib/demo/clientDocumentRequestStatus'
 import { validateClientDocumentUploadFileName } from '@/lib/demo/clientDocumentRequestUpload'
+import {
+  buildPortalMilestoneView,
+  MILESTONE_LABELS,
+  MILESTONE_ORDER,
+} from '@/lib/demo/portalMilestones'
 import { useDemoStore } from '@/lib/demo/store'
 
 export default function ClientPortalPage() {
@@ -65,17 +69,12 @@ export default function ClientPortalPage() {
     [documentRequests, fulfillRequestId],
   )
 
-  const logs = useMemo(
-    () => (matter ? DEMO_MILESTONE_LOGS.filter((l) => l.matter_id === matter.id) : []),
+  const milestoneView = useMemo(
+    () => (matter ? buildPortalMilestoneView(matter) : null),
     [matter],
   )
 
-  const completedStatuses = useMemo(
-    () => new Set(logs.map((l) => l.status)),
-    [logs],
-  )
-
-  if (!matter) {
+  if (!matter || !milestoneView) {
     return (
       <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center', padding: 40 }}>
@@ -86,12 +85,7 @@ export default function ClientPortalPage() {
     )
   }
 
-  // Find the next step (first milestone not completed)
-  const nextStatus: MatterMilestoneStatus | null = MILESTONE_ORDER.find((s) => !completedStatuses.has(s)) ?? null
-
-  // Current status = last completed milestone
-  const lastCompleted = [...MILESTONE_ORDER].reverse().find((s) => completedStatuses.has(s))
-  const currentLabel = lastCompleted ? MILESTONE_LABELS[lastCompleted] : 'Pending'
+  const { logs, completedStatuses, nextStatus, currentLabel } = milestoneView
 
   return (
     <div style={{ minHeight: '100vh', background: '#f9fafb' }}>

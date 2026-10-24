@@ -371,8 +371,13 @@ export const systemContract = {
         primaryTypes: ['`DemoTimelineEvent` on `DemoMatter.timeline` in `lib/demo/types.ts`'],
         storeAndPersistence: ['`addTimelineNote` in `lib/demo/store.tsx`'],
         helpers: ['`components/demo/DemoTimelineNotes.tsx` uses `DemoDataContext` → store'],
-        seed: ['`MatterMilestoneStatus`, `DEMO_MILESTONE_LOGS` in `lib/demo/demoData.ts` (portal milestone narrative)'],
-        notes: 'Milestone logs are seed/static per matter in demo portal; not the same object as `timeline` notes.',
+        seed: [
+          '`MatterMilestoneStatus`, `MILESTONE_ORDER` / `MILESTONE_LABELS` in `lib/demo/demoData.ts`',
+          '`buildPortalMilestoneView` in `lib/demo/portalMilestones.ts` (live portal ladder from tasks/status)',
+          '`DEMO_MILESTONE_LOGS` in `lib/demo/demoData.ts` (deprecated static seed reference only)',
+        ],
+        notes:
+          'Portal milestones are derived from live matter tasks/status; not the same object as `timeline` notes. Static `DEMO_MILESTONE_LOGS` is retained for reference only.',
       },
       live: {
         tablesOrRoutes: ['`audit_logs`', 'GDPR/export routes under `app/api/gdpr/*` and `app/api/external/export/audit-events`'],

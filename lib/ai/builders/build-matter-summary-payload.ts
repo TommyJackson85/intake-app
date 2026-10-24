@@ -1,32 +1,18 @@
 /**
  * Stable, inspectable matter summary object for future AI / workflow consumers.
- * Pure function — no store, no UI, no LLM calls. Callers pass demo domain rows explicitly.
+ * Pure function — no store, no UI, no LLM calls. Callers pass a neutral
+ * `MatterSummarySource` (map demo/product rows at the boundary via adapters).
  *
  * Schema: bump `schemaVersion` only when making breaking shape changes; keep keys predictable (camelCase).
  */
 
-import type {
-  DemoCondoDiligence,
-  DemoDocument,
-  DemoDocumentRequest,
-  DemoMatter,
-  DemoTaskStatus,
-  FinCENReportStatus,
-} from '@/lib/demo/types'
-import { isCondoDiligenceEligible } from '@/lib/demo/condoDiligence'
-import { isFincenEligibleMatter } from '@/lib/demo/fincenEligibility'
-import { getMatterPartyDisplayRows } from '@/lib/demo/matterPartyDisplay'
-import { deriveMatterStatus } from '@/lib/demo-utils'
+import type { MatterSummarySource } from '@/lib/ai/matter-summary-source'
 import { systemContract } from '@/lib/domain/system-contract'
 
 export const MATTER_SUMMARY_PAYLOAD_SCHEMA_VERSION = '1.0.0' as const
 
 export type BuildMatterSummaryPayloadInput = {
-  matter: DemoMatter
-  documents: DemoDocument[]
-  documentRequests: DemoDocumentRequest[]
-  /** Store `getCondoDiligence(matter.id)` when available; omit if none. */
-  condoDiligence?: DemoCondoDiligence | null
+  source: MatterSummarySource
   /** Override clock for tests; defaults to `new Date().toISOString()`. */
   generatedAtIso?: string
 }
@@ -59,14 +45,14 @@ export type MatterSummaryTransaction = {
 
 export type MatterSummaryStatus = {
   /** Stored pipeline label on the matter. */
-  matterStatusStored: DemoMatter['status']
-  /** Derived from task checklist + closing date (see `deriveMatterStatus`). */
-  matterStatusDerivedFromTasks: ReturnType<typeof deriveMatterStatus>
+  matterStatusStored: string
+  /** Derived from task checklist + closing date (adapter-owned). */
+  matterStatusDerivedFromTasks: string
 }
 
 export type MatterSummaryPartyCore = {
   name: string
-  partyType: DemoMatter['buyer']['type']
+  partyType: string
 }
 
 export type MatterSummaryParties = {
@@ -83,7 +69,7 @@ export type MatterSummaryTasks = {
     completed: number
   }
   /** Non-deleted tasks, titles + status, capped for payload size. */
-  items: Array<{ title: string; status: DemoTaskStatus }>
+  items: Array<{ title: string; status: string }>
 }
 
 export type MatterSummaryDocuments = {
@@ -100,7 +86,7 @@ export type MatterSummaryDocuments = {
 export type MatterSummaryCompliance = {
   fincen: {
     eligible: boolean
-    reportStatus?: FinCENReportStatus
+    reportStatus?: string
     completedFields?: number
     beneficialOwnerCount?: number
     certRequestPendingClient?: boolean
@@ -109,7 +95,7 @@ export type MatterSummaryCompliance = {
     eligible: boolean
     rowPresent: boolean
     applicable?: boolean
-    status?: DemoCondoDiligence['status']
+    status?: string
     requiredDocumentsTotal?: number
     requiredDocumentsOutstanding?: number
     requiredDocumentsRequested?: number
@@ -151,15 +137,15 @@ function capText(s: string, max: number): string {
   return `${t.slice(0, max)}…`
 }
 
-function matterDocuments(matterId: string, documents: DemoDocument[]): DemoDocument[] {
-  return documents.filter((d) => d.matter_id === matterId && !d.deletedAt)
+function matterDocuments(matterId: string, documents: MatterSummarySource['documents']) {
+  return documents.filter((d) => d.matterId === matterId && !d.deletedAt)
 }
 
-function matterDocumentRequests(matterId: string, rows: DemoDocumentRequest[]): DemoDocumentRequest[] {
-  return rows.filter((r) => r.matter_id === matterId)
+function matterDocumentRequests(matterId: string, rows: MatterSummarySource['documentRequests']) {
+  return rows.filter((r) => r.matterId === matterId)
 }
 
-function buildTimeline(events: DemoMatter['timeline']): MatterSummaryTimeline {
+function buildTimeline(events: MatterSummarySource['timeline']): MatterSummaryTimeline {
   const active = events.filter((e) => !e.deletedAt)
   const sorted = [...active].sort((a, b) => a.at.localeCompare(b.at))
   const tail = sorted.slice(-MAX_TIMELINE_NOTES).reverse()
@@ -176,11 +162,11 @@ function buildTimeline(events: DemoMatter['timeline']): MatterSummaryTimeline {
  * Assemble a normalized matter summary for downstream prompts or tools.
  */
 export function buildMatterSummaryPayload(input: BuildMatterSummaryPayloadInput): MatterSummaryPayload {
-  const { matter, documents, documentRequests, condoDiligence = null } = input
+  const { source } = input
   const generatedAtIso = input.generatedAtIso ?? new Date().toISOString()
 
-  const docs = matterDocuments(matter.id, documents)
-  const reqs = matterDocumentRequests(matter.id, documentRequests)
+  const docs = matterDocuments(source.identity.matterId, source.documents)
+  const reqs = matterDocumentRequests(source.identity.matterId, source.documentRequests)
 
   const byReview = { draft: 0, reviewed: 0, final: 0 }
   for (const d of docs) {
@@ -189,72 +175,35 @@ export function buildMatterSummaryPayload(input: BuildMatterSummaryPayloadInput)
     else byReview.final += 1
   }
 
-  const tasksActive = matter.tasks.filter((t) => !t.deletedAt)
+  const tasksActive = source.tasks.filter((t) => !t.deletedAt)
   const counts = {
     notStarted: tasksActive.filter((t) => t.status === 'not_started').length,
     inProgress: tasksActive.filter((t) => t.status === 'in_progress').length,
     completed: tasksActive.filter((t) => t.status === 'completed').length,
   }
 
-  const condoEligible = isCondoDiligenceEligible(matter)
-  const fincenEligible = isFincenEligibleMatter(matter)
-  const fincen = matter.fincen
-
-  let condoRequired: MatterSummaryCompliance['condoDiligence'] = {
-    eligible: condoEligible,
-    rowPresent: condoDiligence != null,
-  }
-
-  if (condoDiligence) {
-    const rd = condoDiligence.requiredDocuments
-    condoRequired = {
-      ...condoRequired,
-      applicable: condoDiligence.applicable,
-      status: condoDiligence.status,
-      requiredDocumentsTotal: rd.length,
-      requiredDocumentsOutstanding: rd.filter((x) => x.status === 'outstanding').length,
-      requiredDocumentsRequested: rd.filter((x) => x.status === 'requested').length,
-      requiredDocumentsReceived: rd.filter((x) => x.status === 'received').length,
-      findingsCount: condoDiligence.findings.length,
-    }
-  }
+  const fincen = source.compliance.fincen
+  const condo = source.compliance.condoDiligence
 
   return {
     schemaVersion: MATTER_SUMMARY_PAYLOAD_SCHEMA_VERSION,
     payloadKind: 'matter_summary',
     generatedAtIso,
     systemContractVersion: systemContract.meta.version,
-    identity: {
-      matterId: matter.id,
-      fileId: matter.file_id,
-      matterType: matter.matter_type,
-      hasPortalToken: Boolean(matter.portal_token?.trim()),
-    },
-    property: {
-      address: matter.property.address,
-      county: matter.property.county,
-      propertyType: matter.property.property_type,
-    },
+    identity: { ...source.identity },
+    property: { ...source.property },
     transaction: {
-      transactionType: matter.transactionType,
-      purchasePrice: matter.purchasePrice,
-      financingType: matter.financingType,
-      hoaFlag: matter.hoaFlag,
-      keyDates: {
-        effectiveDate: matter.key_dates.effective_date,
-        inspectionDeadline: matter.key_dates.inspection_deadline,
-        loanApprovalDeadline: matter.key_dates.loan_approval_deadline,
-        closingDate: matter.key_dates.closing_date,
-      },
+      ...source.transaction,
+      keyDates: { ...source.transaction.keyDates },
     },
     status: {
-      matterStatusStored: matter.status,
-      matterStatusDerivedFromTasks: deriveMatterStatus(matter.tasks, matter.key_dates.closing_date),
+      matterStatusStored: source.matterStatusStored,
+      matterStatusDerivedFromTasks: source.matterStatusDerivedFromTasks,
     },
     parties: {
-      buyer: { name: matter.buyer.name, partyType: matter.buyer.type },
-      seller: { name: matter.seller.name, partyType: matter.seller.type },
-      displayRows: getMatterPartyDisplayRows(matter),
+      buyer: { ...source.parties.buyer },
+      seller: { ...source.parties.seller },
+      displayRows: source.parties.displayRows.map((r) => ({ ...r })),
     },
     tasks: {
       counts,
@@ -268,14 +217,14 @@ export function buildMatterSummaryPayload(input: BuildMatterSummaryPayloadInput)
     },
     compliance: {
       fincen: {
-        eligible: fincenEligible,
-        reportStatus: fincen?.reportStatus,
-        completedFields: fincen?.completedFields,
-        beneficialOwnerCount: fincen?.beneficialOwners?.length,
-        certRequestPendingClient: fincen?.certRequest?.status === 'pending_client',
+        eligible: fincen.eligible,
+        reportStatus: fincen.reportStatus,
+        completedFields: fincen.completedFields,
+        beneficialOwnerCount: fincen.beneficialOwnerCount,
+        certRequestPendingClient: fincen.certRequestPendingClient,
       },
-      condoDiligence: condoRequired,
+      condoDiligence: { ...condo },
     },
-    timeline: buildTimeline(matter.timeline),
+    timeline: buildTimeline(source.timeline),
   }
 }

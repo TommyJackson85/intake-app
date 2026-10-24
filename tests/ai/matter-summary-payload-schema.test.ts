@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { demoSeedData } from '@/lib/demo/demoData'
+import { mapDemoMatterToSummarySource } from '@/lib/ai/adapters/demo-to-matter-summary-source'
 import { buildMatterSummaryPayload } from '@/lib/ai/builders/build-matter-summary-payload'
 import { safeParseMatterSummaryPayloadRequest } from '@/lib/ai/schemas/matter-summary-payload'
 
@@ -8,9 +9,11 @@ describe('matterSummaryPayloadRequestSchema', () => {
     const matter = demoSeedData.matters.find((m) => m.id === 'matter-001')
     if (!matter) throw new Error('fixture missing')
     const payload = buildMatterSummaryPayload({
-      matter,
-      documents: [],
-      documentRequests: [],
+      source: mapDemoMatterToSummarySource({
+        matter,
+        documents: [],
+        documentRequests: [],
+      }),
       generatedAtIso: '2026-05-01T12:00:00.000Z',
     })
     const r = safeParseMatterSummaryPayloadRequest(payload)
