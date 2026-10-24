@@ -21,6 +21,8 @@ export const DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY = 'lawintake-demo-post-c
 export const DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY = 'lawintake-demo-matter-review-tasks-v1'
 export const DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY = 'lawintake-demo-condo-diligence-activities-v1'
 export const DEMO_INTAKE_LEADS_STORAGE_KEY = 'lawintake-demo-intake-leads-v1'
+export const DEMO_CLIENTS_STORAGE_KEY = 'lawintake-demo-clients-v1'
+export const DEMO_CALENDAR_EVENTS_STORAGE_KEY = 'lawintake-demo-calendar-events-v1'
 
 /** All localStorage keys owned by the demo experience (not AI-dev inspector session keys). */
 export const DEMO_LOCAL_STORAGE_KEYS = [
@@ -33,6 +35,8 @@ export const DEMO_LOCAL_STORAGE_KEYS = [
   DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY,
   DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY,
   DEMO_INTAKE_LEADS_STORAGE_KEY,
+  DEMO_CLIENTS_STORAGE_KEY,
+  DEMO_CALENDAR_EVENTS_STORAGE_KEY,
 ] as const
 
 /** Intake leads were historically mirrored to sessionStorage under the same key string. */
@@ -235,4 +239,37 @@ export function validateIntakeLeadsArray(
     rows.push(o as { id: string; token: string } & Record<string, unknown>)
   }
   return rows.length > 0 ? rows : null
+}
+
+/** Minimal client row guard for localStorage hydrate. */
+export function validateDemoClientsStoredArray(
+  data: unknown,
+): Array<{ id: string; full_name: string } & Record<string, unknown>> | null {
+  if (!Array.isArray(data)) return null
+  const rows: Array<{ id: string; full_name: string } & Record<string, unknown>> = []
+  for (const item of data) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue
+    const o = item as Record<string, unknown>
+    if (typeof o.id !== 'string' || !o.id.trim()) continue
+    if (typeof o.full_name !== 'string' || !o.full_name.trim()) continue
+    rows.push(o as { id: string; full_name: string } & Record<string, unknown>)
+  }
+  return rows
+}
+
+/** Minimal calendar event guard for localStorage hydrate. */
+export function validateDemoCalendarEventsStoredArray(
+  data: unknown,
+): Array<{ id: string; matter_id: string; date: string } & Record<string, unknown>> | null {
+  if (!Array.isArray(data)) return null
+  const rows: Array<{ id: string; matter_id: string; date: string } & Record<string, unknown>> = []
+  for (const item of data) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue
+    const o = item as Record<string, unknown>
+    if (typeof o.id !== 'string' || !o.id.trim()) continue
+    if (typeof o.matter_id !== 'string' || !o.matter_id.trim()) continue
+    if (typeof o.date !== 'string' || !o.date.trim()) continue
+    rows.push(o as { id: string; matter_id: string; date: string } & Record<string, unknown>)
+  }
+  return rows
 }
