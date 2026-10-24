@@ -1,11 +1,15 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 import { DEMO_MATTERS } from '@/lib/demo/demoMatters'
 import {
+  DEMO_CALENDAR_EVENTS_STORAGE_KEY,
+  DEMO_CLIENTS_STORAGE_KEY,
   DEMO_MATTERS_STORAGE_KEY,
   DEMO_PERSISTENCE_SCHEMA_VERSION,
   clearAllDemoPersistedState,
   readDemoPersistedData,
   serializeDemoPersistedData,
+  validateDemoCalendarEventsStoredArray,
+  validateDemoClientsStoredArray,
   validateDemoMattersStoredArray,
   validateIdArray,
   wrapDemoPersistedData,
@@ -115,5 +119,25 @@ describe('demoPersistence', () => {
       validateDemoMattersStoredArray,
     )
     expect(restored!.map((m) => m.id).sort()).toEqual(DEMO_MATTERS.map((m) => m.id).sort())
+  })
+
+  it('validates clients and calendar event payloads for new persistence keys', () => {
+    expect(DEMO_LOCAL_STORAGE_KEYS).toContain(DEMO_CLIENTS_STORAGE_KEY)
+    expect(DEMO_LOCAL_STORAGE_KEYS).toContain(DEMO_CALENDAR_EVENTS_STORAGE_KEY)
+
+    const clientsRaw = serializeDemoPersistedData([
+      { id: 'client-1', full_name: 'Ada' },
+      { id: 'bad' },
+    ])
+    const clients = readDemoPersistedData(clientsRaw, validateDemoClientsStoredArray)
+    expect(clients).toEqual([{ id: 'client-1', full_name: 'Ada' }])
+
+    const eventsRaw = serializeDemoPersistedData([
+      { id: 'evt-1', matter_id: 'matter-1', date: '2026-01-01T12:00:00', title: 'Closing' },
+      { id: 'evt-bad', matter_id: 'matter-1' },
+    ])
+    const events = readDemoPersistedData(eventsRaw, validateDemoCalendarEventsStoredArray)
+    expect(events).toHaveLength(1)
+    expect(events![0]!.id).toBe('evt-1')
   })
 })

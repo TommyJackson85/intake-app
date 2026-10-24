@@ -115,6 +115,8 @@ import {
   parseStoredDemoCondoDiligenceActivities,
 } from '@/lib/demo/demoCondoDiligenceActivity'
 import {
+  DEMO_CALENDAR_EVENTS_STORAGE_KEY,
+  DEMO_CLIENTS_STORAGE_KEY,
   DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY,
   DEMO_CONDO_DILIGENCE_STORAGE_KEY,
   DEMO_DOCUMENT_REQUESTS_STORAGE_KEY,
@@ -130,6 +132,8 @@ import {
   safeSessionStorageGet,
   safeSessionStorageSet,
   serializeDemoPersistedData,
+  validateDemoCalendarEventsStoredArray,
+  validateDemoClientsStoredArray,
   validateDemoMattersStoredArray,
   validateFinCENCertRequestsArray,
   validateIdArray,
@@ -137,6 +141,14 @@ import {
   validateObjectMap,
   writeDemoPersistedData,
 } from '@/lib/demo/demoPersistence'
+import {
+  buildCalendarEventsForNewMatter,
+  mergeStoredCalendarEventsWithSeed,
+  mergeStoredClientsWithSeed,
+  reconcileDemoCalendarEventsWithMatters,
+  reconcileDemoClientsWithMatters,
+  reconcileIntakeLeadsLinkedClients,
+} from '@/lib/demo/demoClientsCalendar'
 
 type DemoContextType = {
   demoFirm: DemoSeedData['demoFirm']
@@ -307,6 +319,14 @@ function persistDemoMatterReviewTasks(tasks: DemoMatterReviewTask[]) {
 
 function persistDemoCondoDiligenceActivities(activities: DemoCondoDiligenceActivity[]) {
   writeDemoPersistedData(DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY, activities)
+}
+
+function persistDemoClients(clients: DemoClient[]) {
+  writeDemoPersistedData(DEMO_CLIENTS_STORAGE_KEY, clients)
+}
+
+function persistDemoCalendarEvents(events: DemoCalendarEvent[]) {
+  writeDemoPersistedData(DEMO_CALENDAR_EVENTS_STORAGE_KEY, events)
 }
 
 function isDemoCondoDiligenceDocStatus(s: unknown): s is DemoCondoDiligenceDocStatus {
@@ -614,7 +634,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
-  /** Hydrate matters + FinCEN cert requests + documents + document requests from localStorage (same session / after refresh / new tab). */
+  /** Hydrate persisted demo slices from localStorage (same session / after refresh / new tab). */
   useEffect(() => {
     try {
       const rawMatters = safeLocalStorageGet(DEMO_MATTERS_STORAGE_KEY)
@@ -625,6 +645,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       const rawPostClosingUndertakings = safeLocalStorageGet(DEMO_POST_CLOSING_UNDERTAKINGS_STORAGE_KEY)
       const rawMatterReviewTasks = safeLocalStorageGet(DEMO_MATTER_REVIEW_TASKS_STORAGE_KEY)
       const rawCondoDiligenceActivities = safeLocalStorageGet(DEMO_CONDO_DILIGENCE_ACTIVITIES_STORAGE_KEY)
+      const rawClients = safeLocalStorageGet(DEMO_CLIENTS_STORAGE_KEY)
+      const rawCalendarEvents = safeLocalStorageGet(DEMO_CALENDAR_EVENTS_STORAGE_KEY)
       if (
         !rawMatters &&
         !rawFincen &&
@@ -633,7 +655,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         !rawCondoDiligence &&
         !rawPostClosingUndertakings &&
         !rawMatterReviewTasks &&
-        !rawCondoDiligenceActivities
+        !rawCondoDiligenceActivities &&
+        !rawClients &&
+        !rawCalendarEvents
       )
         return
       setState((prev) => {
@@ -712,6 +736,29 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             condoDiligenceActivities = parseStoredDemoCondoDiligenceActivities(parsed)
           }
         }
+        let clients = prev.clients
+        if (rawClients) {
+          const storedRows = readDemoPersistedData(rawClients, validateDemoClientsStoredArray)
+          if (storedRows && storedRows.length > 0) {
+            const stored = storedRows.filter(
+              (c): c is DemoClient => c != null && typeof c.id === 'string',
+            ) as DemoClient[]
+            clients = mergeStoredClientsWithSeed(stored, prev.clients)
+          }
+        }
+        let calendarEvents = prev.calendarEvents
+        if (rawCalendarEvents) {
+          const storedRows = readDemoPersistedData(rawCalendarEvents, validateDemoCalendarEventsStoredArray)
+          if (storedRows && storedRows.length > 0) {
+            const stored = storedRows.filter(
+              (e): e is DemoCalendarEvent => e != null && typeof e.id === 'string',
+            ) as DemoCalendarEvent[]
+            calendarEvents = mergeStoredCalendarEventsWithSeed(stored, prev.calendarEvents)
+          }
+        }
+        clients = reconcileDemoClientsWithMatters(clients, matters)
+        calendarEvents = reconcileDemoCalendarEventsWithMatters(calendarEvents, matters)
+        const intakeLeads = reconcileIntakeLeadsLinkedClients(prev.intakeLeads, clients)
         return {
           ...prev,
           matters,
@@ -722,6 +769,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           postClosingUndertakingsByMatterId,
           matterReviewTasks,
           condoDiligenceActivities,
+          clients,
+          calendarEvents,
+          intakeLeads,
         }
       })
     } catch {
@@ -806,6 +856,28 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     }, 250)
     return () => window.clearTimeout(t)
   }, [state.condoDiligenceActivities])
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        persistDemoClients(state.clients)
+      } catch {
+        /* ignore */
+      }
+    }, 250)
+    return () => window.clearTimeout(t)
+  }, [state.clients])
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        persistDemoCalendarEvents(state.calendarEvents)
+      } catch {
+        /* ignore */
+      }
+    }, 250)
+    return () => window.clearTimeout(t)
+  }, [state.calendarEvents])
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -942,6 +1014,48 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== DEMO_CLIENTS_STORAGE_KEY || !e.newValue) return
+      const storedRows = readDemoPersistedData(e.newValue, validateDemoClientsStoredArray)
+      if (!storedRows || storedRows.length === 0) return
+      const stored = storedRows.filter(
+        (c): c is DemoClient => c != null && typeof c.id === 'string',
+      ) as DemoClient[]
+      setState((prev) => {
+        const merged = mergeStoredClientsWithSeed(stored, prev.clients)
+        const clients = reconcileDemoClientsWithMatters(merged, prev.matters)
+        return {
+          ...prev,
+          clients,
+          intakeLeads: reconcileIntakeLeadsLinkedClients(prev.intakeLeads, clients),
+        }
+      })
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== DEMO_CALENDAR_EVENTS_STORAGE_KEY || !e.newValue) return
+      const storedRows = readDemoPersistedData(e.newValue, validateDemoCalendarEventsStoredArray)
+      if (!storedRows || storedRows.length === 0) return
+      const stored = storedRows.filter(
+        (row): row is DemoCalendarEvent => row != null && typeof row.id === 'string',
+      ) as DemoCalendarEvent[]
+      setState((prev) => {
+        const merged = mergeStoredCalendarEventsWithSeed(stored, prev.calendarEvents)
+        return {
+          ...prev,
+          calendarEvents: reconcileDemoCalendarEventsWithMatters(merged, prev.matters),
+        }
+      })
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   const resetDemoData = React.useCallback(() => {
     clearAllDemoPersistedState()
     const next = createInitialDemoRuntimeState()
@@ -955,6 +1069,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     persistDemoPostClosingUndertakingsReview(next.postClosingUndertakingsByMatterId)
     persistDemoMatterReviewTasks(next.matterReviewTasks)
     persistDemoCondoDiligenceActivities(next.condoDiligenceActivities)
+    persistDemoClients(next.clients)
+    persistDemoCalendarEvents(next.calendarEvents)
     persistFinCENCertRequests(next.fincenCertRequests)
     persistIntakeLeads(next.intakeLeads)
   }, [])
@@ -1126,6 +1242,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               matters: prev.matters.filter((m) => m.id !== matterId),
               calendarEvents: prev.calendarEvents.filter((evt) => evt.matter_id !== matterId),
               documents: prev.documents.filter((doc) => doc.matter_id !== matterId),
+              clients: prev.clients.map((client) => ({
+                ...client,
+                linked_matter_ids: client.linked_matter_ids.filter((id) => id !== matterId),
+              })),
               condoDiligenceByMatterId,
               postClosingUndertakingsByMatterId,
               recentlyDeletedMatters: [
@@ -1766,10 +1886,29 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               ? { ...prev.condoDiligenceByMatterId, [nextMatter.id]: buildDefaultCondoDiligence() }
               : prev.condoDiligenceByMatterId
 
+          const assignedStaffId =
+            staff.find((s) => s.role.toLowerCase().includes('attorney'))?.id ??
+            staff.find((s) => s.role.toLowerCase().includes('paralegal'))?.id ??
+            staff[0]?.id ??
+            ''
+
+          const newCalendarEvents = buildCalendarEventsForNewMatter({
+            matterId: nextMatter.id,
+            fileId: nextMatter.file_id,
+            closingDate: safeClosing,
+            financingDeadline,
+            inspectionDeadline,
+            financingType,
+            assignedStaffId,
+            ts,
+            propertyAddress: nextMatter.property.address,
+          })
+
           return {
             ...prev,
             matters: [...prev.matters, nextMatter],
             condoDiligenceByMatterId,
+            calendarEvents: [...prev.calendarEvents, ...newCalendarEvents],
           }
         })
         if (createdInfo) input.onCreated?.(createdInfo)
