@@ -17,6 +17,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { useDemoStore } from '@/lib/demo/store'
+import { mapDemoMatterToSummarySource } from '@/lib/ai/adapters/demo-to-matter-summary-source'
 import { buildMatterSummaryPayload } from '@/lib/ai/builders/build-matter-summary-payload'
 import {
   MATTER_SUMMARY_RESPONSE_EXAMPLE,
@@ -891,10 +892,12 @@ export default function DemoDevAiPayloadsPage() {
   const payload = useMemo(() => {
     if (!selectedMatter) return null
     return buildMatterSummaryPayload({
-      matter: selectedMatter,
-      documents,
-      documentRequests,
-      condoDiligence: getCondoDiligence(selectedMatter.id) ?? null,
+      source: mapDemoMatterToSummarySource({
+        matter: selectedMatter,
+        documents,
+        documentRequests,
+        condoDiligence: getCondoDiligence(selectedMatter.id) ?? null,
+      }),
     })
   }, [selectedMatter, documents, documentRequests, getCondoDiligence])
 

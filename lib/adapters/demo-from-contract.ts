@@ -113,7 +113,7 @@ export const demoImplementationByDomain = {
     seedPaths: ['lib/demo/demoData.ts'],
     helperPaths: ['context/DemoDataContext.tsx'],
     uiAnchorPaths: ['components/demo/DemoTimelineNotes.tsx', 'app/demo/portal/[token]/page.tsx'],
-    notes: 'Matter `timeline` notes vs seed `DEMO_MILESTONE_LOGS` (portal). Facade: `DemoDataContext` → store. Narrative: `systemContract.domains.timelineAndAudit`.',
+    notes: 'Matter `timeline` notes vs live portal milestones (`buildPortalMilestoneView`). Facade: `DemoDataContext` → store. Narrative: `systemContract.domains.timelineAndAudit`.',
   },
 
   portalViews: {

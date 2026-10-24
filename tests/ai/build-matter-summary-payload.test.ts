@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { demoSeedData } from '@/lib/demo/demoData'
+import { mapDemoMatterToSummarySource } from '@/lib/ai/adapters/demo-to-matter-summary-source'
 import {
   buildMatterSummaryPayload,
   MATTER_SUMMARY_PAYLOAD_SCHEMA_VERSION,
@@ -12,9 +13,11 @@ describe('buildMatterSummaryPayload', () => {
 
   it('returns stable top-level shape aligned with schema version', () => {
     const payload = buildMatterSummaryPayload({
-      matter,
-      documents: [],
-      documentRequests: [],
+      source: mapDemoMatterToSummarySource({
+        matter,
+        documents: [],
+        documentRequests: [],
+      }),
       generatedAtIso: '2026-05-01T12:00:00.000Z',
     })
 
@@ -44,51 +47,69 @@ describe('buildMatterSummaryPayload', () => {
 
   it('filters documents and requests to the matter id', () => {
     const payload = buildMatterSummaryPayload({
-      matter,
-      documents: [
-        {
-          id: 'd1',
-          matter_id: matter.id,
-          name: 'Test',
-          category: 'Contract',
-          uploaded_at: '2026-01-01T00:00:00.000Z',
-          uploaded_by_staff_id: 'staff-1',
-          status: 'draft',
-          deletedAt: null,
-        },
-        {
-          id: 'd2',
-          matter_id: 'other-matter',
-          name: 'Other',
-          category: 'Contract',
-          uploaded_at: '2026-01-01T00:00:00.000Z',
-          uploaded_by_staff_id: 'staff-1',
-          status: 'final',
-          deletedAt: null,
-        },
-      ],
-      documentRequests: [
-        {
-          id: 'r1',
-          matter_id: matter.id,
-          title: 'Need HOA',
-          description: null,
-          category: 'Compliance',
-          requested_at: '2026-01-01T00:00:00.000Z',
-          requested_by_staff_id: 'staff-1',
-          status: 'open',
-          fulfilled_document_id: null,
-          staff_receipt_acknowledged_at: null,
-    staff_receipt_reviewed_by_staff_id: null,
-    staff_receipt_reviewed_document_id: null,
-    staff_follow_up: { status: 'none' as const, note: '', markedById: null, markedByName: null, markedAt: null },
-        },
-      ],
+      source: mapDemoMatterToSummarySource({
+        matter,
+        documents: [
+          {
+            id: 'd1',
+            matter_id: matter.id,
+            name: 'Test',
+            category: 'Contract',
+            uploaded_at: '2026-01-01T00:00:00.000Z',
+            uploaded_by_staff_id: 'staff-1',
+            status: 'draft',
+            deletedAt: null,
+          },
+          {
+            id: 'd2',
+            matter_id: 'other-matter',
+            name: 'Other',
+            category: 'Contract',
+            uploaded_at: '2026-01-01T00:00:00.000Z',
+            uploaded_by_staff_id: 'staff-1',
+            status: 'final',
+            deletedAt: null,
+          },
+        ],
+        documentRequests: [
+          {
+            id: 'r1',
+            matter_id: matter.id,
+            title: 'Need HOA',
+            description: null,
+            category: 'Compliance',
+            requested_at: '2026-01-01T00:00:00.000Z',
+            requested_by_staff_id: 'staff-1',
+            status: 'open',
+            fulfilled_document_id: null,
+            staff_receipt_acknowledged_at: null,
+            staff_receipt_reviewed_by_staff_id: null,
+            staff_receipt_reviewed_document_id: null,
+            staff_follow_up: {
+              status: 'none' as const,
+              note: '',
+              markedById: null,
+              markedByName: null,
+              markedAt: null,
+            },
+          },
+        ],
+      }),
     })
 
     expect(payload.documents.matterDocumentCount).toBe(1)
     expect(payload.documents.byReviewStatus.draft).toBe(1)
     expect(payload.documents.byReviewStatus.final).toBe(0)
     expect(payload.documents.documentRequestsOpen).toBe(1)
+  })
+
+  it('has no @/lib/demo imports in the builder module (adapter owns demo mapping)', async () => {
+    const fs = await import('node:fs/promises')
+    const path = await import('node:path')
+    const src = await fs.readFile(
+      path.join(process.cwd(), 'lib/ai/builders/build-matter-summary-payload.ts'),
+      'utf8',
+    )
+    expect(src).not.toMatch(/@\/lib\/demo/)
   })
 })

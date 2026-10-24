@@ -27,6 +27,11 @@ export const MILESTONE_ORDER: MatterMilestoneStatus[] = [
   'contracts_signed', 'closing_date_set', 'closed',
 ]
 
+/**
+ * @deprecated Static seed narrative only. Portal UI derives milestones from live matter
+ * tasks via `buildPortalMilestoneView` in `lib/demo/portalMilestones.ts`. Kept for
+ * reference / contract docs; do not wire new UI to this array.
+ */
 export const DEMO_MILESTONE_LOGS: DemoMilestoneLog[] = [
   // matter-001 — Cleared to Close (financed residential purchase)
   { id: 'ml-001-1', matter_id: 'matter-001', status: 'instruction_received', label: 'Instruction received', logged_at: '2026-03-04T09:22:00.000Z', note: 'Fully executed FAR/BAR contract received.' },
