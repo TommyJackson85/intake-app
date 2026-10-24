@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { shouldShowDemoDevAiNav } from '@/lib/demo/demoDevNav'
 
 /* ─── Inline SVG icons (Heroicons-style, outline) ──────────────── */
 function HomeIcon() {
@@ -69,7 +70,9 @@ export function MobileTopBar({ firmName, isDemo = false }: { firmName?: string; 
         { href: '/demo/post-closing-undertakings', label: 'Post-Closing' },
         { href: '/demo/clients', label: 'Clients' },
         { href: '/demo/archive/matters', label: 'Archive' },
-        { href: '/demo/dev/ai-payloads', label: 'Dev · AI payload' },
+        ...(shouldShowDemoDevAiNav()
+          ? [{ href: '/demo/dev/ai-payloads', label: 'Dev · AI payload' }]
+          : []),
       ]
     : [
         { href: '/dashboard', label: 'Dashboard' },

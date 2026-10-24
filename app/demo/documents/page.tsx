@@ -54,6 +54,7 @@ export default function DemoDocumentsPage() {
   } = useDemoStore()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [requestOpen, setRequestOpen] = useState(false)
+  const [receiptAckError, setReceiptAckError] = useState<string | null>(null)
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null)
   const [linkRepairDocumentId, setLinkRepairDocumentId] = useState<string | null>(null)
   const [followUpRequestId, setFollowUpRequestId] = useState<string | null>(null)
@@ -144,6 +145,24 @@ export default function DemoDocumentsPage() {
       <p style={{ marginTop: 0, marginBottom: '16px', color: '#627c71' }}>
         Matter document records in demo mode (metadata only — no real files stored or downloadable).
       </p>
+
+      {receiptAckError && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: 12,
+            padding: '10px 12px',
+            borderRadius: 8,
+            border: '1px solid #f5c2c7',
+            background: '#fff5f5',
+            color: '#842029',
+            fontWeight: 700,
+            fontSize: 13,
+          }}
+        >
+          {receiptAckError}
+        </div>
+      )}
 
       <div style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
         <button
@@ -309,7 +328,16 @@ export default function DemoDocumentsPage() {
                   <td style={{ padding: '14px', verticalAlign: 'top' }}>
                     <button
                       type="button"
-                      onClick={() => acknowledgeClientUploadReceipt(item.requestId)}
+                      onClick={() => {
+                        const ok = acknowledgeClientUploadReceipt(item.requestId)
+                        if (!ok) {
+                          setReceiptAckError(
+                            'Could not record receipt review for this upload. It may already be acknowledged or is no longer eligible.',
+                          )
+                          return
+                        }
+                        setReceiptAckError(null)
+                      }}
                       style={{
                         padding: '8px 12px',
                         borderRadius: 8,
