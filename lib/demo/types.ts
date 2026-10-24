@@ -1210,8 +1210,3 @@ export type DemoPostClosingUndertakingsReview = {
   reviewedAt?: string | null
   undertakings?: DemoPostClosingUndertaking[]
 }
-
-/** @deprecated Prefer DemoPostClosingUndertakingsReview. */
-export type DemoPostClosingUndertakings = DemoPostClosingUndertakingsReview
-/** @deprecated Prefer DemoPostClosingUndertaking. */
-export type DemoPostClosingUndertakingItem = DemoPostClosingUndertaking

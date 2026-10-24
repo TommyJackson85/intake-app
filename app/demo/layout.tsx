@@ -8,6 +8,7 @@ import { MobileTopBar, MobileBottomNav } from '@/components/MobileNav'
 import { DemoPersistenceNotice } from '@/app/demo/_components/DemoPersistenceNotice'
 import { DemoResetControls } from '@/app/demo/_components/DemoResetControls'
 import Footer from '@/components/Footer'
+import { shouldShowDemoDevAiNav } from '@/lib/demo/demoDevNav'
 
 export default function DemoLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -21,8 +22,9 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
     { href: '/demo/post-closing-undertakings', label: 'Post-Closing' },
     { href: '/demo/clients', label: 'Clients' },
     { href: '/demo/archive/matters', label: 'Archive' },
-    /** Dev-only payload inspector; safe to remove when AI handoff is productionized */
-    { href: '/demo/dev/ai-payloads', label: 'Dev · AI payload' },
+    ...(shouldShowDemoDevAiNav()
+      ? [{ href: '/demo/dev/ai-payloads', label: 'Dev · AI payload' }]
+      : []),
   ]
 
   return (

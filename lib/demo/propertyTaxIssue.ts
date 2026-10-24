@@ -40,13 +40,6 @@ export const DEMO_PROPERTY_TAX_DATE_SOURCES: readonly DemoPropertyTaxDateSource[
   'unknown',
 ] as const
 
-export const DEMO_PROPERTY_TAX_ISSUE_STATUSES: readonly DemoPropertyTaxIssueStatus[] = [
-  'not_started',
-  'in_progress',
-  'needs_more_info',
-  'ready_for_attorney_review',
-] as const
-
 /** Soft urgency window (days) for UI hints only — not a statutory rule. */
 export const PROPERTY_TAX_SOFT_URGENCY_DAYS = 14
 

@@ -78,11 +78,6 @@ export function buildDefaultPostClosingUndertakingsReview(): DemoPostClosingUnde
   return { ...EMPTY_REVIEW, undertakings: [] }
 }
 
-/** @deprecated Prefer buildDefaultPostClosingUndertakingsReview. */
-export function buildDefaultPostClosingUndertakings(): DemoPostClosingUndertakingsReview {
-  return buildDefaultPostClosingUndertakingsReview()
-}
-
 export function createPostClosingUndertaking(input?: {
   id?: string
   title?: string
@@ -101,27 +96,6 @@ export function createPostClosingUndertaking(input?: {
     createdAt: nowIso,
     updatedAt: nowIso,
   }
-}
-
-/** @deprecated Prefer createPostClosingUndertaking. */
-export function buildDefaultPostClosingUndertaking(input?: {
-  id?: string
-  title?: string
-  nowIso?: string
-}): DemoPostClosingUndertaking {
-  return createPostClosingUndertaking(input)
-}
-
-/** @deprecated Prefer createPostClosingUndertaking. */
-export function buildDefaultPostClosingUndertakingItem(input?: {
-  id?: string
-  title?: string
-  description?: string
-}): DemoPostClosingUndertaking {
-  return createPostClosingUndertaking({
-    id: input?.id,
-    title: input?.title || input?.description,
-  })
 }
 
 export function updatePostClosingUndertaking(
@@ -244,13 +218,6 @@ function migrateLegacyUndertakingStatus(
     default:
       return undefined
   }
-}
-
-/** @deprecated Prefer normalizePostClosingUndertakingsReview. */
-export function normalizePostClosingUndertakings(
-  record: DemoPostClosingUndertakingsReview | null | undefined
-): DemoPostClosingUndertakingsReview {
-  return normalizePostClosingUndertakingsReview(record)
 }
 
 function emptyToNull(value: string | null | undefined): string | null {
@@ -433,20 +400,6 @@ export function getPostClosingUndertakingStatusPresentation(
         border: 'rgba(94,82,64,0.2)',
       }
   }
-}
-
-/** @deprecated Prefer postClosingUndertakingsInternalReviewStatusLabel. */
-export function postClosingUndertakingsStatusLabel(
-  value: DemoPostClosingUndertakingsInternalReviewStatus
-): string {
-  return postClosingUndertakingsInternalReviewStatusLabel(value)
-}
-
-/** @deprecated Prefer postClosingUndertakingStatusLabel. */
-export function postClosingUndertakingItemStatusLabel(
-  value: DemoPostClosingUndertakingStatus
-): string {
-  return postClosingUndertakingStatusLabel(value)
 }
 
 export function getPostClosingReviewStatusPresentation(

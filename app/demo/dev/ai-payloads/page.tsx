@@ -7,8 +7,8 @@
  * Claude draft, validate `MatterSummaryResponse` in-browser, pin/compare runs, and keep a tiny local history — all
  * without backend or main-store persistence for summaries.
  *
- * Generation: the server must set `ENABLE_DEV_AI_GENERATION=true` or the route returns 403 (`route_disabled`). See
- * `isDevAiMatterSummaryRouteEnabled` in `lib/ai/env.ts`.
+ * Generation: unavailable in production builds; otherwise the server must set `ENABLE_DEV_AI_GENERATION=true`
+ * or the route returns 403 (`route_disabled`). See `isDevAiMatterSummaryRouteEnabled` in `lib/ai/env.ts`.
  *
  * Outputs: draft / human-review only — not legal advice, not client-ready, not a substitute for recorded matter state.
  *

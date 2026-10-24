@@ -747,7 +747,3 @@ export function generateConflictCheckReviewMemoSnapshot(input: {
   if (!documentInput) return null
   return { generatedAt, content, documentInput }
 }
-
-export function conflictCheckReviewMemoRequiresLinkedMatter(lead: DemoIntakeLead): boolean {
-  return !lead.linkedMatterFileId
-}

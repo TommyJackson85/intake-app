@@ -93,8 +93,10 @@ describe('demoMattersListQuery', () => {
       }),
     })
     expect(restrictive.totalCount).toBeLessThanOrEqual(source.length)
-    expect(restrictive.page).toBe(1)
+    // View clamps an out-of-range page to pageCount (does not force 1).
+    expect(restrictive.page).toBe(restrictive.pageCount)
     expect(restrictive.page).toBeLessThanOrEqual(restrictive.pageCount)
+    expect(restrictive.page).toBeGreaterThanOrEqual(1)
   })
 
   it('does not mutate source data when filtering or sorting', () => {

@@ -48,7 +48,6 @@ import {
   appendDemoDocumentRequestIfValid,
   mergeStoredDocumentRequestsWithSeed,
   withCoercedDocumentRequestStatus,
-  acknowledgeClientUploadReceipt,
   type AddDemoDocumentRequestInput,
 } from '@/lib/demo/demoDocumentRequest'
 import {
