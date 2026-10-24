@@ -75,8 +75,9 @@ export function mapDemoMatterToSummarySource(
     matterStatusStored: matter.status,
     matterStatusDerivedFromTasks: deriveMatterStatus(matter.tasks, matter.key_dates.closing_date),
     parties: {
-      buyer: { name: matter.buyer.name, partyType: matter.buyer.type },
-      seller: { name: matter.seller.name, partyType: matter.seller.type },
+      // DemoParty.type is optional on legacy local rows — default individual (not entity).
+      buyer: { name: matter.buyer.name, partyType: matter.buyer.type ?? 'individual' },
+      seller: { name: matter.seller.name, partyType: matter.seller.type ?? 'individual' },
       displayRows: getMatterPartyDisplayRows(matter),
     },
     tasks: (matter.tasks || []).map((t) => ({
