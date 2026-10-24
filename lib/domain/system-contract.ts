@@ -160,7 +160,8 @@ export const systemContract = {
       },
       live: {
         tablesOrRoutes: ['`firms`', '`app/api/auth/*`', '`app/dashboard/*`'],
-        notes: 'Live firms are authoritative tenant keys; demo login may use dedicated demo firm flows.',
+        notes:
+          'Live firms are authoritative tenant keys. Public product demo is `/demo` (browser sandbox). `is_demo_firm` is a quarantined legacy tenant path — see docs/public-demo-sandbox.md.',
       },
       ai: {
         readable: ['Firm name, jurisdiction, public-facing contact hints when already in context'],

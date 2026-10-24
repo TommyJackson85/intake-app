@@ -1,20 +1,24 @@
 # Architecture updates: demo and developer sudo
 
-This document summarises how **demo law-firm access** and **developer sudo/impersonation** work and where they are restricted.
+This document summarises how **public demo**, **legacy demo-firm tenants**, and **developer sudo** relate.
 
-## Demo law-firm access (for lawyers)
+## Public demo sandbox (`/demo`) — current product path
 
-- **Goal**: Let prospective lawyers try the app without registering a real firm, in a safe sandbox.
+- **Goal**: Let prospective lawyers try the app without registering, in a safe browser sandbox.
 - **Mechanism**:
-  - A single **demo firm** (e.g. “Demo Conveyancing LLP”) is marked with `is_demo_firm = true` (and typically `is_test_firm = true`).
-  - A **demo lawyer** user is tied only to that firm (no `is_dev_sudo`).
-  - “Try a demo firm” on the home and sign-in pages POSTs to `/api/auth/demo-login`, which signs in as that demo lawyer using env credentials (`DEMO_LAWYER_EMAIL`, `DEMO_LAWYER_PASSWORD`).
-  - The dashboard shows a **Demo** badge and a banner: *“Demo firm – for testing only. Do not enter real client data. Data may be reset regularly.”*
-- **Restrictions**:
-  - Demo users see only the demo firm’s data (RLS and app code scope by `firm_id`). No cross-tenant access and no impersonation/sudo.
-- **Production**: Allowed. Demo is intended to be used in production and is clearly labelled.
+  - Unauthenticated routes under `app/demo/**`.
+  - `DemoProvider` (`lib/demo/store.tsx`) holds fictional seed data; selected slices persist in `localStorage`.
+  - Marketing and README link to `/demo`. Legacy `/api/auth/demo-login` and `/api/auth/use-demo-firm` **only 302 to `/demo`** (no session minting).
+- **Restrictions**: Demo UI does not call Supabase/Stripe/Mailgun for CRM writes.
+- **Canonical doc**: [public-demo-sandbox.md](./public-demo-sandbox.md).
 
-**Relevant code**: `app/api/auth/demo-login/route.ts`, “Try a demo firm” on `app/page.tsx` and `app/auth/signin/page.tsx`, demo banner and badge in `app/dashboard/layout.tsx`, `scripts/seed-demo-firm.ts`, migration `is_demo_firm` on `firms`.
+## Legacy demo law-firm tenant (`is_demo_firm`) — quarantined
+
+- **Goal (historical)**: Shared Supabase firm + demo lawyer account for dashboard “try a demo firm”.
+- **Status**: Quarantined. Do not market or wire new public CTAs to session-based demo login.
+- **Still in schema**: `firms.is_demo_firm`, optional seed via `scripts/seed-demo-firm.ts` (**requires `DEMO_LAWYER_PASSWORD` from env**).
+- **Dashboard**: Existing `is_demo_firm` banners/gating in `app/dashboard/layout.tsx` remain for leftover/internal sessions only.
+- **Details**: [demo-firm.md](./demo-firm.md).
 
 ---
 
@@ -44,14 +48,14 @@ This document summarises how **demo law-firm access** and **developer sudo/imper
 | `NODE_ENV` | Production disables sudo and (if desired) can hide dev-only UI. |
 | `ENABLE_SUDO` | Set to `'false'` in non-production to disable sudo even for `is_dev_sudo` users. |
 | `NEXT_PUBLIC_ALLOW_DEV_SIGNUP` | When `'true'` and non-production, shows “Sign up as developer” on signup (creates test firm only; does **not** set `is_dev_sudo`). |
-| `DEMO_LAWYER_EMAIL` | Email of the demo lawyer account (for demo login API and seed script). |
-| `DEMO_LAWYER_PASSWORD` | Password for the demo lawyer account. |
+| `DEMO_LAWYER_EMAIL` | Optional for **legacy** seed only (default `demo.lawyer@demo.test`). Not used by public `/demo`. |
+| `DEMO_LAWYER_PASSWORD` | Required for **legacy** `scripts/seed-demo-firm.ts`. Never hardcode or commit. Not used by public `/demo`. |
 
 ---
 
 ## Schema
 
-- **firms**: `is_demo_firm` (boolean) – identifies the shared demo sandbox firm.
+- **firms**: `is_demo_firm` (boolean) – legacy shared demo tenant marker (quarantined).
 - **profiles**: `is_dev_sudo` (boolean) – marks developer accounts that can use sudo in non-production.
 
-See `docs/sudo-and-demo-concepts.md` for the conceptual split between demo and sudo, and `docs/demo-firm-for-lawyers.md` and `docs/developer-sudo.md` for usage and setup.
+See [sudo-and-demo-concepts.md](./sudo-and-demo-concepts.md) for the conceptual split, and [public-demo-sandbox.md](./public-demo-sandbox.md) for the public path.

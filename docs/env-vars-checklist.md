@@ -1,14 +1,16 @@
 # Environment Variables Checklist
 
-For demo login to work, these must be set correctly in **Vercel** (Project → Settings → Environment Variables):
+**Public product demo (`/demo`)** does not need `DEMO_LAWYER_*` — see [public-demo-sandbox.md](./public-demo-sandbox.md).
+
+For the **authenticated app** (and optional **legacy** demo-firm seed), set these in **Vercel** (Project → Settings → Environment Variables) or `.env.local`:
 
 | Variable | Required | Notes |
 |----------|----------|-------|
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | From Supabase Dashboard → Settings → API. Format: `https://xxxxx.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | The **anon** (public) key. Used for client-side auth. |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | The **service_role** (secret) key. **Not** the anon key. Required for demo login to link the profile to the demo firm. |
-| `DEMO_LAWYER_EMAIL` | ✅ | Must match the demo lawyer user in Supabase Auth (e.g. `demo.lawyer@demo.test`). |
-| `DEMO_LAWYER_PASSWORD` | ✅ | Must match the demo lawyer's password. |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ for server/admin | The **service_role** (secret) key. **Not** the anon key. Needed for seed scripts and privileged server routes. |
+| `DEMO_LAWYER_EMAIL` | Legacy seed only | Optional; defaults to `demo.lawyer@demo.test` in `scripts/seed-demo-firm.ts`. |
+| `DEMO_LAWYER_PASSWORD` | Legacy seed only | **Required** to run `scripts/seed-demo-firm.ts`. Never commit. Not used by `/demo`. |
 | `ENABLE_SUDO` | Optional | In non-production, set to `'false'` to disable developer sudo (impersonation, test email). |
 | `ENABLE_PROD_IMPERSONATION` | Optional | In production, set to `'true'` to enable impersonation for support/debug (GDPR trade-off). Default: disabled. |
 | `MAILGUN_API_KEY` | For email | **US:** Private API key (Dashboard → Settings → API Keys). **EU:** Must use a **Domain Sending Key** (Dashboard → Sending → your domain → Sending API keys → Add key). The account Private API key does not work with the EU endpoint. |
@@ -40,6 +42,6 @@ If you use an **EU domain** and get `401 Unauthorized` / `Forbidden`:
 
 ## Verify
 
-- Demo firm exists: Run `supabase/seed-demo-firm.sql` in Supabase SQL Editor.
-- Demo lawyer exists: Create in Supabase Auth or run `npx ts-node scripts/seed-demo-firm.ts`.
+- **Public demo:** Open `/demo` — no `DEMO_LAWYER_*` required.
+- **Legacy demo firm (internal only):** Run `supabase/seed-demo-firm.sql` then `DEMO_LAWYER_PASSWORD=… npx ts-node scripts/seed-demo-firm.ts`.
 - After changing env vars in Vercel, **redeploy** for changes to take effect.

@@ -8,6 +8,10 @@ Next.js application.
 [Live application](https://intake-app-dun.vercel.app/) ·
 [Interactive demo](https://intake-app-dun.vercel.app/demo)
 
+The interactive demo is the unauthenticated browser sandbox at **`/demo`** (no login, fictional
+data in the browser). See [`docs/public-demo-sandbox.md`](docs/public-demo-sandbox.md). A legacy
+Supabase `is_demo_firm` tenant is quarantined and is not the public prospect path.
+
 ## Local development
 
 Install dependencies and start the development server:

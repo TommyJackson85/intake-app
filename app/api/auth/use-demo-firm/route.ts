@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server'
 
+/**
+ * Legacy “use demo firm” endpoint — quarantined.
+ *
+ * Historically linked a logged-in profile to the shared `is_demo_firm` tenant.
+ * Public product demo is now `/demo` (docs/public-demo-sandbox.md). Compatibility
+ * redirect only — do not restore firm-linking without an explicit product decision.
+ */
 export async function POST(request: Request) {
-  // Legacy endpoint kept for backward compatibility.
-  // Public demo is now fully client-side and in-memory at /demo.
   return NextResponse.redirect(new URL('/demo', request.url), 302)
 }
 
 export async function GET(request: Request) {
-  // Redirect GET requests (e.g. bookmarks, direct navigation) to the demo page
-  // instead of returning a 405 which browsers download as a file.
   return NextResponse.redirect(new URL('/demo', request.url), 302)
 }

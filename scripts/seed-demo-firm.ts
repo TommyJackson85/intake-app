@@ -1,6 +1,10 @@
 /**
- * Seed the demo law firm "Demo Conveyancing LLP" with demo data.
- * Run: npx ts-node scripts/seed-demo-firm.ts
+ * Seed the **legacy** Supabase demo law firm "Demo Conveyancing LLP" (is_demo_firm).
+ *
+ * Quarantined / internal QA only. Public product demo is the browser sandbox at `/demo`
+ * (see docs/public-demo-sandbox.md). Do not use this script to power marketing CTAs.
+ *
+ * Run: DEMO_LAWYER_PASSWORD='…' npx ts-node scripts/seed-demo-firm.ts
  *
  * Loads .env.local or .env from project root automatically.
  */
@@ -26,11 +30,22 @@ const admin = createClient<Database>(url, key)
 
 const DEMO_FIRM_NAME = 'Demo Conveyancing LLP'
 const DEMO_FIRM_STATE = 'FL'
-const DEMO_LAWYER_EMAIL = 'demo.lawyer@demo.test'
-const DEMO_LAWYER_PASSWORD = 'DemoLawyer2025!' // Change in production or use env
+/** Non-secret default email for the legacy demo lawyer Auth user. */
+const DEMO_LAWYER_EMAIL = (process.env.DEMO_LAWYER_EMAIL || 'demo.lawyer@demo.test').trim()
+/**
+ * Required from env — never hardcode. Used only for this legacy seed / internal tenant.
+ * Public `/demo` does not need this variable.
+ */
+const DEMO_LAWYER_PASSWORD = (process.env.DEMO_LAWYER_PASSWORD || '').trim()
 
 async function seedDemoFirm() {
-  console.log('[seed-demo-firm] Starting…')
+  if (!DEMO_LAWYER_PASSWORD) {
+    console.error('[seed-demo-firm] DEMO_LAWYER_PASSWORD is required (set in .env.local).')
+    console.error('  There is no hardcoded default. Public prospect demo is /demo and does not use this script.')
+    process.exit(1)
+  }
+
+  console.log('[seed-demo-firm] Starting (legacy is_demo_firm tenant)…')
 
   // 1) Create or find demo firm via RPC (bypasses RLS)
   let firmId: string
@@ -182,13 +197,11 @@ async function seedDemoFirm() {
 
   console.log('[seed-demo-firm] Done.')
   console.log('')
-  console.log('Demo lawyer credentials:')
+  console.log('Legacy demo lawyer Auth user:')
   console.log('  Email:', DEMO_LAWYER_EMAIL)
-  console.log('  Password:', DEMO_LAWYER_PASSWORD)
+  console.log('  Password: (from DEMO_LAWYER_PASSWORD — not printed)')
   console.log('')
-  console.log('Set in .env for demo login API:')
-  console.log('  DEMO_LAWYER_EMAIL=' + DEMO_LAWYER_EMAIL)
-  console.log('  DEMO_LAWYER_PASSWORD=' + DEMO_LAWYER_PASSWORD)
+  console.log('Note: Public CTAs should use /demo. demo-login / use-demo-firm only redirect there.')
 }
 
 seedDemoFirm().catch((e) => {
