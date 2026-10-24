@@ -1878,22 +1878,32 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         return succeeded
       },
       acknowledgeClientUploadReceipt: (requestId) => {
-        let succeeded = false
+        // Compute eligibility against current state first so the boolean return is not a
+        // setState updater side effect (Strict Mode may double-invoke updaters).
+        const staffId = state.staff[0]?.id ?? ''
+        const request = state.documentRequests.find((r) => r.id === requestId)
+        const documentId = request?.fulfilled_document_id ?? ''
+        const preview = recordDocumentRequestReceiptReview(
+          state.matters,
+          state.documents,
+          state.documentRequests,
+          { requestId, documentId, staffId },
+        )
+        if (preview === state.documentRequests) return false
         setState((prev) => {
-          const staffId = prev.staff[0]?.id ?? ''
-          const request = prev.documentRequests.find((r) => r.id === requestId)
-          const documentId = request?.fulfilled_document_id ?? ''
+          const nextStaffId = prev.staff[0]?.id ?? ''
+          const nextRequest = prev.documentRequests.find((r) => r.id === requestId)
+          const nextDocumentId = nextRequest?.fulfilled_document_id ?? ''
           const documentRequests = recordDocumentRequestReceiptReview(
             prev.matters,
             prev.documents,
             prev.documentRequests,
-            { requestId, documentId, staffId },
+            { requestId, documentId: nextDocumentId, staffId: nextStaffId },
           )
           if (documentRequests === prev.documentRequests) return prev
-          succeeded = true
           return { ...prev, documentRequests }
         })
-        return succeeded
+        return true
       },
       recordDocumentRequestReceiptReview: (requestId, documentId) => {
         let succeeded = false
